@@ -24,6 +24,7 @@ cd "${REPO_ROOT}"
 
 echo "*** Running go-apidiff ***"
 APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" 
+echo "Make apidiff"
 APIDIFF=$(make apidiff)
 
 echo "APIDIFF"
