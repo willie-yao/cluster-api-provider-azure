@@ -23,12 +23,13 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}"
 
 echo "*** Running go-apidiff ***"
-APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" make apidiff
+APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" 
+APIDIFF=$(make apidiff)
 
-echo "APIDIFF OLD COMMIT"
-echo "${APIDIFF_OLD_COMMIT}"
-DIFF_DIRECTORIES=${APIDIFF_OLD_COMMIT#REPO_ROOT}
-echo DIFF_DIRECTORIES
+echo "APIDIFF"
+echo "${APIDIFF}"
+DIFF_DIRECTORIES=${APIDIFF#REPO_ROOT}
+echo "DIFF_DIRECTORIES"
 echo "${DIFF_DIRECTORIES}"
 if [[ "${DIFF_DIRECTORIES}" == "/api*" ]]; then
   echo "${APIDIFF_OUTPUT}"
