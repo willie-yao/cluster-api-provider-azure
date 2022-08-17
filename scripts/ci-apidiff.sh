@@ -23,9 +23,7 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}"
 
 echo "*** Running go-apidiff ***"
-APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" 
-echo "Make apidiff"
-APIDIFF=$(make apidiff)
+APIDIFF=$(APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" make apidiff)
 
 echo "APIDIFF"
 echo "${APIDIFF}"
