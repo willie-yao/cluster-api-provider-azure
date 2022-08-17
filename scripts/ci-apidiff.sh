@@ -27,7 +27,7 @@ echo "${APICHANGE}"
 
 # grep "^api/\|/api/" "${APICHANGE}"
 
-if echo "${APICHANGE}" | grep "^api/\|/api/" 
+if echo $(git --no-pager diff --name-only FETCH_HEAD) | grep "^api/\|/api/" 
 then
     echo "*** Running go-apidiff ***"
     APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}"
