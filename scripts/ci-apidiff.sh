@@ -20,20 +20,18 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
-cd "${REPO_ROOT}"
-APICHANGE=$(git --no-pager diff --name-only FETCH_HEAD)
+APIDIFF="${REPO_ROOT}/hack/tools/bin/go-apidiff"
 
-echo "Printing APIChange"
-echo "${APICHANGE}"
+cd "${REPO_ROOT}" && make "${APIDIFF##*/}"
+echo "*** Running go-apidiff ***"
 
-echo "Printing if statement contents"
-echo "${APICHANGE}" | grep "^api/\|/api/" 
-
-if echo "${APICHANGE}" | grep "^api/\|/api/" 
-then
-    echo "*** Running go-apidiff ***"
-    APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}"
-    make apidiff
-else
-    echo "No files under api/ or exp/api/ changed."
+APIDIFF_OUTPUT=$(${APIDIFF} "${PULL_BASE_SHA}" --print-compatible)
+echo "APIDIFF OUTPUT"
+echo "${APIDIFF_OUTPUT}"
+DIFF_DIRECTORIES=${APIDIFF_OUTPUT#REPO_ROOT}
+echo DIFF_DIRECTORIES
+echo "${DIFF_DIRECTORIES}"
+if [[ "${DIFF_DIRECTORIES}" == "/api*" ]]; then
+  echo "${APIDIFF_OUTPUT}"
+  exit 1
 fi
