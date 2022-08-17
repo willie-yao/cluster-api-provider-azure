@@ -23,11 +23,13 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}"
 APICHANGE=$(git --no-pager diff --name-only FETCH_HEAD)
 
+echo "Printing APIChange"
 echo "${APICHANGE}"
 
-# grep "^api/\|/api/" "${APICHANGE}"
+echo "Printing if statement contents"
+echo "${APICHANGE}" | grep "^api/\|/api/" 
 
-if echo $(git --no-pager diff --name-only FETCH_HEAD) | grep "^api/\|/api/" 
+if echo "${APICHANGE}" | grep "^api/\|/api/" 
 then
     echo "*** Running go-apidiff ***"
     APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}"
