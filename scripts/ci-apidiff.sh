@@ -14,21 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
-set -o nounset
-set -o pipefail
+# set -o errexit
+# set -o nounset
+# set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
-APIDIFF="${REPO_ROOT}/hack/tools/bin/go-apidiff"
+cd "${REPO_ROOT}"
 
-cd "${REPO_ROOT}" && make "${APIDIFF##*/}"
 echo "*** Running go-apidiff ***"
+APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" make apidiff
 
-APIDIFF_OUTPUT=$(${APIDIFF} "${PULL_BASE_SHA}" --print-compatible)
-echo "APIDIFF OUTPUT"
-echo "${APIDIFF_OUTPUT}"
-DIFF_DIRECTORIES=${APIDIFF_OUTPUT#REPO_ROOT}
+echo "APIDIFF OLD COMMIT"
+echo "${APIDIFF_OLD_COMMIT}"
+DIFF_DIRECTORIES=${APIDIFF_OLD_COMMIT#REPO_ROOT}
 echo DIFF_DIRECTORIES
 echo "${DIFF_DIRECTORIES}"
 if [[ "${DIFF_DIRECTORIES}" == "/api*" ]]; then
