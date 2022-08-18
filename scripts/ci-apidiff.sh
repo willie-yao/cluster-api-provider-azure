@@ -23,12 +23,12 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}"
 
 echo "*** Running go-apidiff ***"
-APIDIFF=$(APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" make apidiff)
+APIDIFF=$(APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" make apidiff 2> /dev/null)
 
 echo "APIDIFF"
 echo "${APIDIFF}"
 
 if [[ "${APIDIFF}" == *"sigs.k8s.io/cluster-api-provider-azure/api/"* ]] || [["${APIDIFF}" == *"sigs.k8s.io/cluster-api-provider-azure/exp/api/"* ]]; then
-  echo "API diff detected"
+  echo "${APIDIFF}"
   exit 1
 fi
