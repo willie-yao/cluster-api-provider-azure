@@ -27,10 +27,8 @@ APIDIFF=$(APIDIFF_OLD_COMMIT="${PULL_BASE_SHA}" make apidiff)
 
 echo "APIDIFF"
 echo "${APIDIFF}"
-DIFF_DIRECTORIES=${APIDIFF#REPO_ROOT}
-echo "DIFF_DIRECTORIES"
-echo "${DIFF_DIRECTORIES}"
-if [[ "${DIFF_DIRECTORIES}" == "/api*" ]]; then
-  echo "${APIDIFF_OUTPUT}"
+
+if [[ "${APIDIFF}" == *"sigs.k8s.io/cluster-api-provider-azure/api/"*]] || [["${APIDIFF}" == *"sigs.k8s.io/cluster-api-provider-azure/exp/api/"*]]; then
+  echo "API diff detected"
   exit 1
 fi
