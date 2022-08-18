@@ -336,9 +336,9 @@ type Image struct {
 	// +optional
 	Marketplace *AzureMarketplaceImage `json:"marketplace,omitempty"`
 
-	// ImageGallery specifies an image to use from the Azure Compute Gallery
+	// ComputeGallery specifies an image to use from the Azure Compute Gallery
 	// +optional
-	ImageGallery *AzureComputeGalleryImage `json:"computeGallery,omitempty"`
+	ComputeGallery *AzureComputeGalleryImage `json:"computeGallery,omitempty"`
 }
 
 // AzureComputeGalleryImage defines an image in the Azure Compute Gallery to use for VM creation.

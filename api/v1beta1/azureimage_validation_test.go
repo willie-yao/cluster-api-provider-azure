@@ -187,7 +187,7 @@ func TestImageByIDValid(t *testing.T) {
 
 func createTestComputeImage(subscriptionID, resourceGroup *string) *Image {
 	return &Image{
-		ImageGallery: &AzureComputeGalleryImage{
+		ComputeGallery: &AzureComputeGalleryImage{
 			Name:           "IMAGENAME",
 			Gallery:        "GALLERY9876",
 			Version:        "1.0.0",

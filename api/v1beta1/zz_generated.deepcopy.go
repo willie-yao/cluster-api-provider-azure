@@ -1097,8 +1097,8 @@ func (in *Image) DeepCopyInto(out *Image) {
 		*out = new(AzureMarketplaceImage)
 		**out = **in
 	}
-	if in.ImageGallery != nil {
-		in, out := &in.ImageGallery, &out.ImageGallery
+	if in.ComputeGallery != nil {
+		in, out := &in.ComputeGallery, &out.ComputeGallery
 		*out = new(AzureComputeGalleryImage)
 		(*in).DeepCopyInto(*out)
 	}
