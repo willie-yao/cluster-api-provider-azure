@@ -68,9 +68,14 @@ func (k AzureLogCollector) CollectMachineLog(ctx context.Context, managementClus
 		return err
 	}
 
+	azureCluster, err := getAzureCluster(ctx, managementClusterClient, cluster.Namespace, cluster.Name)
+	if err != nil {
+		return err
+	}
+
 	hostname := getHostname(m, isAzureMachineWindows(am))
 
-	if err := collectLogsFromNode(cluster, hostname, isAzureMachineWindows(am), outputPath); err != nil {
+	if err := collectLogsFromNode(cluster, azureCluster, hostname, isAzureMachineWindows(am), outputPath); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -105,11 +110,16 @@ func (k AzureLogCollector) CollectMachinePoolLog(ctx context.Context, management
 		return err
 	}
 
+	azureCluster, err := getAzureCluster(ctx, managementClusterClient, cluster.Namespace, cluster.Name)
+	if err != nil {
+		return err
+	}
+
 	for i, instance := range mp.Spec.ProviderIDList {
 		if mp.Status.NodeRefs != nil && len(mp.Status.NodeRefs) >= (i+1) {
 			hostname := mp.Status.NodeRefs[i].Name
 
-			if err := collectLogsFromNode(cluster, hostname, isWindows, filepath.Join(outputPath, hostname)); err != nil {
+			if err := collectLogsFromNode(cluster, azureCluster, hostname, isWindows, filepath.Join(outputPath, hostname)); err != nil {
 				errs = append(errs, err)
 			}
 
@@ -126,14 +136,15 @@ func (k AzureLogCollector) CollectMachinePoolLog(ctx context.Context, management
 }
 
 // collectLogsFromNode collects logs from various sources by ssh'ing into the node
-func collectLogsFromNode(cluster *clusterv1.Cluster, hostname string, isWindows bool, outputPath string) error {
+func collectLogsFromNode(cluster *clusterv1.Cluster, azureCluster *infrav1.AzureCluster, hostname string, isWindows bool, outputPath string) error {
 	nodeOSType := azure.LinuxOS
 	if isWindows {
 		nodeOSType = azure.WindowsOS
 	}
 	Logf("Collecting logs for %s node %s in cluster %s in namespace %s\n", nodeOSType, hostname, cluster.Name, cluster.Namespace)
 
-	controlPlaneEndpoint := cluster.Spec.ControlPlaneEndpoint.Host
+	// controlPlaneEndpoint := cluster.Spec.ControlPlaneEndpoint.Host
+	controlPlaneEndpoint := azureCluster.Spec.BastionSpec.AzureBastion.PublicIP.Name
 
 	execToPathFn := func(outputFileName, command string, args ...string) func() error {
 		return func() error {

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2021-02-01/network"
+	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2021-08-01/network"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -80,6 +80,9 @@ func (s *AzureBastionSpec) Parameters(existing interface{}) (parameters interfac
 			Name:        to.StringPtr(s.Name),
 			Role:        to.StringPtr("Bastion"),
 		})),
+		Sku: &network.Sku{
+			Name: network.BastionHostSkuNameStandard,
+		},
 		BastionHostPropertiesFormat: &network.BastionHostPropertiesFormat{
 			DNSName: to.StringPtr(fmt.Sprintf("%s-bastion", strings.ToLower(s.Name))),
 			IPConfigurations: &[]network.BastionHostIPConfiguration{
@@ -96,6 +99,7 @@ func (s *AzureBastionSpec) Parameters(existing interface{}) (parameters interfac
 					},
 				},
 			},
+			EnableTunneling: to.BoolPtr(true),
 		},
 	}, nil
 }
