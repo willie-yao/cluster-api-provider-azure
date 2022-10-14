@@ -29,6 +29,7 @@ import (
 	v1beta1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	azure "sigs.k8s.io/cluster-api-provider-azure/azure"
 	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // MockVMScope is a mock of VMScope interface.
@@ -222,6 +223,12 @@ func (m *MockVMScope) SetVMState(arg0 v1beta1.ProvisioningState) {
 func (mr *MockVMScopeMockRecorder) SetVMState(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetVMState", reflect.TypeOf((*MockVMScope)(nil).SetVMState), arg0)
+}
+
+// SetCondition sets the specified AzureMachine condition to true.
+func (m *MockVMScope) SetConditionTrue(arg0 clusterv1.ConditionType) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetConditionTrue", arg0)
 }
 
 // SubscriptionID mocks base method.

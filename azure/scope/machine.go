@@ -530,7 +530,7 @@ func (m *MachineScope) SetFailureReason(v capierrors.MachineStatusError) {
 	m.AzureMachine.Status.FailureReason = &v
 }
 
-// SetCondition sets the AzureMachine condition.
+// SetCondition sets the specified AzureMachine condition to true.
 func (m *MachineScope) SetConditionTrue(conditionType clusterv1.ConditionType) {
 	conditions.MarkTrue(m.AzureMachine, conditionType)
 }

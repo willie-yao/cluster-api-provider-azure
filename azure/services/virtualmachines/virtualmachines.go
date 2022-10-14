@@ -18,6 +18,7 @@ package virtualmachines
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2021-11-01/compute"
@@ -119,9 +120,11 @@ func (s *Service) Reconcile(ctx context.Context) error {
 			return errors.Wrap(err, "failed to get parameters")
 		}
 		expectedIdentities := parameters.([]infrav1.UserAssignedIdentity)
+		fmt.Printf("expectedIdentities: %v", expectedIdentities)
 		// Check if any userAssignedIdentities are missing from the VM and set a condition if so
 		if !compareUserAssignedIdentities(expectedIdentities, infraVM.UserAssignedIdentities) {
 			// Set the vm condition to unhealthy
+			fmt.Println("Setting VM condition to unhealthy")
 			s.Scope.SetConditionTrue(infrav1.VMUnhealthyReason)
 		}
 	}

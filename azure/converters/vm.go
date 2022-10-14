@@ -65,10 +65,12 @@ func SDKToVM(v compute.VirtualMachine) *VM {
 		vm.Tags = MapToTags(v.Tags)
 	}
 
-	for _, identity := range v.Identity.UserAssignedIdentities {
-		vm.UserAssignedIdentities = append(vm.UserAssignedIdentities, infrav1.UserAssignedIdentity{
-			ProviderID: *identity.ClientID,
-		})
+	if v.Identity != nil {
+		for _, identity := range v.Identity.UserAssignedIdentities {
+			vm.UserAssignedIdentities = append(vm.UserAssignedIdentities, infrav1.UserAssignedIdentity{
+				ProviderID: *identity.ClientID,
+			})
+		}
 	}
 
 	return vm
