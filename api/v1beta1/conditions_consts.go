@@ -38,6 +38,8 @@ const (
 	VMDeletingReason = "VMDeleting"
 	// VMProvisionFailedReason used for failures during vm provisioning.
 	VMProvisionFailedReason = "VMProvisionFailed"
+	// VMUnhealthyReason used when the vm is in an unhealthy state.
+	VMUnhealthyReason = "VMUnhealthy"
 	// WaitingForClusterInfrastructureReason used when machine is waiting for cluster infrastructure to be ready before proceeding.
 	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
 	// WaitingForBootstrapDataReason used when machine is waiting for bootstrap data to be ready before proceeding.

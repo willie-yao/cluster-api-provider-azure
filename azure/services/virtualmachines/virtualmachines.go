@@ -34,6 +34,7 @@ import (
 	azureutil "sigs.k8s.io/cluster-api-provider-azure/util/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const serviceName = "virtualmachine"
@@ -47,6 +48,7 @@ type VMScope interface {
 	SetProviderID(string)
 	SetAddresses([]corev1.NodeAddress)
 	SetVMState(infrav1.ProvisioningState)
+	SetConditionTrue(clusterv1.ConditionType)
 }
 
 // Service provides operations on Azure resources.
@@ -111,6 +113,17 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		}
 		s.Scope.SetAddresses(addresses)
 		s.Scope.SetVMState(infraVM.State)
+
+		parameters, err := vmSpec.Parameters(nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to get parameters")
+		}
+		expectedIdentities := parameters.([]infrav1.UserAssignedIdentity)
+		// Check if any userAssignedIdentities are missing from the VM and set a condition if so
+		if !compareUserAssignedIdentities(expectedIdentities, infraVM.UserAssignedIdentities) {
+			// Set the vm condition to unhealthy
+			s.Scope.SetConditionTrue(infrav1.VMUnhealthyReason)
+		}
 	}
 	return err
 }
@@ -241,4 +254,27 @@ func getResourceNameByID(resourceID string) string {
 // IsManaged returns always returns true as CAPZ does not support BYO VM.
 func (s *Service) IsManaged(ctx context.Context) (bool, error) {
 	return true, nil
+}
+
+// Compare two lists of UserAssignedIdentities and return true if they are equal regardless of order.
+func compareUserAssignedIdentities(x, y []infrav1.UserAssignedIdentity) bool {
+	if len(x) != len(y) {
+		return false
+	}
+	// create a map of infrav1.UserAssignedIdentity -> int
+	diff := make(map[infrav1.UserAssignedIdentity]int, len(x))
+	for _, _x := range x {
+		diff[_x]++
+	}
+	for _, _y := range y {
+		// If the identity _y is not in diff bail out early
+		if _, ok := diff[_y]; !ok {
+			return false
+		}
+		diff[_y] -= 1
+		if diff[_y] == 0 {
+			delete(diff, _y)
+		}
+	}
+	return len(diff) == 0
 }
