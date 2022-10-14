@@ -115,14 +115,17 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		s.Scope.SetAddresses(addresses)
 		s.Scope.SetVMState(infraVM.State)
 
-		parameters, err := vmSpec.Parameters(nil)
-		if err != nil {
-			return errors.Wrap(err, "failed to get parameters")
+		// parameters, err := vmSpec.Parameters(compute.VirtualMachine{Identity: vm.Identity})
+		// if err != nil {
+		// 	return errors.Wrap(err, "failed to get parameters")
+		// }
+		spec, ok := vmSpec.(*VMSpec)
+		if !ok {
+			return errors.New("invalid VM spec")
 		}
-		expectedIdentities := parameters.([]infrav1.UserAssignedIdentity)
-		fmt.Printf("expectedIdentities: %v", expectedIdentities)
+		fmt.Printf("expectedIdentities: %v", spec.UserAssignedIdentities)
 		// Check if any userAssignedIdentities are missing from the VM and set a condition if so
-		if !compareUserAssignedIdentities(expectedIdentities, infraVM.UserAssignedIdentities) {
+		if !compareUserAssignedIdentities(spec.UserAssignedIdentities, infraVM.UserAssignedIdentities) {
 			// Set the vm condition to unhealthy
 			fmt.Println("Setting VM condition to unhealthy")
 			s.Scope.SetConditionTrue(infrav1.VMUnhealthyReason)
