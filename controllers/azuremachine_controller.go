@@ -284,6 +284,19 @@ func (amr *AzureMachineReconciler) reconcileNormal(ctx context.Context, machineS
 		return reconcile.Result{}, errors.Wrap(err, "failed to init machine scope cache")
 	}
 
+	// Trigger a MachineHealthCheck to remediate unhealthy nodes.
+	cond := conditions.Get(machineScope.AzureMachine, infrav1.VMUnhealthyCondition)
+	if cond != nil && cond.Status == corev1.ConditionTrue {
+		fmt.Println("VM is unhealthy, triggering a remediation")
+		amr.Recorder.Eventf(machineScope.AzureMachine, corev1.EventTypeWarning, "VMUnhealthy", "VM is unhealthy")
+		conditions.MarkFalse(machineScope.AzureMachine, infrav1.VMUnhealthyCondition, "VMUnhealthy", clusterv1.ConditionSeverityWarning, "")
+		machineScope.SetFailureReason(capierrors.UnsupportedChangeMachineError)
+		machineScope.SetFailureMessage(errors.New("VM is unhealthy"))
+		machineScope.SetNotReady()
+		// machineScope.SetVMState(infrav1.Deleted)
+		return reconcile.Result{}, nil
+	}
+
 	ams, err := amr.createAzureMachineService(machineScope)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to create azure machine service")

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/converters"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/async"
+	"sigs.k8s.io/cluster-api-provider-azure/azure/services/identities"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/networkinterfaces"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/publicips"
 	azureutil "sigs.k8s.io/cluster-api-provider-azure/util/azure"
@@ -115,20 +116,31 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		s.Scope.SetAddresses(addresses)
 		s.Scope.SetVMState(infraVM.State)
 
-		// parameters, err := vmSpec.Parameters(compute.VirtualMachine{Identity: vm.Identity})
-		// if err != nil {
-		// 	return errors.Wrap(err, "failed to get parameters")
-		// }
 		spec, ok := vmSpec.(*VMSpec)
 		if !ok {
 			return errors.New("invalid VM spec")
 		}
-		fmt.Printf("expectedIdentities: %v", spec.UserAssignedIdentities)
+		idsClient := identities.NewClient(s.Scope)
+
 		// Check if any userAssignedIdentities are missing from the VM and set a condition if so
-		if !compareUserAssignedIdentities(spec.UserAssignedIdentities, infraVM.UserAssignedIdentities) {
-			// Set the vm condition to unhealthy
-			fmt.Println("Setting VM condition to unhealthy")
-			s.Scope.SetConditionTrue(infrav1.VMUnhealthyReason)
+		for _, expectedIdentity := range spec.UserAssignedIdentities {
+			expectedClientID, err := idsClient.GetClientID(ctx, expectedIdentity.ProviderID)
+			if err != nil {
+				return errors.Wrap(err, "failed to get client ID")
+			}
+			fmt.Printf("expectedClientID: %v\n", expectedClientID)
+			found := false
+			for _, actualIdentity := range infraVM.UserAssignedIdentities {
+				fmt.Printf("actualIdentity: %v\n", actualIdentity.ProviderID)
+				if expectedClientID == actualIdentity.ProviderID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				fmt.Printf("Setting VM condition to unhealthy\n")
+				s.Scope.SetConditionTrue(infrav1.VMUnhealthyCondition)
+			}
 		}
 	}
 	return err

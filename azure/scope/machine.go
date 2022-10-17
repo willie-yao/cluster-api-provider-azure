@@ -610,6 +610,7 @@ func (m *MachineScope) PatchObject(ctx context.Context) error {
 			infrav1.VMRunningCondition,
 			infrav1.AvailabilitySetReadyCondition,
 			infrav1.NetworkInterfaceReadyCondition,
+			infrav1.VMUnhealthyCondition,
 		}})
 }
 
