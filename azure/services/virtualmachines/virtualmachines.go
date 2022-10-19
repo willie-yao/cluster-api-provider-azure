@@ -51,6 +51,7 @@ type VMScope interface {
 	SetAddresses([]corev1.NodeAddress)
 	SetVMState(infrav1.ProvisioningState)
 	SetConditionTrue(clusterv1.ConditionType)
+	SetConditionFalse(clusterv1.ConditionType, string, clusterv1.ConditionSeverity, string)
 }
 
 // Service provides operations on Azure resources.
@@ -122,6 +123,8 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		}
 		idsClient := identities.NewClient(s.Scope)
 
+		fmt.Printf("Checking identities for machine: %s", spec.Name)
+
 		// Check if any userAssignedIdentities are missing from the VM and set a condition if so
 		for _, expectedIdentity := range spec.UserAssignedIdentities {
 			expectedClientID, err := idsClient.GetClientID(ctx, expectedIdentity.ProviderID)
@@ -133,13 +136,14 @@ func (s *Service) Reconcile(ctx context.Context) error {
 			for _, actualIdentity := range infraVM.UserAssignedIdentities {
 				fmt.Printf("actualIdentity: %v\n", actualIdentity.ProviderID)
 				if expectedClientID == actualIdentity.ProviderID {
+					fmt.Printf("Found expected identity: %v\n", expectedClientID)
 					found = true
 					break
 				}
 			}
 			if !found {
 				fmt.Printf("Setting VM condition to unhealthy\n")
-				s.Scope.SetConditionTrue(infrav1.VMUnhealthyCondition)
+				s.Scope.SetConditionFalse(infrav1.VMRunningCondition, infrav1.VMUnhealthyReason, clusterv1.ConditionSeverityWarning, "VM is missing expected user assigned identity")
 			}
 		}
 	}

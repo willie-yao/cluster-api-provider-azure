@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -530,9 +531,18 @@ func (m *MachineScope) SetFailureReason(v capierrors.MachineStatusError) {
 	m.AzureMachine.Status.FailureReason = &v
 }
 
-// SetCondition sets the specified AzureMachine condition to true.
+// SetConditionTrue sets the specified AzureMachine condition to true.
 func (m *MachineScope) SetConditionTrue(conditionType clusterv1.ConditionType) {
+	fmt.Printf("Setting condition %s to true\n", conditionType)
 	conditions.MarkTrue(m.AzureMachine, conditionType)
+	// conditions.MarkTrue(m.Machine, conditionType)
+}
+
+// SetConditionFalse sets the specified AzureMachine condition to false.
+func (m *MachineScope) SetConditionFalse(conditionType clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, message string) {
+	fmt.Printf("Setting condition %s to false\n", conditionType)
+	conditions.MarkFalse(m.AzureMachine, conditionType, reason, severity, message)
+	// conditions.MarkFalse(m.Machine, conditionType, reason, severity, message)
 }
 
 // SetBootstrapConditions sets the AzureMachine BootstrapSucceeded condition based on the extension provisioning states.
@@ -610,7 +620,6 @@ func (m *MachineScope) PatchObject(ctx context.Context) error {
 			infrav1.VMRunningCondition,
 			infrav1.AvailabilitySetReadyCondition,
 			infrav1.NetworkInterfaceReadyCondition,
-			infrav1.VMUnhealthyCondition,
 		}})
 }
 

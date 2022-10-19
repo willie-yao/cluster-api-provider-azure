@@ -231,6 +231,12 @@ func (m *MockVMScope) SetConditionTrue(arg0 clusterv1.ConditionType) {
 	m.ctrl.Call(m, "SetConditionTrue", arg0)
 }
 
+// SetConditionFalse sets the specified AzureMachine condition to false.
+func (m *MockVMScope) SetConditionFalse(arg0 clusterv1.ConditionType, arg1 string, arg2 clusterv1.ConditionSeverity, arg3 string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetConditionFalse", arg0, arg1, arg2, arg3)
+}
+
 // SubscriptionID mocks base method.
 func (m *MockVMScope) SubscriptionID() string {
 	m.ctrl.T.Helper()

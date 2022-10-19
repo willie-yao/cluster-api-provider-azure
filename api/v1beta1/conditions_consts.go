@@ -30,8 +30,6 @@ const (
 const (
 	// VMRunningCondition reports on current status of the Azure VM.
 	VMRunningCondition clusterv1.ConditionType = "VMRunning"
-	// VMUnhealthyCondition reports on current health status of the Azure VM.
-	VMUnhealthyCondition clusterv1.ConditionType = "VMUnhealthy"
 	// VMCreatingReason used when the vm creation is in progress.
 	VMCreatingReason = "VMCreating"
 	// VMUpdatingReason used when the vm updating is in progress.
@@ -40,6 +38,8 @@ const (
 	VMDeletingReason = "VMDeleting"
 	// VMProvisionFailedReason used for failures during vm provisioning.
 	VMProvisionFailedReason = "VMProvisionFailed"
+	// VMUnhealthyReason used for failures when the VM is in an unhealthy state.
+	VMUnhealthyReason = "VMUnhealthy"
 	// WaitingForClusterInfrastructureReason used when machine is waiting for cluster infrastructure to be ready before proceeding.
 	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
 	// WaitingForBootstrapDataReason used when machine is waiting for bootstrap data to be ready before proceeding.
