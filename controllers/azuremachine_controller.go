@@ -285,17 +285,15 @@ func (amr *AzureMachineReconciler) reconcileNormal(ctx context.Context, machineS
 	}
 
 	// Trigger a MachineHealthCheck to remediate unhealthy nodes.
-	// cond := conditions.Get(machineScope.AzureMachine, infrav1.VMRunningCondition)
-	// if cond != nil && cond.Status == corev1.ConditionTrue && cond.Reason == infrav1.VMUnhealthyReason {
-	// 	fmt.Println("VM is unhealthy, triggering a remediation")
-	// 	amr.Recorder.Eventf(machineScope.AzureMachine, corev1.EventTypeWarning, "VMUnhealthy", "VM is unhealthy")
-	// 	// conditions.MarkFalse(machineScope.AzureMachine, infrav1.VMUnhealthyCondition, "VMUnhealthy", clusterv1.ConditionSeverityWarning, "")
-	// 	machineScope.SetFailureReason(capierrors.UnsupportedChangeMachineError)
-	// 	machineScope.SetFailureMessage(errors.New("VM is unhealthy"))
-	// 	machineScope.Machine.SetConditions(clusterv1.MachineNodeHealthyCondition)
-	// 	// machineScope.SetVMState(infrav1.Deleted)
-	// 	return reconcile.Result{}, nil
-	// }
+	cond := conditions.Get(machineScope.AzureMachine, infrav1.VMRunningCondition)
+	fmt.Printf("cond: %+v\n", cond)
+	if cond != nil && cond.Status == corev1.ConditionFalse && cond.Reason == infrav1.VMUnhealthyReason {
+		fmt.Println("VM is unhealthy, triggering a remediation")
+		amr.Recorder.Eventf(machineScope.AzureMachine, corev1.EventTypeWarning, "VMUnhealthy", "VM is unhealthy")
+		machineScope.SetFailureReason(capierrors.UnsupportedChangeMachineError)
+		machineScope.SetFailureMessage(errors.New("VM is unhealthy"))
+		return reconcile.Result{}, errors.New("VM is unhealthy")
+	}
 
 	ams, err := amr.createAzureMachineService(machineScope)
 	if err != nil {
