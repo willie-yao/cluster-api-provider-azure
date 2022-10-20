@@ -123,28 +123,34 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		}
 		idsClient := identities.NewClient(s.Scope)
 
-		fmt.Printf("Checking identities for machine: %s", spec.Name)
+		fmt.Printf("Checking identities for machine: %s\n", spec.Name)
+		fmt.Printf("Spec Identity: %v\n", spec.UserAssignedIdentities)
 
 		// Check if any userAssignedIdentities are missing from the VM and set a condition if so
-		for _, expectedIdentity := range spec.UserAssignedIdentities {
-			expectedClientID, err := idsClient.GetClientID(ctx, expectedIdentity.ProviderID)
-			if err != nil {
-				return errors.Wrap(err, "failed to get client ID")
-			}
-			fmt.Printf("expectedClientID: %v\n", expectedClientID)
-			found := false
-			for _, actualIdentity := range infraVM.UserAssignedIdentities {
-				fmt.Printf("actualIdentity: %v\n", actualIdentity.ProviderID)
-				if expectedClientID == actualIdentity.ProviderID {
-					fmt.Printf("Found expected identity: %v\n", expectedClientID)
-					found = true
-					break
+		if len(spec.UserAssignedIdentities) == len(infraVM.UserAssignedIdentities) {
+			for _, expectedIdentity := range spec.UserAssignedIdentities {
+				expectedClientID, err := idsClient.GetClientID(ctx, expectedIdentity.ProviderID)
+				if err != nil {
+					return errors.Wrap(err, "failed to get client ID")
+				}
+				fmt.Printf("expectedClientID: %v\n", expectedClientID)
+				found := false
+				for _, actualIdentity := range infraVM.UserAssignedIdentities {
+					fmt.Printf("actualIdentity: %v\n", actualIdentity.ProviderID)
+					if expectedClientID == actualIdentity.ProviderID {
+						fmt.Printf("Found expected identity: %v\n", expectedClientID)
+						found = true
+						break
+					}
+				}
+				if !found {
+					fmt.Printf("Setting VM condition to unhealthy\n")
+					s.Scope.SetConditionFalse(infrav1.VMRunningCondition, infrav1.VMUnhealthyReason, clusterv1.ConditionSeverityWarning, "VM is missing expected user assigned identity")
 				}
 			}
-			if !found {
-				fmt.Printf("Setting VM condition to unhealthy\n")
-				s.Scope.SetConditionFalse(infrav1.VMRunningCondition, infrav1.VMUnhealthyReason, clusterv1.ConditionSeverityWarning, "VM is missing expected user assigned identity")
-			}
+		} else {
+			fmt.Printf("Identity lists don't match, setting VM condition to unhealthy\n")
+			s.Scope.SetConditionFalse(infrav1.VMRunningCondition, infrav1.VMUnhealthyReason, clusterv1.ConditionSeverityWarning, "VM is missing expected user assigned identity")
 		}
 	}
 	return err
