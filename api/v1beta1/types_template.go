@@ -18,8 +18,108 @@ package v1beta1
 
 import (
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/net"
 )
+
+// AzureManagedControlPlaneTemplateResourceSpec specifies an Azure managed control plane template resource.
+type AzureManagedControlPlaneTemplateResourceSpec struct {
+	// Version defines the desired Kubernetes version.
+	// +kubebuilder:validation:MinLength:=2
+	Version string `json:"version"`
+
+	// VirtualNetwork describes the vnet for the AKS cluster. Will be created if it does not exist.
+	// +optional
+	VirtualNetwork ManagedControlPlaneVirtualNetworkTemplate `json:"virtualNetwork,omitempty"`
+
+	// SubscriptionID is the GUID of the Azure subscription to hold this cluster.
+	// +optional
+	SubscriptionID string `json:"subscriptionID,omitempty"`
+
+	// Location is a string matching one of the canonical Azure region names. Examples: "westus2", "eastus".
+	Location string `json:"location"`
+
+	// AdditionalTags is an optional set of tags to add to Azure resources managed by the Azure provider, in addition to the
+	// ones added by default.
+	// +optional
+	AdditionalTags Tags `json:"additionalTags,omitempty"`
+
+	// NetworkPlugin used for building Kubernetes network.
+	// +kubebuilder:validation:Enum=azure;kubenet
+	// +optional
+	NetworkPlugin *string `json:"networkPlugin,omitempty"`
+
+	// NetworkPolicy used for building Kubernetes network.
+	// +kubebuilder:validation:Enum=azure;calico
+	// +optional
+	NetworkPolicy *string `json:"networkPolicy,omitempty"`
+
+	// Outbound configuration used by Nodes.
+	// +kubebuilder:validation:Enum=loadBalancer;managedNATGateway;userAssignedNATGateway;userDefinedRouting
+	// +optional
+	OutboundType *ManagedControlPlaneOutboundType `json:"outboundType,omitempty"`
+
+	// DNSServiceIP is an IP address assigned to the Kubernetes DNS service.
+	// It must be within the Kubernetes service address range specified in serviceCidr.
+	// +optional
+	DNSServiceIP *string `json:"dnsServiceIP,omitempty"`
+
+	// LoadBalancerSKU is the SKU of the loadBalancer to be provisioned.
+	// +kubebuilder:validation:Enum=Basic;Standard
+	// +optional
+	LoadBalancerSKU *string `json:"loadBalancerSKU,omitempty"`
+
+	// IdentityRef is a reference to a AzureClusterIdentity to be used when reconciling this cluster
+	// +optional
+	IdentityRef *corev1.ObjectReference `json:"identityRef,omitempty"`
+
+	// AadProfile is Azure Active Directory configuration to integrate with AKS for aad authentication.
+	// +optional
+	AADProfile *AADProfile `json:"aadProfile,omitempty"`
+
+	// AddonProfiles are the profiles of managed cluster add-on.
+	// +optional
+	AddonProfiles []AddonProfile `json:"addonProfiles,omitempty"`
+
+	// SKU is the SKU of the AKS to be provisioned.
+	// +optional
+	SKU *AKSSku `json:"sku,omitempty"`
+
+	// LoadBalancerProfile is the profile of the cluster load balancer.
+	// +optional
+	LoadBalancerProfile *LoadBalancerProfile `json:"loadBalancerProfile,omitempty"`
+
+	// APIServerAccessProfile is the access profile for AKS API server.
+	// +optional
+	APIServerAccessProfile *APIServerAccessProfileTemplate `json:"apiServerAccessProfile,omitempty"`
+
+	// AutoscalerProfile is the parameters to be applied to the cluster-autoscaler when enabled
+	// +optional
+	AutoScalerProfile *AutoScalerProfile `json:"autoscalerProfile,omitempty"`
+}
+
+type APIServerAccessProfileTemplate struct {
+	// EnablePrivateCluster - Whether to create the cluster as a private cluster or not.
+	// +optional
+	EnablePrivateCluster *bool `json:"enablePrivateCluster,omitempty"`
+	// PrivateDNSZone - Private dns zone mode for private cluster.
+	// +kubebuilder:validation:Enum=System;None
+	// +optional
+	PrivateDNSZone *string `json:"privateDNSZone,omitempty"`
+	// EnablePrivateClusterPublicFQDN - Whether to create additional public FQDN for private cluster or not.
+	// +optional
+	EnablePrivateClusterPublicFQDN *bool `json:"enablePrivateClusterPublicFQDN,omitempty"`
+}
+
+type ManagedControlPlaneVirtualNetworkTemplate struct {
+	Name      string `json:"name"`
+	CIDRBlock string `json:"cidrBlock"`
+	// +optional
+	Subnet ManagedControlPlaneSubnet `json:"subnet,omitempty"`
+}
+
+// AzureManagedClusterTemplateResourceSpec specifies an Azure managed cluster template resource.
+type AzureManagedClusterTemplateResourceSpec struct{}
 
 // AzureClusterTemplateResourceSpec specifies an Azure cluster template resource.
 type AzureClusterTemplateResourceSpec struct {
