@@ -1003,6 +1003,58 @@ var _ = Describe("Workload cluster creation", func() {
 
 			By("PASSED!")
 		})
+
+		Context("Creating an aks cluster using clusterclass [Managed Kubernetes]", func() {
+			It("with a single control plane node and 1 node", func() {
+				// use "cc" as spec name because natgw pip name exceeds limit.
+				clusterName = getClusterName(clusterNamePrefix, aksClusterNameSuffix)
+				kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
+				Expect(err).To(BeNil())
+				kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
+				Expect(err).To(BeNil())
+
+				// Create a cluster using the cluster class created above
+				clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
+					specName,
+					withFlavor("aks-clusterclass"),
+					withNamespace(namespace.Name),
+					withClusterName(clusterName),
+					withKubernetesVersion(kubernetesVersionUpgradeFrom),
+					withControlPlaneMachineCount(1),
+					withWorkerMachineCount(1),
+					withMachineDeploymentInterval(specName, ""),
+					withMachinePoolInterval(specName, "wait-worker-nodes"),
+					withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
+						WaitForControlPlaneInitialized:   WaitForAKSControlPlaneInitialized,
+						WaitForControlPlaneMachinesReady: WaitForAKSControlPlaneReady,
+					}),
+				), result)
+
+				By("Upgrading the Kubernetes version of the cluster", func() {
+					AKSUpgradeSpec(ctx, func() AKSUpgradeSpecInput {
+						return AKSUpgradeSpecInput{
+							Cluster:                    result.Cluster,
+							MachinePools:               result.MachinePools,
+							KubernetesVersionUpgradeTo: kubernetesVersion,
+							WaitForControlPlane:        e2eConfig.GetIntervals(specName, "wait-machine-upgrade"),
+							WaitForMachinePools:        e2eConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+						}
+					})
+				})
+
+				By("Exercising machine pools", func() {
+					AKSMachinePoolSpec(ctx, func() AKSMachinePoolSpecInput {
+						return AKSMachinePoolSpecInput{
+							Cluster:       result.Cluster,
+							MachinePools:  result.MachinePools,
+							WaitIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+						}
+					})
+				})
+
+				By("PASSED!")
+			})
+		})
 	})
 
 	// Workload identity test
