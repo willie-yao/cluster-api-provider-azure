@@ -5,7 +5,7 @@ updates:
 # github-actions
 - directory: "/"
   package-ecosystem: "github-actions"
-  open-pull-requests-limit: 5
+  open-pull-requests-limit: 100
   schedule:
     interval: "weekly"
     time: "09:00"
@@ -21,7 +21,7 @@ updates:
 # Go
 - directory: "/"
   package-ecosystem: "gomod"
-  open-pull-requests-limit: 5
+  open-pull-requests-limit: 100
   schedule:
     interval: "weekly"
     time: "09:00"
