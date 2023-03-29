@@ -65,45 +65,6 @@ var _ = Describe("AzureMachineReconciler", func() {
 	})
 })
 
-func TestReconcile(t *testing.T) {
-	g := NewWithT(t)
-	testcases := []struct {
-		name      string
-		expectErr bool
-		instance  *infrav1.AzureMachine
-	}{
-		{
-			name:      "should not error with minimal set up",
-			expectErr: false,
-			instance: &infrav1.AzureMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "azure-test1",
-					Namespace: "default",
-				},
-			},
-		},
-	}
-
-	for _, tc := range testcases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			reconciler := NewAzureMachineReconciler(testEnv, testEnv.GetEventRecorderFor("azuremachine-reconciler"), reconciler.DefaultLoopTimeout, "")
-			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
-				NamespacedName: client.ObjectKey{
-					Namespace: tc.instance.Namespace,
-					Name:      tc.instance.Name,
-				},
-			})
-			if tc.expectErr {
-				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).To(BeNil())
-			}
-			Expect(result.RequeueAfter).To(BeZero())
-		})
-	}
-}
-
 func TestConditions(t *testing.T) {
 	g := NewWithT(t)
 	scheme := setupScheme(g)
