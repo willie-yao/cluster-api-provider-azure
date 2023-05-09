@@ -76,7 +76,7 @@ func TestParameters(t *testing.T) {
 			spec: &NSGSpec{
 				Name:     "test-nsg",
 				Location: "test-location",
-				SecurityRules: infrav1.SecurityRules{
+				SecurityRulesSpecs: infrav1.SecurityRules{
 					sshRule,
 					otherRule,
 				},
@@ -101,7 +101,7 @@ func TestParameters(t *testing.T) {
 			spec: &NSGSpec{
 				Name:     "test-nsg",
 				Location: "test-location",
-				SecurityRules: infrav1.SecurityRules{
+				SecurityRulesSpecs: infrav1.SecurityRules{
 					sshRule,
 					otherRule,
 				},
@@ -143,7 +143,7 @@ func TestParameters(t *testing.T) {
 			spec: &NSGSpec{
 				Name:     "test-nsg",
 				Location: "test-location",
-				SecurityRules: infrav1.SecurityRules{
+				SecurityRulesSpecs: infrav1.SecurityRules{
 					sshRule,
 					otherRule,
 				},

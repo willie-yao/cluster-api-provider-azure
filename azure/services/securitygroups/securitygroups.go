@@ -18,6 +18,7 @@ package securitygroups
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -35,6 +36,8 @@ type NSGScope interface {
 	azure.AsyncStatusUpdater
 	NSGSpecs() []azure.ResourceSpecGetter
 	IsVnetManaged() bool
+	AnnotationJSON(string) (map[string]interface{}, error)
+	UpdateAnnotationJSON(string, map[string]interface{}) error
 }
 
 // Service provides operations on Azure resources.
@@ -55,6 +58,14 @@ func New(scope NSGScope) *Service {
 // Name returns the service name.
 func (s *Service) Name() string {
 	return serviceName
+}
+
+// Some resource types are always assumed to be managed by CAPZ whether or not
+// they have the canonical "owned" tag applied to most resources. The annotation
+// key for those types should be listed here so their tags are always
+// interpreted as managed.
+var securityRuleLastAppliedAnnotation = map[string]struct{}{
+	azure.SecurityRuleLastAppliedAnnotation: {},
 }
 
 // Reconcile idempotently creates or updates a set of network security groups.
@@ -83,7 +94,33 @@ func (s *Service) Reconcile(ctx context.Context) error {
 	// We go through the list of security groups to reconcile each one, independently of the result of the previous one.
 	// If multiple errors occur, we return the most pressing one.
 	//  Order of precedence (highest -> lowest) is: error that is not an operationNotDoneError (i.e. error creating) -> operationNotDoneError (i.e. creating in progress) -> no error (i.e. created)
-	for _, nsgSpec := range specs {
+	for _, resourceSpec := range specs {
+		nsgSpec, ok := resourceSpec.(*NSGSpec)
+		if !ok {
+			return errors.New("cannot convert network security group spec")
+		}
+
+		newAnnotation := map[string]interface{}{}
+
+		for _, securityRuleSpec := range nsgSpec.SecurityRulesSpecs {
+			if _, alwaysManaged := securityRuleLastAppliedAnnotation[securityRuleSpec.Annotation]; !alwaysManaged {
+				continue
+			}
+			newAnnotation[azure.SecurityRuleLastAppliedAnnotation] = securityRuleSpec.SecurityRule
+			lastAppliedSecurityRules, err := s.Scope.AnnotationJSON(securityRuleSpec.Annotation)
+			if err != nil {
+				return err
+			}
+
+			log.V(2).Info("lastAppliedSecurityRules", "lastAppliedSecurityRules", lastAppliedSecurityRules)
+			fmt.Printf("lastAppliedSecurityRules: %v\n", lastAppliedSecurityRules)
+			fmt.Printf("current security rules: %v\n", securityRuleSpec.SecurityRule)
+		}
+		fmt.Printf("updating annotation with: %s/%v\n", azure.SecurityRuleLastAppliedAnnotation, newAnnotation)
+		if err := s.Scope.UpdateAnnotationJSON(azure.SecurityRuleLastAppliedAnnotation, newAnnotation); err != nil {
+			return err
+		}
+
 		if _, err := s.CreateOrUpdateResource(ctx, nsgSpec, serviceName); err != nil {
 			if !azure.IsOperationNotDoneError(err) || resErr == nil {
 				resErr = err

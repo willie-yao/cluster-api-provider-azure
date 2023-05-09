@@ -1167,7 +1167,7 @@ func TestNSGSpecs(t *testing.T) {
 			want: []azure.ResourceSpecGetter{
 				&securitygroups.NSGSpec{
 					Name: "fake-security-group-1",
-					SecurityRules: infrav1.SecurityRules{
+					SecurityRulesSpecs: infrav1.SecurityRules{
 						{
 							Name: "fake-rule-1",
 						},

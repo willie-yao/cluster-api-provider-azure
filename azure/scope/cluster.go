@@ -351,12 +351,12 @@ func (s *ClusterScope) NSGSpecs() []azure.ResourceSpecGetter {
 	nsgspecs := make([]azure.ResourceSpecGetter, len(s.AzureCluster.Spec.NetworkSpec.Subnets))
 	for i, subnet := range s.AzureCluster.Spec.NetworkSpec.Subnets {
 		nsgspecs[i] = &securitygroups.NSGSpec{
-			Name:           subnet.SecurityGroup.Name,
-			SecurityRules:  subnet.SecurityGroup.SecurityRules,
-			ResourceGroup:  s.ResourceGroup(),
-			Location:       s.Location(),
-			ClusterName:    s.ClusterName(),
-			AdditionalTags: s.AdditionalTags(),
+			Name:               subnet.SecurityGroup.Name,
+			SecurityRulesSpecs: securityRulesSpecs(subnet.SecurityGroup.SecurityRules),
+			ResourceGroup:      s.ResourceGroup(),
+			Location:           s.Location(),
+			ClusterName:        s.ClusterName(),
+			AdditionalTags:     s.AdditionalTags(),
 		}
 	}
 
@@ -1045,6 +1045,17 @@ func (s *ClusterScope) TagsSpecs() []azure.TagsSpec {
 			Annotation: azure.RGTagsLastAppliedAnnotation,
 		},
 	}
+}
+
+func securityRulesSpecs(rules infrav1.SecurityRules) []azure.SecurityRulesSpec {
+	var securityRulesSpec []azure.SecurityRulesSpec
+	for _, rule := range rules {
+		securityRulesSpec = append(securityRulesSpec, azure.SecurityRulesSpec{
+			SecurityRule: rule,
+			Annotation:   azure.SecurityRuleLastAppliedAnnotation,
+		})
+	}
+	return securityRulesSpec
 }
 
 // PrivateEndpointSpecs returns the private endpoint specs.

@@ -24,17 +24,18 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-azure/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/converters"
 )
 
 // NSGSpec defines the specification for a security group.
 type NSGSpec struct {
-	Name           string
-	SecurityRules  infrav1.SecurityRules
-	Location       string
-	ClusterName    string
-	ResourceGroup  string
-	AdditionalTags infrav1.Tags
+	Name               string
+	SecurityRulesSpecs []azure.SecurityRulesSpec
+	Location           string
+	ClusterName        string
+	ResourceGroup      string
+	AdditionalTags     infrav1.Tags
 }
 
 // ResourceName returns the name of the security group.
@@ -50,6 +51,11 @@ func (s *NSGSpec) ResourceGroupName() string {
 // OwnerResourceName is a no-op for security groups.
 func (s *NSGSpec) OwnerResourceName() string {
 	return ""
+}
+
+// SecurityRules returns the security rules specs for the security group.
+func (s *NSGSpec) SecurityRules() []azure.SecurityRulesSpec {
+	return s.SecurityRulesSpecs
 }
 
 // Parameters returns the parameters for the security group.
@@ -68,8 +74,8 @@ func (s *NSGSpec) Parameters(ctx context.Context, existing interface{}) (interfa
 		// Check if the expected rules are present
 		update := false
 		securityRules = *existingNSG.SecurityRules
-		for _, rule := range s.SecurityRules {
-			sdkRule := converters.SecurityRuleToSDK(rule)
+		for _, ruleSpec := range s.SecurityRulesSpecs {
+			sdkRule := converters.SecurityRuleToSDK(ruleSpec.SecurityRule)
 			if !ruleExists(securityRules, sdkRule) {
 				update = true
 				securityRules = append(securityRules, sdkRule)
@@ -81,8 +87,8 @@ func (s *NSGSpec) Parameters(ctx context.Context, existing interface{}) (interfa
 		}
 	} else {
 		// new security group
-		for _, rule := range s.SecurityRules {
-			securityRules = append(securityRules, converters.SecurityRuleToSDK(rule))
+		for _, ruleSpec := range s.SecurityRulesSpecs {
+			securityRules = append(securityRules, converters.SecurityRuleToSDK(ruleSpec.SecurityRule))
 		}
 	}
 

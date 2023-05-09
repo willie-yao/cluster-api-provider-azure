@@ -82,6 +82,12 @@ type TagsSpec struct {
 	Annotation string
 }
 
+type SecurityRulesSpec struct {
+	Scope        string
+	SecurityRule infrav1.SecurityRule
+	Annotation   string
+}
+
 // ExtensionSpec defines the specification for a VM or VMSS extension.
 type ExtensionSpec struct {
 	Name              string

@@ -37,7 +37,7 @@ var (
 		Name:        "test-nsg",
 		Location:    "test-location",
 		ClusterName: "my-cluster",
-		SecurityRules: infrav1.SecurityRules{
+		SecurityRulesSpecs: infrav1.SecurityRules{
 			{
 				Name:             "allow_ssh",
 				Description:      "Allow SSH",
@@ -64,11 +64,11 @@ var (
 		ResourceGroup: "test-group",
 	}
 	fakeNSG2 = NSGSpec{
-		Name:          "test-nsg-2",
-		Location:      "test-location",
-		ClusterName:   "my-cluster",
-		SecurityRules: infrav1.SecurityRules{},
-		ResourceGroup: "test-group",
+		Name:               "test-nsg-2",
+		Location:           "test-location",
+		ClusterName:        "my-cluster",
+		SecurityRulesSpecs: infrav1.SecurityRules{},
+		ResourceGroup:      "test-group",
 	}
 	errFake      = errors.New("this is an error")
 	notDoneError = azure.NewOperationNotDoneError(&infrav1.Future{})
