@@ -44,6 +44,7 @@ type NSGScope interface {
 type Service struct {
 	Scope NSGScope
 	async.Reconciler
+	client azureClient
 }
 
 // New creates a new service.
@@ -100,23 +101,36 @@ func (s *Service) Reconcile(ctx context.Context) error {
 			return errors.New("cannot convert network security group spec")
 		}
 
+		fmt.Printf("Reconciling NSG: %v\n", nsgSpec.Name)
+
+		lastAppliedSecurityRules, err := s.Scope.AnnotationJSON(azure.SecurityRuleLastAppliedAnnotation)
+		if err != nil {
+			return err
+		}
+
+		log.V(2).Info("lastAppliedSecurityRules", "lastAppliedSecurityRules", lastAppliedSecurityRules)
+		fmt.Printf("lastAppliedSecurityRules: %v\n", lastAppliedSecurityRules)
+		fmt.Printf("CurrentSecurityRules: %v\n", nsgSpec.SecurityRulesSpecs)
+
 		newAnnotation := map[string]interface{}{}
 
 		for _, securityRuleSpec := range nsgSpec.SecurityRulesSpecs {
-			if _, alwaysManaged := securityRuleLastAppliedAnnotation[securityRuleSpec.Annotation]; !alwaysManaged {
+			if _, alwaysManaged := securityRuleLastAppliedAnnotation[securityRuleSpec.Annotation]; !alwaysManaged || securityRuleSpec.Annotation != azure.SecurityRuleLastAppliedAnnotation {
+				fmt.Printf("skipping rule: %v\n", securityRuleSpec.SecurityRule.Name)
 				continue
 			}
-			newAnnotation[azure.SecurityRuleLastAppliedAnnotation] = securityRuleSpec.SecurityRule
-			lastAppliedSecurityRules, err := s.Scope.AnnotationJSON(securityRuleSpec.Annotation)
-			if err != nil {
-				return err
-			}
-
-			log.V(2).Info("lastAppliedSecurityRules", "lastAppliedSecurityRules", lastAppliedSecurityRules)
-			fmt.Printf("lastAppliedSecurityRules: %v\n", lastAppliedSecurityRules)
-			fmt.Printf("current security rules: %v\n", securityRuleSpec.SecurityRule)
+			newAnnotation[securityRuleSpec.SecurityRule.Name] = securityRuleSpec.SecurityRule
+			fmt.Printf("ruleNewAnnotation: %v\n", newAnnotation)
 		}
-		fmt.Printf("updating annotation with: %s/%v\n", azure.SecurityRuleLastAppliedAnnotation, newAnnotation)
+
+		for ruleName, rule := range lastAppliedSecurityRules {
+			if _, ok := newAnnotation[ruleName]; !ok {
+				fmt.Printf("deleting missing rule in newAnnotation: %v/%v\n", ruleName, rule)
+				// s.client.securityrules.Delete(ctx, nsgSpec.ResourceGroupName(), nsgSpec.Name, ruleName)
+			}
+		}
+
+		fmt.Printf("updating annotation with: %v\n", newAnnotation)
 		if err := s.Scope.UpdateAnnotationJSON(azure.SecurityRuleLastAppliedAnnotation, newAnnotation); err != nil {
 			return err
 		}

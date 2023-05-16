@@ -18,7 +18,6 @@ package tags
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2019-10-01/resources"
 	"github.com/pkg/errors"
@@ -90,7 +89,7 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("lastAppliedTags: %v\n", lastAppliedTags)
+
 		changed, createdOrUpdated, deleted, newAnnotation := tagsChanged(lastAppliedTags, tagsSpec.Tags, tags)
 		if changed {
 			log.V(2).Info("Updating tags")
@@ -120,7 +119,6 @@ func (s *Service) Reconcile(ctx context.Context) error {
 
 		// We also need to update the annotation even if nothing changed to
 		// ensure it's set immediately following resource creation.
-		fmt.Printf("newAnnotation: %s: %v\n", tagsSpec.Annotation, newAnnotation)
 		if err := s.Scope.UpdateAnnotationJSON(tagsSpec.Annotation, newAnnotation); err != nil {
 			return err
 		}

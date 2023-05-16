@@ -352,7 +352,7 @@ func (s *ClusterScope) NSGSpecs() []azure.ResourceSpecGetter {
 	for i, subnet := range s.AzureCluster.Spec.NetworkSpec.Subnets {
 		nsgspecs[i] = &securitygroups.NSGSpec{
 			Name:               subnet.SecurityGroup.Name,
-			SecurityRulesSpecs: securityRulesSpecs(subnet.SecurityGroup.SecurityRules),
+			SecurityRulesSpecs: s.SecurityRulesSpecs(subnet.SecurityGroup.SecurityRules),
 			ResourceGroup:      s.ResourceGroup(),
 			Location:           s.Location(),
 			ClusterName:        s.ClusterName(),
@@ -1047,10 +1047,11 @@ func (s *ClusterScope) TagsSpecs() []azure.TagsSpec {
 	}
 }
 
-func securityRulesSpecs(rules infrav1.SecurityRules) []azure.SecurityRulesSpec {
+func (s *ClusterScope) SecurityRulesSpecs(rules infrav1.SecurityRules) []azure.SecurityRulesSpec {
 	var securityRulesSpec []azure.SecurityRulesSpec
 	for _, rule := range rules {
 		securityRulesSpec = append(securityRulesSpec, azure.SecurityRulesSpec{
+			Scope:        azure.ResourceGroupID(s.SubscriptionID(), s.ResourceGroup()),
 			SecurityRule: rule,
 			Annotation:   azure.SecurityRuleLastAppliedAnnotation,
 		})

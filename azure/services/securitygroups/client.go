@@ -33,12 +33,14 @@ import (
 // azureClient contains the Azure go-sdk Client.
 type azureClient struct {
 	securitygroups network.SecurityGroupsClient
+	securityrules  network.SecurityRulesClient
 }
 
 // newClient creates a new VM client from subscription ID.
 func newClient(auth azure.Authorizer) *azureClient {
-	c := newSecurityGroupsClient(auth.SubscriptionID(), auth.BaseURI(), auth.Authorizer())
-	return &azureClient{c}
+	sgc := newSecurityGroupsClient(auth.SubscriptionID(), auth.BaseURI(), auth.Authorizer())
+	src := newSecurityRulesClient(auth.SubscriptionID(), auth.BaseURI(), auth.Authorizer())
+	return &azureClient{sgc, src}
 }
 
 // newSecurityGroupsClient creates a new security groups client from subscription ID.
@@ -46,6 +48,13 @@ func newSecurityGroupsClient(subscriptionID string, baseURI string, authorizer a
 	securityGroupsClient := network.NewSecurityGroupsClientWithBaseURI(baseURI, subscriptionID)
 	azure.SetAutoRestClientDefaults(&securityGroupsClient.Client, authorizer)
 	return securityGroupsClient
+}
+
+// newSecurityRulesClient creates a new security rules client from subscription ID.
+func newSecurityRulesClient(subscriptionID string, baseURI string, authorizer autorest.Authorizer) network.SecurityRulesClient {
+	securityRulesClient := network.NewSecurityRulesClientWithBaseURI(baseURI, subscriptionID)
+	azure.SetAutoRestClientDefaults(&securityRulesClient.Client, authorizer)
+	return securityRulesClient
 }
 
 // Get gets the specified network security group.
