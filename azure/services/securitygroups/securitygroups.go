@@ -103,15 +103,6 @@ func (s *Service) Reconcile(ctx context.Context) error {
 
 		fmt.Printf("Reconciling NSG: %v\n", nsgSpec.Name)
 
-		lastAppliedSecurityRules, err := s.Scope.AnnotationJSON(azure.SecurityRuleLastAppliedAnnotation)
-		if err != nil {
-			return err
-		}
-
-		log.V(2).Info("lastAppliedSecurityRules", "lastAppliedSecurityRules", lastAppliedSecurityRules)
-		fmt.Printf("lastAppliedSecurityRules: %v\n", lastAppliedSecurityRules)
-		fmt.Printf("CurrentSecurityRules: %v\n", nsgSpec.SecurityRulesSpecs)
-
 		newAnnotation := map[string]interface{}{}
 
 		for _, securityRuleSpec := range nsgSpec.SecurityRulesSpecs {
@@ -123,15 +114,24 @@ func (s *Service) Reconcile(ctx context.Context) error {
 			fmt.Printf("ruleNewAnnotation: %v\n", newAnnotation)
 		}
 
+		lastAppliedSecurityRules, err := s.Scope.AnnotationJSON(nsgSpec.Name)
+		if err != nil {
+			return err
+		}
+
+		log.V(2).Info("lastAppliedSecurityRules", "lastAppliedSecurityRules", lastAppliedSecurityRules)
+		fmt.Printf("lastAppliedSecurityRules: %v\n", lastAppliedSecurityRules)
+		fmt.Printf("CurrentSecurityRules: %v\n", nsgSpec.SecurityRulesSpecs)
+
 		for ruleName, rule := range lastAppliedSecurityRules {
 			if _, ok := newAnnotation[ruleName]; !ok {
 				fmt.Printf("deleting missing rule in newAnnotation: %v/%v\n", ruleName, rule)
-				// s.client.securityrules.Delete(ctx, nsgSpec.ResourceGroupName(), nsgSpec.Name, ruleName)
+				s.client.securityrules.Delete(ctx, nsgSpec.ResourceGroupName(), nsgSpec.Name, ruleName)
 			}
 		}
 
 		fmt.Printf("updating annotation with: %v\n", newAnnotation)
-		if err := s.Scope.UpdateAnnotationJSON(azure.SecurityRuleLastAppliedAnnotation, newAnnotation); err != nil {
+		if err := s.Scope.UpdateAnnotationJSON(nsgSpec.Name, newAnnotation); err != nil {
 			return err
 		}
 

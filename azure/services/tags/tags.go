@@ -89,7 +89,6 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-
 		changed, createdOrUpdated, deleted, newAnnotation := tagsChanged(lastAppliedTags, tagsSpec.Tags, tags)
 		if changed {
 			log.V(2).Info("Updating tags")
