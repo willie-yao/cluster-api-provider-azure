@@ -18,7 +18,6 @@ package securitygroups
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -102,47 +101,38 @@ func (s *Service) Reconcile(ctx context.Context) error {
 			return errors.New("cannot convert network security group spec")
 		}
 
-		fmt.Printf("Reconciling NSG: %v\n", nsgSpec.Name)
-
 		newAnnotation := map[string]interface{}{}
 
+		// We only want to update annotations for the security rules that are always managed by CAPZ.
 		for _, securityRuleSpec := range nsgSpec.SecurityRulesSpecs {
-			if _, alwaysManaged := securityRuleLastAppliedAnnotation[securityRuleSpec.Annotation]; !alwaysManaged || securityRuleSpec.Annotation != azure.SecurityRuleLastAppliedAnnotation {
+			if _, alwaysManaged := securityRuleLastAppliedAnnotation[securityRuleSpec.Annotation]; !alwaysManaged {
 				continue
 			}
 			newAnnotation[securityRuleSpec.SecurityRule.Name] = securityRuleSpec.SecurityRule
 		}
 
+		// Retrieve the last applied security rules for all NSGs.
 		lastAppliedSecurityRulesAll, err := s.Scope.AnnotationJSON(azure.SecurityRuleLastAppliedAnnotation)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("ALL FSLDKFJSDKLFJ lastAppliedSecurityRules: %v\n", lastAppliedSecurityRulesAll)
-
+		// Retrieve the last applied security rules for this NSG.
 		lastAppliedSecurityRules, ok := lastAppliedSecurityRulesAll[nsgSpec.Name].(map[string]interface{})
 		if !ok {
 			lastAppliedSecurityRules = map[string]interface{}{}
 		}
 
-		wrappedAnnotation := lastAppliedSecurityRulesAll
-		wrappedAnnotation[nsgSpec.Name] = newAnnotation
-
-		log.V(2).Info("lastAppliedSecurityRules", "lastAppliedSecurityRules", lastAppliedSecurityRules)
-		fmt.Printf("lastAppliedSecurityRules: %v\n", lastAppliedSecurityRules)
-		fmt.Printf("newAnnotation: %v\n", newAnnotation)
-
+		// Delete the security rules were removed from the spec.
 		for ruleName := range lastAppliedSecurityRules {
-			fmt.Printf("ruleName: %v\n", ruleName)
-			fmt.Printf("newAnnotation[ruleName]: %v\n", newAnnotation[ruleName])
 			if _, ok := newAnnotation[ruleName]; !ok {
-				fmt.Printf("Deleting rule in rg: %v, nsg: %v, rule: %v\n", nsgSpec.ResourceGroupName(), nsgSpec.Name, ruleName)
 				s.client.securityrules.Delete(ctx, nsgSpec.ResourceGroupName(), nsgSpec.Name, ruleName)
 			}
 		}
 
-		fmt.Printf("updating annotation with: %v\n", wrappedAnnotation)
-		if err := s.Scope.UpdateAnnotationJSON(azure.SecurityRuleLastAppliedAnnotation, wrappedAnnotation); err != nil {
+		// Update the last applied security rules annotation.
+		lastAppliedSecurityRulesAll[nsgSpec.Name] = newAnnotation
+		if err := s.Scope.UpdateAnnotationJSON(azure.SecurityRuleLastAppliedAnnotation, lastAppliedSecurityRulesAll); err != nil {
 			return err
 		}
 
