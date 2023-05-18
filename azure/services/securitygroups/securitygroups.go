@@ -131,7 +131,9 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		}
 
 		// Update the last applied security rules annotation.
-		lastAppliedSecurityRulesAll[nsgSpec.Name] = newAnnotation
+		if len(newAnnotation) > 0 {
+			lastAppliedSecurityRulesAll[nsgSpec.Name] = newAnnotation
+		}
 		if err := s.Scope.UpdateAnnotationJSON(azure.SecurityRuleLastAppliedAnnotation, lastAppliedSecurityRulesAll); err != nil {
 			return err
 		}
