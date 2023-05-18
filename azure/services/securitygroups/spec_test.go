@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-azure/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/converters"
 )
 
@@ -76,9 +77,13 @@ func TestParameters(t *testing.T) {
 			spec: &NSGSpec{
 				Name:     "test-nsg",
 				Location: "test-location",
-				SecurityRulesSpecs: infrav1.SecurityRules{
-					sshRule,
-					otherRule,
+				SecurityRulesSpecs: []azure.SecurityRulesSpec{
+					{
+						SecurityRule: sshRule,
+					},
+					{
+						SecurityRule: otherRule,
+					},
 				},
 				ResourceGroup: "test-group",
 				ClusterName:   "my-cluster",
@@ -101,9 +106,13 @@ func TestParameters(t *testing.T) {
 			spec: &NSGSpec{
 				Name:     "test-nsg",
 				Location: "test-location",
-				SecurityRulesSpecs: infrav1.SecurityRules{
-					sshRule,
-					otherRule,
+				SecurityRulesSpecs: []azure.SecurityRulesSpec{
+					{
+						SecurityRule: sshRule,
+					},
+					{
+						SecurityRule: otherRule,
+					},
 				},
 				ResourceGroup: "test-group",
 				ClusterName:   "my-cluster",
@@ -143,9 +152,13 @@ func TestParameters(t *testing.T) {
 			spec: &NSGSpec{
 				Name:     "test-nsg",
 				Location: "test-location",
-				SecurityRulesSpecs: infrav1.SecurityRules{
-					sshRule,
-					otherRule,
+				SecurityRulesSpecs: []azure.SecurityRulesSpec{
+					{
+						SecurityRule: sshRule,
+					},
+					{
+						SecurityRule: otherRule,
+					},
 				},
 				ResourceGroup: "test-group",
 				ClusterName:   "my-cluster",

@@ -53,6 +53,21 @@ func (m *MockNSGScope) EXPECT() *MockNSGScopeMockRecorder {
 	return m.recorder
 }
 
+// AnnotationJSON mocks base method.
+func (m *MockNSGScope) AnnotationJSON(arg0 string) (map[string]interface{}, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AnnotationJSON", arg0)
+	ret0, _ := ret[0].(map[string]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AnnotationJSON indicates an expected call of AnnotationJSON.
+func (mr *MockNSGScopeMockRecorder) AnnotationJSON(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AnnotationJSON", reflect.TypeOf((*MockNSGScope)(nil).AnnotationJSON), arg0)
+}
+
 // Authorizer mocks base method.
 func (m *MockNSGScope) Authorizer() autorest.Authorizer {
 	m.ctrl.T.Helper()
@@ -229,6 +244,20 @@ func (m *MockNSGScope) TenantID() string {
 func (mr *MockNSGScopeMockRecorder) TenantID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TenantID", reflect.TypeOf((*MockNSGScope)(nil).TenantID))
+}
+
+// UpdateAnnotationJSON mocks base method.
+func (m *MockNSGScope) UpdateAnnotationJSON(arg0 string, arg1 map[string]interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAnnotationJSON", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateAnnotationJSON indicates an expected call of UpdateAnnotationJSON.
+func (mr *MockNSGScopeMockRecorder) UpdateAnnotationJSON(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAnnotationJSON", reflect.TypeOf((*MockNSGScope)(nil).UpdateAnnotationJSON), arg0, arg1)
 }
 
 // UpdateDeleteStatus mocks base method.
