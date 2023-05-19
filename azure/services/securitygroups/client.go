@@ -30,11 +30,23 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 )
 
+// client wraps go-sdk.
+type client interface {
+	Get(context.Context, azure.ResourceSpecGetter) (interface{}, error)
+	CreateOrUpdateAsync(ctx context.Context, spec azure.ResourceSpecGetter, parameters interface{}) (result interface{}, future azureautorest.FutureAPI, err error)
+	DeleteAsync(ctx context.Context, spec azure.ResourceSpecGetter) (future azureautorest.FutureAPI, err error)
+	DeleteRule(ctx context.Context, spec azure.ResourceSpecGetter, ruleName string) (future azureautorest.FutureAPI, err error)
+	IsDone(ctx context.Context, future azureautorest.FutureAPI) (isDone bool, err error)
+	Result(ctx context.Context, future azureautorest.FutureAPI, futureType string) (result interface{}, err error)
+}
+
 // azureClient contains the Azure go-sdk Client.
 type azureClient struct {
 	securitygroups network.SecurityGroupsClient
 	securityrules  network.SecurityRulesClient
 }
+
+var _ client = (*azureClient)(nil)
 
 // newClient creates a new VM client from subscription ID.
 func newClient(auth azure.Authorizer) *azureClient {
@@ -108,6 +120,30 @@ func (ac *azureClient) CreateOrUpdateAsync(ctx context.Context, spec azure.Resou
 	result, err = createFuture.Result(ac.securitygroups)
 	// if the operation completed, return a nil future.
 	return result, nil, err
+}
+
+// DeleteRule deletes the specified network security group rule.
+func (ac *azureClient) DeleteRule(ctx context.Context, spec azure.ResourceSpecGetter, ruleName string) (future azureautorest.FutureAPI, err error) {
+	ctx, _, done := tele.StartSpanWithLogger(ctx, "securitygroups.azureClient.Delete")
+	defer done()
+
+	deleteFuture, err := ac.securityrules.Delete(ctx, spec.ResourceGroupName(), spec.ResourceName(), ruleName)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, reconciler.DefaultAzureCallTimeout)
+	defer cancel()
+
+	err = deleteFuture.WaitForCompletionRef(ctx, ac.securitygroups.Client)
+	if err != nil {
+		// if an error occurs, return the future.
+		// this means the long-running operation didn't finish in the specified timeout.
+		return &deleteFuture, err
+	}
+	_, err = deleteFuture.Result(ac.securityrules)
+	// if the operation completed, return a nil future.
+	return nil, err
 }
 
 // Delete deletes the specified network security group. DeleteAsync sends a DELETE

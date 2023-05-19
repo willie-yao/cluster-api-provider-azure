@@ -99,12 +99,12 @@ func TestReconcileSecurityGroups(t *testing.T) {
 	testcases := []struct {
 		name          string
 		expectedError string
-		expect        func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder)
+		expect        func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder)
 	}{
 		{
 			name:          "create single security group with single rule succeeds, should return no error",
 			expectedError: "",
-			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder) {
 				s.IsVnetManaged().Return(true)
 				s.NSGSpecs().Return([]azure.ResourceSpecGetter{&fakeNSG})
 				s.AnnotationJSON(annotation).Return(map[string]interface{}{}, nil).Times(1)
@@ -116,7 +116,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 		{
 			name:          "create single security group with multiple rules succeeds, should return no error",
 			expectedError: "",
-			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder) {
 				s.IsVnetManaged().Return(true)
 				s.NSGSpecs().Return([]azure.ResourceSpecGetter{&multipleRulesNSG})
 				s.AnnotationJSON(annotation).Return(map[string]interface{}{}, nil).Times(1)
@@ -128,7 +128,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 		{
 			name:          "create multiple security groups, should return no error",
 			expectedError: "",
-			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder) {
 				s.IsVnetManaged().Return(true)
 				s.NSGSpecs().Return([]azure.ResourceSpecGetter{&fakeNSG, &fakeNSG2})
 				s.AnnotationJSON(annotation).Return(map[string]interface{}{}, nil).Times(1)
@@ -140,9 +140,22 @@ func TestReconcileSecurityGroups(t *testing.T) {
 			},
 		},
 		{
+			name:          "should delete security rule successfully if it is no longer in the spec",
+			expectedError: "",
+			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder) {
+				s.IsVnetManaged().Return(true)
+				s.NSGSpecs().Return([]azure.ResourceSpecGetter{&fakeNSG})
+				s.AnnotationJSON(annotation).Return(map[string]interface{}{fakeNSG.Name: map[string]interface{}{securityRule1.Name: securityRule1, securityRule2.Name: securityRule2}}, nil).Times(1)
+				s.UpdateAnnotationJSON(annotation, map[string]interface{}{fakeNSG.Name: map[string]interface{}{securityRule1.Name: securityRule1}}).Times(1)
+				c.DeleteRule(gomockinternal.AContext(), &fakeNSG, securityRule2.Name).Return(nil, nil)
+				r.CreateOrUpdateResource(gomockinternal.AContext(), &fakeNSG, serviceName).Return(nil, nil)
+				s.UpdatePutStatus(infrav1.SecurityGroupsReadyCondition, serviceName, nil)
+			},
+		},
+		{
 			name:          "first security groups create fails, should return error",
 			expectedError: errFake.Error(),
-			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder) {
 				s.IsVnetManaged().Return(true)
 				s.NSGSpecs().Return([]azure.ResourceSpecGetter{&fakeNSG, &fakeNSG2})
 				s.AnnotationJSON(annotation).Return(map[string]interface{}{}, nil).Times(1)
@@ -156,7 +169,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 		{
 			name:          "first sg create fails, second sg create not done, should return create error",
 			expectedError: errFake.Error(),
-			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder) {
 				s.IsVnetManaged().Return(true)
 				s.NSGSpecs().Return([]azure.ResourceSpecGetter{&fakeNSG, &fakeNSG2})
 				s.AnnotationJSON(annotation).Return(map[string]interface{}{}, nil).Times(1)
@@ -170,7 +183,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 		{
 			name:          "security groups create not done, should return not done error",
 			expectedError: notDoneError.Error(),
-			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder) {
 				s.IsVnetManaged().Return(true)
 				s.NSGSpecs().Return([]azure.ResourceSpecGetter{&fakeNSG})
 				s.AnnotationJSON(annotation).Return(map[string]interface{}{}, nil)
@@ -182,7 +195,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 		{
 			name:          "vnet is not managed, should skip reconcile",
 			expectedError: "",
-			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+			expect: func(s *mock_securitygroups.MockNSGScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, c *mock_securitygroups.MockclientMockRecorder) {
 				s.IsVnetManaged().Return(false)
 			},
 		},
@@ -197,12 +210,14 @@ func TestReconcileSecurityGroups(t *testing.T) {
 
 			scopeMock := mock_securitygroups.NewMockNSGScope(mockCtrl)
 			reconcilerMock := mock_async.NewMockReconciler(mockCtrl)
+			clientMock := mock_securitygroups.NewMockclient(mockCtrl)
 
-			tc.expect(scopeMock.EXPECT(), reconcilerMock.EXPECT())
+			tc.expect(scopeMock.EXPECT(), reconcilerMock.EXPECT(), clientMock.EXPECT())
 
 			s := &Service{
 				Scope:      scopeMock,
 				Reconciler: reconcilerMock,
+				client:     clientMock,
 			}
 
 			err := s.Reconcile(context.TODO())

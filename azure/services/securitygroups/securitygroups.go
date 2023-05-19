@@ -43,7 +43,7 @@ type NSGScope interface {
 type Service struct {
 	Scope NSGScope
 	async.Reconciler
-	client *azureClient
+	client client
 }
 
 // New creates a new service.
@@ -126,7 +126,15 @@ func (s *Service) Reconcile(ctx context.Context) error {
 		// Delete the security rules were removed from the spec.
 		for ruleName := range lastAppliedSecurityRules {
 			if _, ok := newAnnotation[ruleName]; !ok {
-				s.client.securityrules.Delete(ctx, nsgSpec.ResourceGroupName(), nsgSpec.Name, ruleName)
+				// s.client.securityrules.Delete(ctx, nsgSpec.ResourceGroupName(), nsgSpec.Name, ruleName)
+				_, err := s.client.DeleteRule(ctx, nsgSpec, ruleName)
+				if err != nil {
+					if azure.ResourceNotFound(err) {
+						// already deleted
+						return nil
+					}
+					return errors.Wrapf(err, "failed to delete security rule %s", ruleName)
+				}
 			}
 		}
 
