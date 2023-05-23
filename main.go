@@ -537,6 +537,11 @@ func registerWebhooks(mgr manager.Manager) {
 		os.Exit(1)
 	}
 
+	if err := infrav1.SetupAzureManagedControlPlaneTemplateWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AzureManagedControlPlaneTemplate")
+		os.Exit(1)
+	}
+
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 		setupLog.Error(err, "unable to create ready check")
 		os.Exit(1)
