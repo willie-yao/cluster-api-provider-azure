@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestDefaultVirtualNetworkTemplate(t *testing.T) {
@@ -384,23 +384,23 @@ func TestDefaultAutoScalerProfile(t *testing.T) {
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
 							AutoScalerProfile: &AutoScalerProfile{
-								BalanceSimilarNodeGroups:      (*BalanceSimilarNodeGroups)(pointer.String(string(BalanceSimilarNodeGroupsFalse))),
-								Expander:                      (*Expander)(pointer.String(string(ExpanderRandom))),
-								MaxEmptyBulkDelete:            pointer.String("10"),
-								MaxGracefulTerminationSec:     pointer.String("600"),
-								MaxNodeProvisionTime:          pointer.String("15m"),
-								MaxTotalUnreadyPercentage:     pointer.String("45"),
-								NewPodScaleUpDelay:            pointer.String("0s"),
-								OkTotalUnreadyCount:           pointer.String("3"),
-								ScanInterval:                  pointer.String("10s"),
-								ScaleDownDelayAfterAdd:        pointer.String("10m"),
-								ScaleDownDelayAfterDelete:     pointer.String("10s"),
-								ScaleDownDelayAfterFailure:    pointer.String("3m"),
-								ScaleDownUnneededTime:         pointer.String("10m"),
-								ScaleDownUnreadyTime:          pointer.String("20m"),
-								ScaleDownUtilizationThreshold: pointer.String("0.5"),
-								SkipNodesWithLocalStorage:     (*SkipNodesWithLocalStorage)(pointer.String(string(SkipNodesWithLocalStorageFalse))),
-								SkipNodesWithSystemPods:       (*SkipNodesWithSystemPods)(pointer.String(string(SkipNodesWithSystemPodsTrue))),
+								BalanceSimilarNodeGroups:      (*BalanceSimilarNodeGroups)(ptr.To(string(BalanceSimilarNodeGroupsFalse))),
+								Expander:                      (*Expander)(ptr.To(string(ExpanderRandom))),
+								MaxEmptyBulkDelete:            ptr.To("10"),
+								MaxGracefulTerminationSec:     ptr.To("600"),
+								MaxNodeProvisionTime:          ptr.To("15m"),
+								MaxTotalUnreadyPercentage:     ptr.To("45"),
+								NewPodScaleUpDelay:            ptr.To("0s"),
+								OkTotalUnreadyCount:           ptr.To("3"),
+								ScanInterval:                  ptr.To("10s"),
+								ScaleDownDelayAfterAdd:        ptr.To("10m"),
+								ScaleDownDelayAfterDelete:     ptr.To("10s"),
+								ScaleDownDelayAfterFailure:    ptr.To("3m"),
+								ScaleDownUnneededTime:         ptr.To("10m"),
+								ScaleDownUnreadyTime:          ptr.To("20m"),
+								ScaleDownUtilizationThreshold: ptr.To("0.5"),
+								SkipNodesWithLocalStorage:     (*SkipNodesWithLocalStorage)(ptr.To(string(SkipNodesWithLocalStorageFalse))),
+								SkipNodesWithSystemPods:       (*SkipNodesWithSystemPods)(ptr.To(string(SkipNodesWithSystemPodsTrue))),
 							},
 						},
 					},

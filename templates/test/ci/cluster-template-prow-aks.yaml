@@ -66,6 +66,24 @@ spec:
         name: ${CLUSTER_NAME}-pool0
       version: ${KUBERNETES_VERSION}
 ---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AzureManagedMachinePool
+metadata:
+  name: ${CLUSTER_NAME}-pool0
+  namespace: default
+spec:
+  availabilityZones:
+  - "1"
+  - "2"
+  enableNodePublicIP: false
+  enableUltraSSD: true
+  maxPods: 30
+  mode: System
+  name: pool0
+  osDiskSizeGB: 30
+  osDiskType: Managed
+  sku: ${AZURE_AKS_NODE_MACHINE_TYPE:=Standard_D2s_v3}
+---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachinePool
 metadata:
@@ -85,24 +103,6 @@ spec:
         kind: AzureManagedMachinePool
         name: ${CLUSTER_NAME}-pool1
       version: ${KUBERNETES_VERSION}
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: AzureManagedMachinePool
-metadata:
-  name: ${CLUSTER_NAME}-pool0
-  namespace: default
-spec:
-  availabilityZones:
-  - "1"
-  - "2"
-  enableNodePublicIP: false
-  enableUltraSSD: true
-  maxPods: 30
-  mode: System
-  name: pool0
-  osDiskSizeGB: 30
-  osDiskType: Managed
-  sku: ${AZURE_AKS_NODE_MACHINE_TYPE:=Standard_D2s_v3}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureManagedMachinePool

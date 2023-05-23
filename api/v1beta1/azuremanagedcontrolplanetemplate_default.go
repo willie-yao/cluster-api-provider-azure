@@ -19,12 +19,12 @@ package v1beta1
 import (
 	"strings"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func (mcp *AzureManagedControlPlaneTemplate) setDefaults() {
 	if mcp.Spec.Template.Spec.NetworkPlugin == nil {
-		networkPlugin := "azure"
+		networkPlugin := CloudProviderName
 		mcp.Spec.Template.Spec.NetworkPlugin = &networkPlugin
 	}
 	if mcp.Spec.Template.Spec.LoadBalancerSKU == nil {
@@ -79,55 +79,55 @@ func (mcp *AzureManagedControlPlaneTemplate) setDefaultAutoScalerProfile() {
 	// Default values are from https://learn.microsoft.com/en-us/azure/aks/cluster-autoscaler#using-the-autoscaler-profile
 	// If any values are set, they all need to be set.
 	if mcp.Spec.Template.Spec.AutoScalerProfile.BalanceSimilarNodeGroups == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.BalanceSimilarNodeGroups = (*BalanceSimilarNodeGroups)(pointer.String(string(BalanceSimilarNodeGroupsFalse)))
+		mcp.Spec.Template.Spec.AutoScalerProfile.BalanceSimilarNodeGroups = (*BalanceSimilarNodeGroups)(ptr.To(string(BalanceSimilarNodeGroupsFalse)))
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.Expander == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.Expander = (*Expander)(pointer.String(string(ExpanderRandom)))
+		mcp.Spec.Template.Spec.AutoScalerProfile.Expander = (*Expander)(ptr.To(string(ExpanderRandom)))
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.MaxEmptyBulkDelete == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.MaxEmptyBulkDelete = pointer.String("10")
+		mcp.Spec.Template.Spec.AutoScalerProfile.MaxEmptyBulkDelete = ptr.To("10")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.MaxGracefulTerminationSec == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.MaxGracefulTerminationSec = pointer.String("600")
+		mcp.Spec.Template.Spec.AutoScalerProfile.MaxGracefulTerminationSec = ptr.To("600")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.MaxNodeProvisionTime == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.MaxNodeProvisionTime = pointer.String("15m")
+		mcp.Spec.Template.Spec.AutoScalerProfile.MaxNodeProvisionTime = ptr.To("15m")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.MaxTotalUnreadyPercentage == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.MaxTotalUnreadyPercentage = pointer.String("45")
+		mcp.Spec.Template.Spec.AutoScalerProfile.MaxTotalUnreadyPercentage = ptr.To("45")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.NewPodScaleUpDelay == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.NewPodScaleUpDelay = pointer.String("0s")
+		mcp.Spec.Template.Spec.AutoScalerProfile.NewPodScaleUpDelay = ptr.To("0s")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.OkTotalUnreadyCount == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.OkTotalUnreadyCount = pointer.String("3")
+		mcp.Spec.Template.Spec.AutoScalerProfile.OkTotalUnreadyCount = ptr.To("3")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.ScanInterval == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.ScanInterval = pointer.String("10s")
+		mcp.Spec.Template.Spec.AutoScalerProfile.ScanInterval = ptr.To("10s")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownDelayAfterAdd == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownDelayAfterAdd = pointer.String("10m")
+		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownDelayAfterAdd = ptr.To("10m")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownDelayAfterDelete == nil {
 		// Default is the same as the ScanInterval so default to that same value if it isn't set
 		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownDelayAfterDelete = mcp.Spec.Template.Spec.AutoScalerProfile.ScanInterval
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownDelayAfterFailure == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownDelayAfterFailure = pointer.String("3m")
+		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownDelayAfterFailure = ptr.To("3m")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUnneededTime == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUnneededTime = pointer.String("10m")
+		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUnneededTime = ptr.To("10m")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUnreadyTime == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUnreadyTime = pointer.String("20m")
+		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUnreadyTime = ptr.To("20m")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUtilizationThreshold == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUtilizationThreshold = pointer.String("0.5")
+		mcp.Spec.Template.Spec.AutoScalerProfile.ScaleDownUtilizationThreshold = ptr.To("0.5")
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.SkipNodesWithLocalStorage == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.SkipNodesWithLocalStorage = (*SkipNodesWithLocalStorage)(pointer.String(string(SkipNodesWithLocalStorageFalse)))
+		mcp.Spec.Template.Spec.AutoScalerProfile.SkipNodesWithLocalStorage = (*SkipNodesWithLocalStorage)(ptr.To(string(SkipNodesWithLocalStorageFalse)))
 	}
 	if mcp.Spec.Template.Spec.AutoScalerProfile.SkipNodesWithSystemPods == nil {
-		mcp.Spec.Template.Spec.AutoScalerProfile.SkipNodesWithSystemPods = (*SkipNodesWithSystemPods)(pointer.String(string(SkipNodesWithSystemPodsTrue)))
+		mcp.Spec.Template.Spec.AutoScalerProfile.SkipNodesWithSystemPods = (*SkipNodesWithSystemPods)(ptr.To(string(SkipNodesWithSystemPodsTrue)))
 	}
 }

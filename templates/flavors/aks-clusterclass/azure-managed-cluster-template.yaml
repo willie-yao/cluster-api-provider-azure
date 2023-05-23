@@ -3,3 +3,7 @@ kind: AzureManagedClusterTemplate
 metadata:
   name: ${CLUSTER_NAME}
   namespace: default
+spec:	
+  template:	
+    spec: {}
+  

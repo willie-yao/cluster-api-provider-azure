@@ -24,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api-provider-azure/feature"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -120,13 +119,13 @@ func TestValidateDNSServiceIP(t *testing.T) {
 	}{
 		{
 			name:      "Testing valid DNSServiceIP",
-			dnsIP:     pointer.String("192.168.0.0"),
+			dnsIP:     ptr.To("192.168.0.0"),
 			expectErr: false,
 		},
 		{
 			name:      "Testing invalid DNSServiceIP",
-			dnsIP:     pointer.String("192.168.0.0.3"),
-			expectErr: false,
+			dnsIP:     ptr.To("192.168.0.0.3"),
+			expectErr: true,
 		},
 	}
 
@@ -195,30 +194,30 @@ func TestValidateLoadBalancerProfile(t *testing.T) {
 		{
 			name: "Valid LoadBalancerProfile",
 			profile: &LoadBalancerProfile{
-				ManagedOutboundIPs:     pointer.Int32(10),
-				AllocatedOutboundPorts: pointer.Int32(1000),
-				IdleTimeoutInMinutes:   pointer.Int32(60),
+				ManagedOutboundIPs:     ptr.To[int32](10),
+				AllocatedOutboundPorts: ptr.To[int32](1000),
+				IdleTimeoutInMinutes:   ptr.To[int32](60),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Invalid LoadBalancerProfile.ManagedOutboundIPs",
 			profile: &LoadBalancerProfile{
-				ManagedOutboundIPs: pointer.Int32(200),
+				ManagedOutboundIPs: ptr.To[int32](200),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Invalid LoadBalancerProfile.IdleTimeoutInMinutes",
 			profile: &LoadBalancerProfile{
-				IdleTimeoutInMinutes: pointer.Int32(600),
+				IdleTimeoutInMinutes: ptr.To[int32](600),
 			},
 			expectErr: true,
 		},
 		{
 			name: "LoadBalancerProfile must specify at most one of ManagedOutboundIPs, OutboundIPPrefixes and OutboundIPs",
 			profile: &LoadBalancerProfile{
-				ManagedOutboundIPs: pointer.Int32(1),
+				ManagedOutboundIPs: ptr.To[int32](1),
 				OutboundIPs: []string{
 					"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/foo-bar/providers/Microsoft.Network/publicIPAddresses/my-public-ip",
 				},
@@ -249,170 +248,170 @@ func TestValidateAutoScalerProfile(t *testing.T) {
 		{
 			name: "Valid AutoScalerProfile",
 			profile: &AutoScalerProfile{
-				BalanceSimilarNodeGroups:      (*BalanceSimilarNodeGroups)(pointer.String(string(BalanceSimilarNodeGroupsFalse))),
-				Expander:                      (*Expander)(pointer.String(string(ExpanderRandom))),
-				MaxEmptyBulkDelete:            pointer.String("10"),
-				MaxGracefulTerminationSec:     pointer.String("600"),
-				MaxNodeProvisionTime:          pointer.String("10m"),
-				MaxTotalUnreadyPercentage:     pointer.String("45"),
-				NewPodScaleUpDelay:            pointer.String("10m"),
-				OkTotalUnreadyCount:           pointer.String("3"),
-				ScanInterval:                  pointer.String("60s"),
-				ScaleDownDelayAfterAdd:        pointer.String("10m"),
-				ScaleDownDelayAfterDelete:     pointer.String("10s"),
-				ScaleDownDelayAfterFailure:    pointer.String("10m"),
-				ScaleDownUnneededTime:         pointer.String("10m"),
-				ScaleDownUnreadyTime:          pointer.String("10m"),
-				ScaleDownUtilizationThreshold: pointer.String("0.5"),
-				SkipNodesWithLocalStorage:     (*SkipNodesWithLocalStorage)(pointer.String(string(SkipNodesWithLocalStorageTrue))),
-				SkipNodesWithSystemPods:       (*SkipNodesWithSystemPods)(pointer.String(string(SkipNodesWithSystemPodsTrue))),
+				BalanceSimilarNodeGroups:      (*BalanceSimilarNodeGroups)(ptr.To(string(BalanceSimilarNodeGroupsFalse))),
+				Expander:                      (*Expander)(ptr.To(string(ExpanderRandom))),
+				MaxEmptyBulkDelete:            ptr.To("10"),
+				MaxGracefulTerminationSec:     ptr.To("600"),
+				MaxNodeProvisionTime:          ptr.To("10m"),
+				MaxTotalUnreadyPercentage:     ptr.To("45"),
+				NewPodScaleUpDelay:            ptr.To("10m"),
+				OkTotalUnreadyCount:           ptr.To("3"),
+				ScanInterval:                  ptr.To("60s"),
+				ScaleDownDelayAfterAdd:        ptr.To("10m"),
+				ScaleDownDelayAfterDelete:     ptr.To("10s"),
+				ScaleDownDelayAfterFailure:    ptr.To("10m"),
+				ScaleDownUnneededTime:         ptr.To("10m"),
+				ScaleDownUnreadyTime:          ptr.To("10m"),
+				ScaleDownUtilizationThreshold: ptr.To("0.5"),
+				SkipNodesWithLocalStorage:     (*SkipNodesWithLocalStorage)(ptr.To(string(SkipNodesWithLocalStorageTrue))),
+				SkipNodesWithSystemPods:       (*SkipNodesWithSystemPods)(ptr.To(string(SkipNodesWithSystemPodsTrue))),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Testing valid AutoScalerProfile.ExpanderRandom",
 			profile: &AutoScalerProfile{
-				Expander: (*Expander)(pointer.String(string(ExpanderRandom))),
+				Expander: (*Expander)(ptr.To(string(ExpanderRandom))),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Testing valid AutoScalerProfile.ExpanderLeastWaste",
 			profile: &AutoScalerProfile{
-				Expander: (*Expander)(pointer.String(string(ExpanderLeastWaste))),
+				Expander: (*Expander)(ptr.To(string(ExpanderLeastWaste))),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Testing valid AutoScalerProfile.ExpanderMostPods",
 			profile: &AutoScalerProfile{
-				Expander: (*Expander)(pointer.String(string(ExpanderMostPods))),
+				Expander: (*Expander)(ptr.To(string(ExpanderMostPods))),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Testing valid AutoScalerProfile.ExpanderPriority",
 			profile: &AutoScalerProfile{
-				Expander: (*Expander)(pointer.String(string(ExpanderPriority))),
+				Expander: (*Expander)(ptr.To(string(ExpanderPriority))),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Testing valid AutoScalerProfile.BalanceSimilarNodeGroupsTrue",
 			profile: &AutoScalerProfile{
-				BalanceSimilarNodeGroups: (*BalanceSimilarNodeGroups)(pointer.String(string(BalanceSimilarNodeGroupsTrue))),
+				BalanceSimilarNodeGroups: (*BalanceSimilarNodeGroups)(ptr.To(string(BalanceSimilarNodeGroupsTrue))),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Testing valid AutoScalerProfile.BalanceSimilarNodeGroupsFalse",
 			profile: &AutoScalerProfile{
-				BalanceSimilarNodeGroups: (*BalanceSimilarNodeGroups)(pointer.String(string(BalanceSimilarNodeGroupsFalse))),
+				BalanceSimilarNodeGroups: (*BalanceSimilarNodeGroups)(ptr.To(string(BalanceSimilarNodeGroupsFalse))),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.MaxEmptyBulkDelete",
 			profile: &AutoScalerProfile{
-				MaxEmptyBulkDelete: pointer.String("invalid"),
+				MaxEmptyBulkDelete: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.MaxGracefulTerminationSec",
 			profile: &AutoScalerProfile{
-				MaxGracefulTerminationSec: pointer.String("invalid"),
+				MaxGracefulTerminationSec: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.MaxNodeProvisionTime",
 			profile: &AutoScalerProfile{
-				MaxNodeProvisionTime: pointer.String("invalid"),
+				MaxNodeProvisionTime: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.MaxTotalUnreadyPercentage",
 			profile: &AutoScalerProfile{
-				MaxTotalUnreadyPercentage: pointer.String("invalid"),
+				MaxTotalUnreadyPercentage: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.NewPodScaleUpDelay",
 			profile: &AutoScalerProfile{
-				NewPodScaleUpDelay: pointer.String("invalid"),
+				NewPodScaleUpDelay: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.OkTotalUnreadyCount",
 			profile: &AutoScalerProfile{
-				OkTotalUnreadyCount: pointer.String("invalid"),
+				OkTotalUnreadyCount: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.ScanInterval",
 			profile: &AutoScalerProfile{
-				ScanInterval: pointer.String("invalid"),
+				ScanInterval: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.ScaleDownDelayAfterAdd",
 			profile: &AutoScalerProfile{
-				ScaleDownDelayAfterAdd: pointer.String("invalid"),
+				ScaleDownDelayAfterAdd: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.ScaleDownDelayAfterDelete",
 			profile: &AutoScalerProfile{
-				ScaleDownDelayAfterDelete: pointer.String("invalid"),
+				ScaleDownDelayAfterDelete: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.ScaleDownDelayAfterFailure",
 			profile: &AutoScalerProfile{
-				ScaleDownDelayAfterFailure: pointer.String("invalid"),
+				ScaleDownDelayAfterFailure: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.ScaleDownUnneededTime",
 			profile: &AutoScalerProfile{
-				ScaleDownUnneededTime: pointer.String("invalid"),
+				ScaleDownUnneededTime: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.ScaleDownUnreadyTime",
 			profile: &AutoScalerProfile{
-				ScaleDownUnreadyTime: pointer.String("invalid"),
+				ScaleDownUnreadyTime: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing invalid AutoScalerProfile.ScaleDownUtilizationThreshold",
 			profile: &AutoScalerProfile{
-				ScaleDownUtilizationThreshold: pointer.String("invalid"),
+				ScaleDownUtilizationThreshold: ptr.To("invalid"),
 			},
 			expectErr: true,
 		},
 		{
 			name: "Testing valid AutoScalerProfile.SkipNodesWithLocalStorageTrue",
 			profile: &AutoScalerProfile{
-				SkipNodesWithLocalStorage: (*SkipNodesWithLocalStorage)(pointer.String(string(SkipNodesWithLocalStorageTrue))),
+				SkipNodesWithLocalStorage: (*SkipNodesWithLocalStorage)(ptr.To(string(SkipNodesWithLocalStorageTrue))),
 			},
 			expectErr: false,
 		},
 		{
 			name: "Testing valid AutoScalerProfile.SkipNodesWithLocalStorageFalse",
 			profile: &AutoScalerProfile{
-				SkipNodesWithSystemPods: (*SkipNodesWithSystemPods)(pointer.String(string(SkipNodesWithSystemPodsFalse))),
+				SkipNodesWithSystemPods: (*SkipNodesWithSystemPods)(ptr.To(string(SkipNodesWithSystemPodsFalse))),
 			},
 			expectErr: false,
 		},
@@ -1074,7 +1073,7 @@ func TestAzureManagedControlPlane_ValidateCreate(t *testing.T) {
 			name:     "invalid DNSServiceIP",
 			amcp:     createAzureManagedControlPlane("192.168.0.10.3", "v1.18.0", generateSSHPublicKey(true)),
 			wantErr:  true,
-			errorLen: 1,
+			errorLen: 2,
 		},
 		{
 			name:     "invalid DNSServiceIP",
@@ -1092,7 +1091,7 @@ func TestAzureManagedControlPlane_ValidateCreate(t *testing.T) {
 			name:     "invalid sshKey with a simple text and invalid DNSServiceIP",
 			amcp:     createAzureManagedControlPlane("192.168.0.10.3", "v1.18.0", "invalid_sshkey_honk"),
 			wantErr:  true,
-			errorLen: 2,
+			errorLen: 3,
 		},
 		{
 			name:     "invalid version",

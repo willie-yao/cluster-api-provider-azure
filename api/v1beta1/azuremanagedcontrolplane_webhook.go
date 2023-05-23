@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api-provider-azure/feature"
 	webhookutils "sigs.k8s.io/cluster-api-provider-azure/util/webhook"
@@ -73,7 +72,7 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 		return apierrors.NewBadRequest("expected an AzureManagedControlPlane")
 	}
 	if m.Spec.NetworkPlugin == nil {
-		networkPlugin := "azure"
+		networkPlugin := CloudProviderName
 		m.Spec.NetworkPlugin = &networkPlugin
 	}
 	if m.Spec.LoadBalancerSKU == nil {
@@ -102,6 +101,7 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Info("Paid SKU tier is deprecated and has been replaced by Standard")
 	}
 
+	m.setDefaultResourceGroupName()
 	m.setDefaultNodeResourceGroupName()
 	m.setDefaultVirtualNetwork()
 	m.setDefaultSubnet()
@@ -290,8 +290,6 @@ func (m *AzureManagedControlPlane) Validate(cli client.Client) error {
 	validators := []func(client client.Client) error{
 		m.validateSSHKey,
 		m.validateAPIServerAccessProfile,
-		m.validateManagedClusterNetwork,
-		m.validateAutoScalerProfile,
 		m.validateIdentity,
 		m.validateNetworkPluginMode,
 	}
@@ -607,8 +605,9 @@ func (m *AzureManagedControlPlane) validateOIDCIssuerProfileUpdate(old *AzureMan
 	return allErrs
 }
 
-func (m *AzureManagedControlPlane) validateName(_ client.Client) error {
-	if lName := strings.ToLower(m.Name); strings.Contains(lName, "microsoft") ||
+func validateName(name string, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if lName := strings.ToLower(name); strings.Contains(lName, "microsoft") ||
 		strings.Contains(lName, "windows") {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("Name"), name,
 			"cluster name is invalid because 'MICROSOFT' and 'WINDOWS' can't be used as either a whole word or a substring in the name"))
@@ -689,8 +688,8 @@ func validateAutoScalerProfile(autoScalerProfile *AutoScalerProfile, fldPath *fi
 // validateMaxNodeProvisionTime validates update to AutoscalerProfile.MaxNodeProvisionTime.
 func validateMaxNodeProvisionTime(maxNodeProvisionTime *string, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
-	if pointer.StringDeref(maxNodeProvisionTime, "") != "" {
-		if !rMaxNodeProvisionTime.MatchString(pointer.StringDeref(maxNodeProvisionTime, "")) {
+	if ptr.Deref(maxNodeProvisionTime, "") != "" {
+		if !rMaxNodeProvisionTime.MatchString(ptr.Deref(maxNodeProvisionTime, "")) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("MaxNodeProvisionTime"), maxNodeProvisionTime, "invalid value"))
 		}
 	}
@@ -700,8 +699,8 @@ func validateMaxNodeProvisionTime(maxNodeProvisionTime *string, fldPath *field.P
 // validateScanInterval validates update to AutoscalerProfile.ScanInterval.
 func validateScanInterval(scanInterval *string, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
-	if pointer.StringDeref(scanInterval, "") != "" {
-		if !rScanInterval.MatchString(pointer.StringDeref(scanInterval, "")) {
+	if ptr.Deref(scanInterval, "") != "" {
+		if !rScanInterval.MatchString(ptr.Deref(scanInterval, "")) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("ScanInterval"), scanInterval, "invalid value"))
 		}
 	}
@@ -711,8 +710,8 @@ func validateScanInterval(scanInterval *string, fldPath *field.Path) field.Error
 // validateNewPodScaleUpDelay validates update to AutoscalerProfile.NewPodScaleUpDelay.
 func validateNewPodScaleUpDelay(newPodScaleUpDelay *string, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
-	if pointer.StringDeref(newPodScaleUpDelay, "") != "" {
-		_, err := time.ParseDuration(pointer.StringDeref(newPodScaleUpDelay, ""))
+	if ptr.Deref(newPodScaleUpDelay, "") != "" {
+		_, err := time.ParseDuration(ptr.Deref(newPodScaleUpDelay, ""))
 		if err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("NewPodScaleUpDelay"), newPodScaleUpDelay, "invalid value"))
 		}
@@ -723,9 +722,9 @@ func validateNewPodScaleUpDelay(newPodScaleUpDelay *string, fldPath *field.Path)
 // validateScaleDownDelayAfterDelete validates update to AutoscalerProfile.ScaleDownDelayAfterDelete value.
 func validateScaleDownDelayAfterDelete(scaleDownDelayAfterDelete *string, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
-	if pointer.StringDeref(scaleDownDelayAfterDelete, "") != "" {
-		if !rScaleDownDelayAfterDelete.MatchString(pointer.StringDeref(scaleDownDelayAfterDelete, "")) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("ScaleDownDelayAfterDelete"), pointer.StringDeref(scaleDownDelayAfterDelete, ""), "invalid value"))
+	if ptr.Deref(scaleDownDelayAfterDelete, "") != "" {
+		if !rScaleDownDelayAfterDelete.MatchString(ptr.Deref(scaleDownDelayAfterDelete, "")) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("ScaleDownDelayAfterDelete"), ptr.Deref(scaleDownDelayAfterDelete, ""), "invalid value"))
 		}
 	}
 	return allErrs
@@ -734,9 +733,9 @@ func validateScaleDownDelayAfterDelete(scaleDownDelayAfterDelete *string, fldPat
 // validateScaleDownTime validates update to AutoscalerProfile.ScaleDown* values.
 func validateScaleDownTime(scaleDownValue *string, fldPath *field.Path, fieldName string) field.ErrorList {
 	var allErrs field.ErrorList
-	if pointer.StringDeref(scaleDownValue, "") != "" {
-		if !rScaleDownTime.MatchString(pointer.StringDeref(scaleDownValue, "")) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child(fieldName), pointer.StringDeref(scaleDownValue, ""), "invalid value"))
+	if ptr.Deref(scaleDownValue, "") != "" {
+		if !rScaleDownTime.MatchString(ptr.Deref(scaleDownValue, "")) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child(fieldName), ptr.Deref(scaleDownValue, ""), "invalid value"))
 		}
 	}
 	return allErrs
