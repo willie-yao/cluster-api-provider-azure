@@ -48,6 +48,7 @@ type Authorizer interface {
 	BaseURI() string
 	Authorizer() autorest.Authorizer
 	HashKey() string
+	AzureClusterIdentity() *infrav1.AzureClusterIdentity
 }
 
 // NetworkDescriber is an interface which can get common Azure Cluster Networking information.

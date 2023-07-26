@@ -57,6 +57,7 @@ type ManagedControlPlaneScopeParams struct {
 	ControlPlane        *infrav1.AzureManagedControlPlane
 	ManagedMachinePools []ManagedMachinePool
 	Cache               *ManagedControlPlaneCache
+	Identity            *infrav1.AzureClusterIdentity
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
@@ -452,6 +453,11 @@ func (s *ManagedControlPlaneScope) FailureDomains() []string {
 // ManagedClusterAnnotations returns the annotations for the managed cluster.
 func (s *ManagedControlPlaneScope) ManagedClusterAnnotations() map[string]string {
 	return s.ControlPlane.Annotations
+}
+
+// AzureClusterIdentity returns the cluster identity object.
+func (s *ManagedControlPlaneScope) AzureClusterIdentity() *infrav1.AzureClusterIdentity {
+	return nil
 }
 
 // ManagedClusterSpec returns the managed cluster spec.

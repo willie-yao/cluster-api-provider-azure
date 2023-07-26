@@ -60,6 +60,7 @@ type ClusterScopeParams struct {
 	Cluster      *clusterv1.Cluster
 	AzureCluster *infrav1.AzureCluster
 	Cache        *ClusterCache
+	Identity     *infrav1.AzureClusterIdentity
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -905,6 +906,12 @@ func (s *ClusterScope) FailureDomains() []string {
 	sort.Strings(fds)
 
 	return fds
+}
+
+// AzureClusterIdentity returns the cluster identity object.
+func (s *ClusterScope) AzureClusterIdentity() *infrav1.AzureClusterIdentity {
+	// TODO: Implement this
+	return nil
 }
 
 // SetControlPlaneSecurityRules sets the default security rules of the control plane subnet.

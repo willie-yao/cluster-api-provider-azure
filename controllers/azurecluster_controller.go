@@ -159,7 +159,7 @@ func (acr *AzureClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if azureCluster.Spec.IdentityRef != nil {
-		err := EnsureClusterIdentity(ctx, acr.Client, azureCluster, azureCluster.Spec.IdentityRef, infrav1.ClusterFinalizer)
+		_, err = EnsureClusterIdentity(ctx, acr.Client, azureCluster, azureCluster.Spec.IdentityRef, infrav1.ClusterFinalizer)
 		if err != nil {
 			return reconcile.Result{}, err
 		}

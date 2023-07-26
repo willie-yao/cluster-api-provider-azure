@@ -20,10 +20,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/pkg/errors"
+	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 	"sigs.k8s.io/cluster-api-provider-azure/version"
 )
@@ -375,6 +379,97 @@ type userAgentPolicy struct{}
 func (p userAgentPolicy) Do(req *policy.Request) (*http.Response, error) {
 	req.Raw().Header.Set("User-Agent", req.Raw().UserAgent()+" "+UserAgent())
 	return req.Next()
+}
+
+// NewDefaultCredential creates a new credential that uses the following methods, in order of precedence:
+// 1. Workload Identity
+// 2. Managed Identity
+// 3. Environment variables
+// 4. Azure CLI.
+func NewDefaultCredential(clientOptions *azcore.ClientOptions) (*azidentity.ChainedTokenCredential, error) {
+	sources := []azcore.TokenCredential{}
+	chainedCredOptions := azidentity.ChainedTokenCredentialOptions{}
+
+	if clientOptions == nil {
+		clientOptions = &azcore.ClientOptions{}
+	}
+
+	workloadIDOpts := azidentity.WorkloadIdentityCredentialOptions{ClientOptions: *clientOptions}
+	workloadIDCred, err := azidentity.NewWorkloadIdentityCredential(&workloadIDOpts)
+	if err != nil {
+		// TODO: log error
+	} else {
+		sources = append(sources, workloadIDCred)
+	}
+
+	managedIDOpts := azidentity.ManagedIdentityCredentialOptions{ClientOptions: *clientOptions}
+	managedIDCred, err := azidentity.NewManagedIdentityCredential(&managedIDOpts)
+	if err != nil {
+		// TODO: log error
+	} else {
+		sources = append(sources, managedIDCred)
+	}
+
+	environmentOpts := azidentity.EnvironmentCredentialOptions{ClientOptions: *clientOptions}
+	environmentCred, err := azidentity.NewEnvironmentCredential(&environmentOpts)
+	if err != nil {
+		// TODO: log error
+	} else {
+		sources = append(sources, environmentCred)
+	}
+
+	azureCLIOpts := azidentity.AzureCLICredentialOptions{}
+	azureCLICred, err := azidentity.NewAzureCLICredential(&azureCLIOpts)
+	if err != nil {
+		// TODO: log error
+	} else {
+		sources = append(sources, azureCLICred)
+	}
+	return azidentity.NewChainedTokenCredential(sources, &chainedCredOptions)
+}
+
+// NewAzureClusterIdentityCredential creates a new credential for the given AzureClusterIdentity.
+func NewAzureClusterIdentityCredential(clientOptions *azcore.ClientOptions, identity *infrav1.AzureClusterIdentity) (azcore.TokenCredential, error) {
+	switch identity.Spec.Type {
+	case infrav1.WorkloadIdentity:
+		workloadIDOpts := azidentity.WorkloadIdentityCredentialOptions{
+			ClientOptions: *clientOptions,
+			ClientID:      identity.Spec.ClientID,
+			TenantID:      identity.Spec.TenantID,
+		}
+		workloadIDCred, err := azidentity.NewWorkloadIdentityCredential(&workloadIDOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create workload identity credential")
+		}
+		return workloadIDCred, nil
+	case infrav1.UserAssignedMSI:
+		managedIDOpts := azidentity.ManagedIdentityCredentialOptions{
+			ClientOptions: *clientOptions,
+			ID:            azidentity.ClientID(identity.Spec.ClientID),
+		}
+		managedIDCred, err := azidentity.NewManagedIdentityCredential(&managedIDOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create managed identity credential")
+		}
+		return managedIDCred, nil
+	case infrav1.ServicePrincipal, infrav1.ManualServicePrincipal:
+		// TODO: Does service principal and manual service principal have the same behavior?
+		spOpts := azidentity.ClientSecretCredentialOptions{
+			ClientOptions: *clientOptions,
+		}
+		spCred, err := azidentity.NewClientSecretCredential(identity.Spec.TenantID, identity.Spec.ClientID, identity.Spec.ClientSecret.String(), &spOpts)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create service principal credential")
+		}
+		return spCred, nil
+	case infrav1.ServicePrincipalCertificate:
+		// TODO: Figure out where to get certificate and key from AzureClusterIdentity
+		// spOpts := azidentity.ClientCertificateCredentialOptions{
+		// 	ClientOptions: *clientOptions,
+		// }
+		// return azidentity.NewClientCertificateCredential(identity.Spec.TenantID, identity.Spec.ClientID, ?, ?, &spOpts)
+	}
+	return nil, errors.Errorf("invalid identity type %q", identity.Spec.Type)
 }
 
 // SetAutoRestClientDefaults set authorizer and user agent for autorest client.
