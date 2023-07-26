@@ -48,6 +48,7 @@ type Authorizer interface {
 	BaseURI() string
 	Authorizer() autorest.Authorizer
 	HashKey() string
+	AzureClusterIdentity() *infrav1.AzureClusterIdentity
 }
 
 // NetworkDescriber is an interface which can get common Azure Cluster Networking information.
@@ -83,6 +84,7 @@ type ClusterDescriber interface {
 	AvailabilitySetEnabled() bool
 	CloudProviderConfigOverrides() *infrav1.CloudProviderConfigOverrides
 	FailureDomains() []string
+	AzureClusterIdentity() *infrav1.AzureClusterIdentity
 }
 
 // AsyncStatusUpdater is an interface used to keep track of long running operations in Status that has Conditions and Futures.

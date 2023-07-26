@@ -454,6 +454,12 @@ func (s *ManagedControlPlaneScope) ManagedClusterAnnotations() map[string]string
 	return s.ControlPlane.Annotations
 }
 
+// AzureClusterIdentity returns the cluster identity object.
+func (s *ManagedControlPlaneScope) AzureClusterIdentity() *infrav1.AzureClusterIdentity {
+	// TODO: Implement this
+	return nil
+}
+
 // ManagedClusterSpec returns the managed cluster spec.
 func (s *ManagedControlPlaneScope) ManagedClusterSpec() azure.ResourceSpecGetter {
 	managedClusterSpec := managedclusters.ManagedClusterSpec{

@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/go-autorest/autorest"
+	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 	"sigs.k8s.io/cluster-api-provider-azure/version"
 )
@@ -384,11 +385,15 @@ func (p userAgentPolicy) Do(req *policy.Request) (*http.Response, error) {
 // 2. Managed Identity
 // 3. Environment variables
 // 4. Azure CLI.
-func NewDefaultCredential(clientOptions *azcore.ClientOptions) (*azidentity.ChainedTokenCredential, error) {
+func NewDefaultCredential(clientOptions *azcore.ClientOptions, identity *infrav1.AzureClusterIdentity) (*azidentity.ChainedTokenCredential, error) {
 	sources := []azcore.TokenCredential{}
 
 	if clientOptions == nil {
 		clientOptions = &azcore.ClientOptions{}
+	}
+
+	if identity != nil {
+		// TODO: Implement this
 	}
 
 	workloadIDOpts := azidentity.WorkloadIdentityCredentialOptions{ClientOptions: *clientOptions}
