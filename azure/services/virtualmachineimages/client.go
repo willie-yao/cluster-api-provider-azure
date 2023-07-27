@@ -18,6 +18,7 @@ package virtualmachineimages
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
 	"github.com/pkg/errors"
@@ -49,6 +50,8 @@ func NewClient(auth azure.Authorizer) (*AzureClient, error) {
 
 // newVirtualMachineImagesClient creates a new VM images client from subscription ID and base URI.
 func newVirtualMachineImagesClient(subscriptionID, azureEnvironment string, identity *infrav1.AzureClusterIdentity) (armcompute.VirtualMachineImagesClient, error) {
+	fmt.Printf("Identity: %v\n", identity.Name)
+
 	credential, err := azure.NewDefaultCredential(nil, identity)
 	if err != nil {
 		return armcompute.VirtualMachineImagesClient{}, errors.Wrap(err, "failed to create default Azure credential")

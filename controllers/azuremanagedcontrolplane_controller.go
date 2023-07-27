@@ -178,8 +178,9 @@ func (amcpr *AzureManagedControlPlaneReconciler) Reconcile(ctx context.Context, 
 	}
 
 	// check if the control plane's namespace is allowed for this identity and update owner references for the identity.
+	var identity *infrav1.AzureClusterIdentity
 	if azureControlPlane.Spec.IdentityRef != nil {
-		err := EnsureClusterIdentity(ctx, amcpr.Client, azureControlPlane, azureControlPlane.Spec.IdentityRef, infrav1.ManagedClusterFinalizer)
+		identity, err = EnsureClusterIdentity(ctx, amcpr.Client, azureControlPlane, azureControlPlane.Spec.IdentityRef, infrav1.ManagedClusterFinalizer)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -197,6 +198,7 @@ func (amcpr *AzureManagedControlPlaneReconciler) Reconcile(ctx context.Context, 
 		Cluster:             cluster,
 		ControlPlane:        azureControlPlane,
 		ManagedMachinePools: pools,
+		Identity:            identity,
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to create scope")

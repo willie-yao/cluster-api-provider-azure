@@ -158,8 +158,9 @@ func (acr *AzureClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
+	var identity *infrav1.AzureClusterIdentity
 	if azureCluster.Spec.IdentityRef != nil {
-		err := EnsureClusterIdentity(ctx, acr.Client, azureCluster, azureCluster.Spec.IdentityRef, infrav1.ClusterFinalizer)
+		identity, err = EnsureClusterIdentity(ctx, acr.Client, azureCluster, azureCluster.Spec.IdentityRef, infrav1.ClusterFinalizer)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -173,6 +174,7 @@ func (acr *AzureClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		Client:       acr.Client,
 		Cluster:      cluster,
 		AzureCluster: azureCluster,
+		Identity:     identity,
 	})
 	if err != nil {
 		err = errors.Wrap(err, "failed to create scope")

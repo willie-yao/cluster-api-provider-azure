@@ -57,6 +57,7 @@ type ManagedControlPlaneScopeParams struct {
 	ControlPlane        *infrav1.AzureManagedControlPlane
 	ManagedMachinePools []ManagedMachinePool
 	Cache               *ManagedControlPlaneCache
+	Identity            *infrav1.AzureClusterIdentity
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
