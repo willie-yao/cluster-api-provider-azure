@@ -214,7 +214,6 @@ func (amr *AzureMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		Client:       amr.Client,
 		Cluster:      cluster,
 		AzureCluster: azureCluster,
-		Identity:     identity,
 	})
 	if err != nil {
 		amr.Recorder.Eventf(azureCluster, corev1.EventTypeWarning, "Error creating the cluster scope", err.Error())
@@ -227,6 +226,7 @@ func (amr *AzureMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		Machine:      machine,
 		AzureMachine: azureMachine,
 		ClusterScope: clusterScope,
+		Identity:     identity,
 	})
 	if err != nil {
 		amr.Recorder.Eventf(azureMachine, corev1.EventTypeWarning, "Error creating the machine scope", err.Error())

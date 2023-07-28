@@ -457,7 +457,6 @@ func (s *ManagedControlPlaneScope) ManagedClusterAnnotations() map[string]string
 
 // AzureClusterIdentity returns the cluster identity object.
 func (s *ManagedControlPlaneScope) AzureClusterIdentity() *infrav1.AzureClusterIdentity {
-	// TODO: Implement this
 	return nil
 }
 

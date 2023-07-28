@@ -50,7 +50,9 @@ func NewClient(auth azure.Authorizer) (*AzureClient, error) {
 
 // newVirtualMachineImagesClient creates a new VM images client from subscription ID and base URI.
 func newVirtualMachineImagesClient(subscriptionID, azureEnvironment string, identity *infrav1.AzureClusterIdentity) (armcompute.VirtualMachineImagesClient, error) {
-	fmt.Printf("Identity: %v\n", identity.Name)
+	if identity != nil {
+		fmt.Printf("Identity: %v\n", identity.Name)
+	}
 
 	credential, err := azure.NewDefaultCredential(nil, identity)
 	if err != nil {

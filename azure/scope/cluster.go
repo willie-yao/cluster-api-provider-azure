@@ -108,7 +108,6 @@ func NewClusterScope(ctx context.Context, params ClusterScopeParams) (*ClusterSc
 		AzureCluster: params.AzureCluster,
 		patchHelper:  helper,
 		cache:        params.Cache,
-		Identity:     params.Identity,
 	}, nil
 }
 
@@ -121,7 +120,6 @@ type ClusterScope struct {
 	AzureClients
 	Cluster      *clusterv1.Cluster
 	AzureCluster *infrav1.AzureCluster
-	Identity     *infrav1.AzureClusterIdentity
 }
 
 // ClusterCache stores ClusterCache data locally so we don't have to hit the API multiple times within the same reconcile loop.
@@ -913,7 +911,7 @@ func (s *ClusterScope) FailureDomains() []string {
 // AzureClusterIdentity returns the cluster identity object.
 func (s *ClusterScope) AzureClusterIdentity() *infrav1.AzureClusterIdentity {
 	// TODO: Implement this
-	return s.Identity
+	return nil
 }
 
 // SetControlPlaneSecurityRules sets the default security rules of the control plane subnet.

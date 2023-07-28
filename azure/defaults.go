@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 	"sigs.k8s.io/cluster-api-provider-azure/version"
@@ -387,13 +388,27 @@ func (p userAgentPolicy) Do(req *policy.Request) (*http.Response, error) {
 // 4. Azure CLI.
 func NewDefaultCredential(clientOptions *azcore.ClientOptions, identity *infrav1.AzureClusterIdentity) (*azidentity.ChainedTokenCredential, error) {
 	sources := []azcore.TokenCredential{}
+	chainedCredOptions := azidentity.ChainedTokenCredentialOptions{}
 
 	if clientOptions == nil {
 		clientOptions = &azcore.ClientOptions{}
 	}
 
 	if identity != nil {
-		// TODO: Implement this
+		switch identity.Spec.Type {
+		case infrav1.WorkloadIdentity:
+			workloadIDOpts := azidentity.WorkloadIdentityCredentialOptions{
+				ClientOptions: *clientOptions,
+				ClientID:      identity.Spec.ClientID,
+				TenantID:      identity.Spec.TenantID,
+			}
+			workloadIDCred, err := azidentity.NewWorkloadIdentityCredential(&workloadIDOpts)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to create workload identity credential")
+			}
+			sources = append(sources, workloadIDCred)
+			return azidentity.NewChainedTokenCredential(sources, &chainedCredOptions)
+		}
 	}
 
 	workloadIDOpts := azidentity.WorkloadIdentityCredentialOptions{ClientOptions: *clientOptions}
@@ -427,8 +442,6 @@ func NewDefaultCredential(clientOptions *azcore.ClientOptions, identity *infrav1
 	} else {
 		sources = append(sources, azureCLICred)
 	}
-
-	chainedCredOptions := azidentity.ChainedTokenCredentialOptions{}
 	return azidentity.NewChainedTokenCredential(sources, &chainedCredOptions)
 }
 
