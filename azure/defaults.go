@@ -391,17 +391,22 @@ func (p userAgentPolicy) Do(req *policy.Request) (*http.Response, error) {
 // 2. Managed Identity
 // 3. Environment variables
 // 4. Azure CLI.
-func NewDefaultCredential(clientOptions *azcore.ClientOptions) (*azidentity.ChainedTokenCredential, error) {
+func NewDefaultCredential(clientOptions *azcore.ClientOptions, auth Authorizer) (*azidentity.ChainedTokenCredential, error) {
 	sources := []azcore.TokenCredential{}
 
 	if clientOptions == nil {
 		clientOptions = &azcore.ClientOptions{}
 	}
-
-	workloadIDOpts := azidentity.WorkloadIdentityCredentialOptions{ClientOptions: *clientOptions}
+	workloadIDOpts := azidentity.WorkloadIdentityCredentialOptions{
+		ClientOptions: *clientOptions,
+		ClientID:      auth.ClientID(),
+		TenantID:      auth.TenantID(),
+		TokenFilePath: "/var/run/secrets/azure/tokens/azure-identity-token",
+	}
 	workloadIDCred, err := azidentity.NewWorkloadIdentityCredential(&workloadIDOpts)
 	if err != nil {
 		// TODO: log error
+		fmt.Printf("Willie: failed to create workload identity credential: %v", err)
 	} else {
 		sources = append(sources, workloadIDCred)
 	}
@@ -410,6 +415,7 @@ func NewDefaultCredential(clientOptions *azcore.ClientOptions) (*azidentity.Chai
 	managedIDCred, err := azidentity.NewManagedIdentityCredential(&managedIDOpts)
 	if err != nil {
 		// TODO: log error
+		fmt.Printf("Willie: failed to create managed identity credential: %v", err)
 	} else {
 		sources = append(sources, managedIDCred)
 	}
@@ -418,6 +424,7 @@ func NewDefaultCredential(clientOptions *azcore.ClientOptions) (*azidentity.Chai
 	environmentCred, err := azidentity.NewEnvironmentCredential(&environmentOpts)
 	if err != nil {
 		// TODO: log error
+		fmt.Printf("Willie: failed to create environment credential: %v", err)
 	} else {
 		sources = append(sources, environmentCred)
 	}
@@ -426,6 +433,7 @@ func NewDefaultCredential(clientOptions *azcore.ClientOptions) (*azidentity.Chai
 	azureCLICred, err := azidentity.NewAzureCLICredential(&azureCLIOpts)
 	if err != nil {
 		// TODO: log error
+		fmt.Printf("Willie: failed to create Azure CLI credential: %v", err)
 	} else {
 		sources = append(sources, azureCLICred)
 	}

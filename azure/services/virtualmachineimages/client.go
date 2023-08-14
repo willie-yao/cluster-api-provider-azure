@@ -18,6 +18,7 @@ package virtualmachineimages
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
 	"github.com/pkg/errors"
@@ -39,7 +40,7 @@ var _ Client = (*AzureClient)(nil)
 
 // NewClient creates an AzureClient from an Authorizer.
 func NewClient(auth azure.Authorizer) (*AzureClient, error) {
-	c, err := newVirtualMachineImagesClient(auth.SubscriptionID(), auth.CloudEnvironment())
+	c, err := newVirtualMachineImagesClient(auth)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create VM images client")
 	}
@@ -47,16 +48,18 @@ func NewClient(auth azure.Authorizer) (*AzureClient, error) {
 }
 
 // newVirtualMachineImagesClient creates a new VM images client from subscription ID and base URI.
-func newVirtualMachineImagesClient(subscriptionID, azureEnvironment string) (armcompute.VirtualMachineImagesClient, error) {
-	credential, err := azure.NewDefaultCredential(nil)
+func newVirtualMachineImagesClient(auth azure.Authorizer) (armcompute.VirtualMachineImagesClient, error) {
+	fmt.Printf("Willie: Client ID: %s\n", auth.ClientID())
+	fmt.Printf("Willie: Tenant ID: %s\n", auth.TenantID())
+	credential, err := azure.NewDefaultCredential(nil, auth)
 	if err != nil {
 		return armcompute.VirtualMachineImagesClient{}, errors.Wrap(err, "failed to create default Azure credential")
 	}
-	opts, err := azure.ARMClientOptions(azureEnvironment)
+	opts, err := azure.ARMClientOptions(auth.CloudEnvironment())
 	if err != nil {
 		return armcompute.VirtualMachineImagesClient{}, errors.Wrap(err, "failed to create ARM client options")
 	}
-	computeClientFactory, err := armcompute.NewClientFactory(subscriptionID, credential, opts)
+	computeClientFactory, err := armcompute.NewClientFactory(auth.SubscriptionID(), credential, opts)
 	if err != nil {
 		return armcompute.VirtualMachineImagesClient{}, errors.Wrap(err, "failed to create ARM compute client factory")
 	}
