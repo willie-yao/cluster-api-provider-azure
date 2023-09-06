@@ -26,6 +26,7 @@ import (
 	capifeature "sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // AzureManagedClusterTemplateImmutableMsg is the message used for errors on fields that are immutable.
@@ -43,20 +44,20 @@ func (r *AzureManagedClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) 
 var _ webhook.Validator = &AzureManagedClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AzureManagedClusterTemplate) ValidateCreate() error {
+func (r *AzureManagedClusterTemplate) ValidateCreate() (admission.Warnings, error) {
 	// NOTE: AzureManagedClusterTemplate relies upon MachinePools, which is behind a feature gate flag.
 	// The webhook must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(capifeature.MachinePool) {
-		return field.Forbidden(
+		return nil, field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the Cluster API 'MachinePool' feature flag is enabled",
 		)
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AzureManagedClusterTemplate) ValidateUpdate(oldRaw runtime.Object) error {
+func (r *AzureManagedClusterTemplate) ValidateUpdate(oldRaw runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	old := oldRaw.(*AzureManagedClusterTemplate)
 	if !reflect.DeepEqual(r.Spec.Template.Spec, old.Spec.Template.Spec) {
@@ -66,12 +67,12 @@ func (r *AzureManagedClusterTemplate) ValidateUpdate(oldRaw runtime.Object) erro
 	}
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("AzureManagedClusterTemplate").GroupKind(), r.Name, allErrs)
+	return nil, apierrors.NewInvalid(GroupVersion.WithKind("AzureManagedClusterTemplate").GroupKind(), r.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *AzureManagedClusterTemplate) ValidateDelete() error {
-	return nil
+func (r *AzureManagedClusterTemplate) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }

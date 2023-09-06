@@ -27,6 +27,7 @@ import (
 	capifeature "sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // AzureManagedControlPlaneTemplateImmutableMsg is the message used for errors on fields that are immutable.
@@ -60,33 +61,33 @@ func (mcpw *azureManagedControlPlaneTemplateWebhook) Default(ctx context.Context
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (mcpw *azureManagedControlPlaneTemplateWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (mcpw *azureManagedControlPlaneTemplateWebhook) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	mcp, ok := obj.(*AzureManagedControlPlaneTemplate)
 	if !ok {
-		return apierrors.NewBadRequest("expected an AzureManagedControlPlaneTemplate")
+		return nil, apierrors.NewBadRequest("expected an AzureManagedControlPlaneTemplate")
 	}
 	// NOTE: AzureManagedControlPlane relies upon MachinePools, which is behind a feature gate flag.
 	// The webhook must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(capifeature.MachinePool) {
-		return field.Forbidden(
+		return nil, field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the Cluster API 'MachinePool' feature flag is enabled",
 		)
 	}
 
-	return mcp.validateManagedControlPlaneTemplate(mcpw.Client)
+	return nil, mcp.validateManagedControlPlaneTemplate(mcpw.Client)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (mcpw *azureManagedControlPlaneTemplateWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (mcpw *azureManagedControlPlaneTemplateWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	old, ok := oldObj.(*AzureManagedControlPlaneTemplate)
 	if !ok {
-		return apierrors.NewBadRequest("expected an AzureManagedControlPlaneTemplate")
+		return nil, apierrors.NewBadRequest("expected an AzureManagedControlPlaneTemplate")
 	}
 	mcp, ok := newObj.(*AzureManagedControlPlaneTemplate)
 	if !ok {
-		return apierrors.NewBadRequest("expected an AzureManagedControlPlaneTemplate")
+		return nil, apierrors.NewBadRequest("expected an AzureManagedControlPlaneTemplate")
 	}
 	if !reflect.DeepEqual(mcp.Spec.Template.Spec, old.Spec.Template.Spec) {
 		allErrs = append(allErrs,
@@ -95,12 +96,12 @@ func (mcpw *azureManagedControlPlaneTemplateWebhook) ValidateUpdate(ctx context.
 	}
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("AzureManagedControlPlaneTemplate").GroupKind(), mcp.Name, allErrs)
+	return nil, apierrors.NewInvalid(GroupVersion.WithKind("AzureManagedControlPlaneTemplate").GroupKind(), mcp.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (mcpw *azureManagedControlPlaneTemplateWebhook) ValidateDelete(ctx context.Context, _ runtime.Object) error {
-	return nil
+func (mcpw *azureManagedControlPlaneTemplateWebhook) ValidateDelete(ctx context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
