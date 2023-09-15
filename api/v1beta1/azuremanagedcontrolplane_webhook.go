@@ -284,8 +284,6 @@ func (m *AzureManagedControlPlane) Validate(cli client.Client) error {
 	validators := []func(client client.Client) error{
 		m.validateSSHKey,
 		m.validateAPIServerAccessProfile,
-		m.validateManagedClusterNetwork,
-		m.validateAutoScalerProfile,
 		m.validateIdentity,
 		m.validateNetworkPluginMode,
 	}
@@ -601,8 +599,9 @@ func (m *AzureManagedControlPlane) validateOIDCIssuerProfileUpdate(old *AzureMan
 	return allErrs
 }
 
-func (m *AzureManagedControlPlane) validateName(_ client.Client) error {
-	if lName := strings.ToLower(m.Name); strings.Contains(lName, "microsoft") ||
+func validateName(name string, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if lName := strings.ToLower(name); strings.Contains(lName, "microsoft") ||
 		strings.Contains(lName, "windows") {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("Name"), name,
 			"cluster name is invalid because 'MICROSOFT' and 'WINDOWS' can't be used as either a whole word or a substring in the name"))
