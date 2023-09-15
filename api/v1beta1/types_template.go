@@ -20,11 +20,18 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/net"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // AzureManagedControlPlaneTemplateResourceSpec specifies an Azure managed control plane template resource.
 type AzureManagedControlPlaneTemplateResourceSpec struct {
+	// MachineTemplate contains information about how machines
+	// should be shaped when creating or updating a control plane.
+	// +optional
+	MachineTemplate *AzureManagedControlPlaneTemplateMachineTemplate `json:"machineTemplate,omitempty"`
+
 	// Version defines the desired Kubernetes version.
 	// +kubebuilder:validation:MinLength:=2
 	Version string `json:"version"`
@@ -97,6 +104,30 @@ type AzureManagedControlPlaneTemplateResourceSpec struct {
 	// AutoscalerProfile is the parameters to be applied to the cluster-autoscaler when enabled
 	// +optional
 	AutoScalerProfile *AutoScalerProfile `json:"autoscalerProfile,omitempty"`
+}
+
+type AzureManagedControlPlaneTemplateMachineTemplate struct {
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+
+	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
+	// The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// +optional
+	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+
+	// NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+	// +optional
+	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+
+	// NodeDeletionTimeout defines how long the machine controller will attempt to delete the Node that the Machine
+	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// If no value is provided, the default value for this property of the Machine resource will be used.
+	// +optional
+	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 }
 
 type AzureManagedMachinePoolTemplateResourceSpec struct {

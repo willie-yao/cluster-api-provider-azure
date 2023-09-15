@@ -18,7 +18,7 @@ spec:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: AzureManagedClusterTemplate
-      name: ${CLUSTER_NAME}-cluster
+      name: ${CLUSTER_NAME}
   workers:
     machinePools:
     - class: default-worker
@@ -50,7 +50,7 @@ spec:
       replicas: 1
     version: ${KUBERNETES_VERSION}
     workers:
-      machineDeployments:
+      machinePools:
       - class: default-worker
         name: md-0
         replicas: 1
@@ -68,7 +68,6 @@ spec:
         kind: AzureClusterIdentity
         name: ${CLUSTER_IDENTITY_NAME}
       location: ${AZURE_LOCATION}
-      sshPublicKey: ${AZURE_SSH_PUBLIC_KEY_B64:=""}
       subscriptionID: ${AZURE_SUBSCRIPTION_ID}
       version: ${KUBERNETES_VERSION}
 ---
@@ -77,6 +76,9 @@ kind: AzureManagedClusterTemplate
 metadata:
   name: ${CLUSTER_NAME}
   namespace: default
+spec:
+  template:
+    spec: {}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachinePool
@@ -157,3 +159,27 @@ spec:
     namespace: ${AZURE_CLUSTER_IDENTITY_SECRET_NAMESPACE}
   tenantID: ${AZURE_TENANT_ID}
   type: ServicePrincipal
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-pool1
+  namespace: default
+spec:
+  template:
+    spec:
+      files:
+      - contentFrom:
+          secret:
+            key: worker-node-azure.json
+            name: replace_me
+        owner: root:root
+        path: /etc/kubernetes/azure.json
+        permissions: "0644"
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            azure-container-registry-config: /etc/kubernetes/azure.json
+            cloud-provider: external
+          name: '{{ ds.meta_data["local_hostname"] }}'
+      preKubeadmCommands: []
