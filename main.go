@@ -517,6 +517,11 @@ func registerWebhooks(mgr manager.Manager) {
 		os.Exit(1)
 	}
 
+	if err := (&infrav1.AzureManagedClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AzureManagedClusterTemplate")
+		os.Exit(1)
+	}
+
 	if err := infrav1exp.SetupAzureMachinePoolWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AzureMachinePool")
 		os.Exit(1)
