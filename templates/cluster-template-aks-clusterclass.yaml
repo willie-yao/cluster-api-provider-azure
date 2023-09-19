@@ -41,28 +41,6 @@ spec:
             kind: AzureManagedMachinePoolTemplate
             name: ${CLUSTER_NAME}-pool1
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: Cluster
-metadata:
-  name: ${CLUSTER_NAME}
-  namespace: default
-spec:
-  clusterNetwork:
-    pods:
-      cidrBlocks:
-      - 192.168.0.0/16
-  topology:
-    class: default
-    version: ${KUBERNETES_VERSION}
-    workers:
-      machinePools:
-      - class: default-worker
-        name: mp-0
-        replicas: 1
-      - class: default-system
-        name: mp-1
-        replicas: 1
----
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureManagedControlPlaneTemplate
 metadata:
@@ -87,46 +65,6 @@ metadata:
 spec:
   template:
     spec: {}
-# ---
-# apiVersion: cluster.x-k8s.io/v1beta1
-# kind: MachinePool
-# metadata:
-#   name: ${CLUSTER_NAME}-pool0
-#   namespace: default
-# spec:
-#   clusterName: ${CLUSTER_NAME}
-#   replicas: ${WORKER_MACHINE_COUNT}
-#   template:
-#     metadata: {}
-#     spec:
-#       bootstrap:
-#         dataSecretName: ""
-#       clusterName: ${CLUSTER_NAME}
-#       infrastructureRef:
-#         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-#         kind: AzureManagedMachinePoolTemplate
-#         name: ${CLUSTER_NAME}-pool0
-#       version: ${KUBERNETES_VERSION}
-# ---
-# apiVersion: cluster.x-k8s.io/v1beta1
-# kind: MachinePool
-# metadata:
-#   name: ${CLUSTER_NAME}-pool1
-#   namespace: default
-# spec:
-#   clusterName: ${CLUSTER_NAME}
-#   replicas: ${WORKER_MACHINE_COUNT}
-#   template:
-#     metadata: {}
-#     spec:
-#       bootstrap:
-#         dataSecretName: ""
-#       clusterName: ${CLUSTER_NAME}
-#       infrastructureRef:
-#         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-#         kind: AzureManagedMachinePoolTemplate
-#         name: ${CLUSTER_NAME}-pool1
-#       version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureManagedMachinePoolTemplate

@@ -5,11 +5,6 @@ metadata:
   namespace: default
 spec:
   controlPlane:
-    machineInfrastructure:
-      ref:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AzureManagedMachinePool
-        name: ${CLUSTER_NAME}-pool0
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: AzureManagedControlPlaneTemplate
@@ -18,9 +13,21 @@ spec:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: AzureManagedClusterTemplate
-      name: ${CLUSTER_NAME}-cluster
+      name: ${CLUSTER_NAME}
   workers:
     machinePools:
+    - class: default-system
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: ${CLUSTER_NAME}-pool0
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: AzureManagedMachinePoolTemplate
+            name: ${CLUSTER_NAME}-pool0
     - class: default-worker
       template:
         bootstrap:
@@ -31,5 +38,6 @@ spec:
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: AzureManagedMachinePool
+            kind: AzureManagedMachinePoolTemplate
             name: ${CLUSTER_NAME}-pool1
+            

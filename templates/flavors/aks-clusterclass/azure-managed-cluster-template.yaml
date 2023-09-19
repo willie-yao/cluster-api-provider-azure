@@ -3,3 +3,4 @@ kind: AzureManagedClusterTemplate
 metadata:
   name: ${CLUSTER_NAME}
   namespace: default
+  
