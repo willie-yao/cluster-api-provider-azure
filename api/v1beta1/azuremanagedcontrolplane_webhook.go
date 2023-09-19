@@ -96,6 +96,7 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Error(err, "setDefaultSSHPublicKey failed")
 	}
 
+	m.setDefaultResourceGroupName()
 	m.setDefaultNodeResourceGroupName()
 	m.setDefaultVirtualNetwork()
 	m.setDefaultSubnet()

@@ -5,11 +5,6 @@ metadata:
   namespace: default
 spec:
   controlPlane:
-    machineInfrastructure:
-      ref:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AzureManagedMachinePoolTemplate
-        name: ${CLUSTER_NAME}-pool0
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: AzureManagedControlPlaneTemplate
@@ -46,8 +41,6 @@ spec:
       - 192.168.0.0/16
   topology:
     class: default
-    controlPlane:
-      replicas: 1
     version: ${KUBERNETES_VERSION}
     workers:
       machinePools:
