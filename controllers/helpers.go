@@ -945,6 +945,7 @@ func MachinePoolToAzureManagedControlPlaneMapFunc(ctx context.Context, c client.
 
 		gk := gvk.GroupKind()
 		ref := cluster.Spec.ControlPlaneRef
+		fmt.Printf("WILLIE cluster spec: %v", cluster.Spec)
 		if ref == nil || ref.Name == "" {
 			log.Error(err, "control plane ref is nil or empty")
 			return nil

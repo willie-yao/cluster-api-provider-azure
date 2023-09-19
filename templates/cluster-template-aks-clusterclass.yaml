@@ -16,6 +16,18 @@ spec:
       name: ${CLUSTER_NAME}
   workers:
     machinePools:
+    - class: default-system
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: ${CLUSTER_NAME}-pool0
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: AzureManagedMachinePoolTemplate
+            name: ${CLUSTER_NAME}-pool0
     - class: default-worker
       template:
         bootstrap:
@@ -45,7 +57,10 @@ spec:
     workers:
       machinePools:
       - class: default-worker
-        name: md-0
+        name: mp-0
+        replicas: 1
+      - class: default-system
+        name: mp-1
         replicas: 1
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -72,46 +87,46 @@ metadata:
 spec:
   template:
     spec: {}
----
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: MachinePool
-metadata:
-  name: ${CLUSTER_NAME}-pool0
-  namespace: default
-spec:
-  clusterName: ${CLUSTER_NAME}
-  replicas: ${WORKER_MACHINE_COUNT}
-  template:
-    metadata: {}
-    spec:
-      bootstrap:
-        dataSecretName: ""
-      clusterName: ${CLUSTER_NAME}
-      infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AzureManagedMachinePoolTemplate
-        name: ${CLUSTER_NAME}-pool0
-      version: ${KUBERNETES_VERSION}
----
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: MachinePool
-metadata:
-  name: ${CLUSTER_NAME}-pool1
-  namespace: default
-spec:
-  clusterName: ${CLUSTER_NAME}
-  replicas: ${WORKER_MACHINE_COUNT}
-  template:
-    metadata: {}
-    spec:
-      bootstrap:
-        dataSecretName: ""
-      clusterName: ${CLUSTER_NAME}
-      infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: AzureManagedMachinePoolTemplate
-        name: ${CLUSTER_NAME}-pool1
-      version: ${KUBERNETES_VERSION}
+# ---
+# apiVersion: cluster.x-k8s.io/v1beta1
+# kind: MachinePool
+# metadata:
+#   name: ${CLUSTER_NAME}-pool0
+#   namespace: default
+# spec:
+#   clusterName: ${CLUSTER_NAME}
+#   replicas: ${WORKER_MACHINE_COUNT}
+#   template:
+#     metadata: {}
+#     spec:
+#       bootstrap:
+#         dataSecretName: ""
+#       clusterName: ${CLUSTER_NAME}
+#       infrastructureRef:
+#         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+#         kind: AzureManagedMachinePoolTemplate
+#         name: ${CLUSTER_NAME}-pool0
+#       version: ${KUBERNETES_VERSION}
+# ---
+# apiVersion: cluster.x-k8s.io/v1beta1
+# kind: MachinePool
+# metadata:
+#   name: ${CLUSTER_NAME}-pool1
+#   namespace: default
+# spec:
+#   clusterName: ${CLUSTER_NAME}
+#   replicas: ${WORKER_MACHINE_COUNT}
+#   template:
+#     metadata: {}
+#     spec:
+#       bootstrap:
+#         dataSecretName: ""
+#       clusterName: ${CLUSTER_NAME}
+#       infrastructureRef:
+#         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+#         kind: AzureManagedMachinePoolTemplate
+#         name: ${CLUSTER_NAME}-pool1
+#       version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureManagedMachinePoolTemplate
@@ -152,6 +167,30 @@ spec:
     namespace: ${AZURE_CLUSTER_IDENTITY_SECRET_NAMESPACE}
   tenantID: ${AZURE_TENANT_ID}
   type: ServicePrincipal
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-pool0
+  namespace: default
+spec:
+  template:
+    spec:
+      files:
+      - contentFrom:
+          secret:
+            key: worker-node-azure.json
+            name: replace_me
+        owner: root:root
+        path: /etc/kubernetes/azure.json
+        permissions: "0644"
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            azure-container-registry-config: /etc/kubernetes/azure.json
+            cloud-provider: external
+          name: '{{ ds.meta_data["local_hostname"] }}'
+      preKubeadmCommands: []
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
