@@ -3,7 +3,6 @@ kind: Kustomization
 namespace: default
 resources:
   - ../../../flavors/clusterclass-cluster/cluster.yaml
-  - ../../../flavors/clusterclass/clusterclass.yaml
   - cni-resource-set.yaml
   - ../../../addons/windows/csi-proxy/csi-proxy-resource-set.yaml
 patchesStrategicMerge:
