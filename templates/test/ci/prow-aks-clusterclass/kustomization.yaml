@@ -8,5 +8,6 @@ patchesStrategicMerge:
   - patches/tags-aks-clusterclass.yaml
   - patches/aks-clusterclass-pool0.yaml
   - patches/aks-clusterclass-pool1.yaml
+  - patches/cluster.yaml
   - patches/addons.yaml
   - patches.yaml
