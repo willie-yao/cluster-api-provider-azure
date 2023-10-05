@@ -160,6 +160,7 @@ func (m *MachineScope) InitMachineCache(ctx context.Context) error {
 func (m *MachineScope) VMSpec() azure.ResourceSpecGetter {
 	spec := &virtualmachines.VMSpec{
 		Name:                   m.Name(),
+		Namespace:              m.Namespace(),
 		Location:               m.Location(),
 		ExtendedLocation:       m.ExtendedLocation(),
 		ResourceGroup:          m.ResourceGroup(),

@@ -22,7 +22,10 @@ import (
 	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20201201"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
@@ -34,6 +37,7 @@ import (
 // VMSpec defines the specification for a Virtual Machine.
 type VMSpec struct {
 	Name                   string
+	Namespace              string
 	ResourceGroup          string
 	Location               string
 	ExtendedLocation       *infrav1.ExtendedLocationSpec
@@ -59,30 +63,26 @@ type VMSpec struct {
 	ProviderID             string
 }
 
-// ResourceName returns the name of the virtual machine.
-func (s *VMSpec) ResourceName() string {
-	return s.Name
-}
-
-// ResourceGroupName returns the name of the virtual machine.
-func (s *VMSpec) ResourceGroupName() string {
-	return s.ResourceGroup
-}
-
-// OwnerResourceName is a no-op for virtual machines.
-func (s *VMSpec) OwnerResourceName() string {
-	return ""
-}
-
-// Parameters returns the parameters for the virtual machine.
-func (s *VMSpec) Parameters(ctx context.Context, existing interface{}) (params interface{}, err error) {
-	if existing != nil {
-		if _, ok := existing.(armcompute.VirtualMachine); !ok {
-			return nil, errors.Errorf("%T is not an armcompute.VirtualMachine", existing)
-		}
-		// vm already exists
-		return nil, nil
+// ResourceRef implements azure.ASOResourceSpecGetter.
+func (s *VMSpec) ResourceRef() *asocomputev1.VirtualMachine {
+	return &asocomputev1.VirtualMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s.Name,
+			Namespace: s.Namespace,
+		},
 	}
+}
+
+// Parameters returns the parameters for the virtual machine. It implements azure.ASOResourceSpecGetter.
+func (s *VMSpec) Parameters(ctx context.Context, existing *asocomputev1.VirtualMachine) (params *asocomputev1.VirtualMachine, err error) {
+	// no need to set ObjectMeta as it is already set in ResourceRef
+	virtualMachineToCreate := &asocomputev1.VirtualMachine{}
+	if existing != nil {
+		// vm already exists
+		return existing, nil
+	}
+	// no need for deepcopy as "existing" is already a deep copy
+	virtualMachineToCreate = existing
 
 	// VM got deleted outside of capz, do not recreate it as Machines are immutable.
 	if s.ProviderID != "" {
@@ -114,52 +114,88 @@ func (s *VMSpec) Parameters(ctx context.Context, existing interface{}) (params i
 		return nil, errors.Wrap(err, "failed to generate VM identity")
 	}
 
-	return armcompute.VirtualMachine{
-		Plan:             converters.ImageToPlan(s.Image),
-		Location:         ptr.To(s.Location),
-		ExtendedLocation: converters.ExtendedLocationToComputeSDK(s.ExtendedLocation),
-		Tags: converters.TagsToMap(infrav1.Build(infrav1.BuildParams{
+	virtualMachineToCreate.Spec = asocomputev1.VirtualMachine_Spec{
+		Owner: &genruntime.KnownResourceReference{
+			Name: s.ResourceGroup,
+		},
+		// Plan:  &asocomputev1.Plan{
+		// 	Name:      ptr.To("capz"),
+		// 	Product:   ptr.To("capz"),
+		// },
+		// ExtendedLocation: converters.ExtendedLocationToComputeSDK(s.ExtendedLocation),
+		AdditionalCapabilities: s.generateAdditionalCapabilities(),
+		AvailabilitySet:        s.getAvailabilitySet(),
+		HardwareProfile: &asocomputev1.HardwareProfile{
+			VmSize: ptr.To(asocomputev1.HardwareProfile_VmSize(s.Size)),
+		},
+		StorageProfile:  storageProfile,
+		SecurityProfile: securityProfile,
+		OsProfile:       osProfile,
+		NetworkProfile: &asocomputev1.NetworkProfile{
+			NetworkInterfaces: s.generateNICRefs(),
+		},
+		Priority: priority,
+		Location: ptr.To(s.Location),
+		Tags: infrav1.Build(infrav1.BuildParams{
 			ClusterName: s.ClusterName,
 			Lifecycle:   infrav1.ResourceLifecycleOwned,
 			Name:        ptr.To(s.Name),
 			Role:        ptr.To(s.Role),
 			Additional:  s.AdditionalTags,
-		})),
-		Properties: &armcompute.VirtualMachineProperties{
-			AdditionalCapabilities: s.generateAdditionalCapabilities(),
-			AvailabilitySet:        s.getAvailabilitySet(),
-			HardwareProfile: &armcompute.HardwareProfile{
-				VMSize: ptr.To(armcompute.VirtualMachineSizeTypes(s.Size)),
-			},
-			StorageProfile:  storageProfile,
-			SecurityProfile: securityProfile,
-			OSProfile:       osProfile,
-			NetworkProfile: &armcompute.NetworkProfile{
-				NetworkInterfaces: s.generateNICRefs(),
-			},
-			Priority:           priority,
-			EvictionPolicy:     evictionPolicy,
-			BillingProfile:     billingProfile,
-			DiagnosticsProfile: converters.GetDiagnosticsProfile(s.DiagnosticsProfile),
-		},
-		Identity: identity,
-		Zones:    s.getZones(),
-	}, nil
+		}),
+		EvictionPolicy:     evictionPolicy,
+		BillingProfile:     billingProfile,
+		DiagnosticsProfile: converters.GetDiagnosticsProfile(s.DiagnosticsProfile),
+		Identity:           identity,
+		Zones:              s.getZones(),
+	}
+
+	// Plan:             converters.ImageToPlan(s.Image),
+	// 	Location:         ptr.To(s.Location),
+	// 	ExtendedLocation: converters.ExtendedLocationToComputeSDK(s.ExtendedLocation),
+	// 	Tags: converters.TagsToMap(infrav1.Build(infrav1.BuildParams{
+	// 		ClusterName: s.ClusterName,
+	// 		Lifecycle:   infrav1.ResourceLifecycleOwned,
+	// 		Name:        ptr.To(s.Name),
+	// 		Role:        ptr.To(s.Role),
+	// 		Additional:  s.AdditionalTags,
+	// 	})),
+	// 	Properties: &armcompute.VirtualMachineProperties{
+	// 		AdditionalCapabilities: s.generateAdditionalCapabilities(),
+	// 		AvailabilitySet:        s.getAvailabilitySet(),
+	// 		HardwareProfile: &armcompute.HardwareProfile{
+	// 			VMSize: ptr.To(armcompute.VirtualMachineSizeTypes(s.Size)),
+	// 		},
+	// 		StorageProfile:  storageProfile,
+	// 		SecurityProfile: securityProfile,
+	// 		OSProfile:       osProfile,
+	// 		NetworkProfile: &armcompute.NetworkProfile{
+	// 			NetworkInterfaces: s.generateNICRefs(),
+	// 		},
+	// 		Priority:           priority,
+	// 		EvictionPolicy:     evictionPolicy,
+	// 		BillingProfile:     billingProfile,
+	// 		DiagnosticsProfile: converters.GetDiagnosticsProfile(s.DiagnosticsProfile),
+	// 	},
+	// 	Identity: identity,
+	// 	Zones:    s.getZones(),
+
+	return virtualMachineToCreate, nil
 }
 
 // generateStorageProfile generates a pointer to an armcompute.StorageProfile which can utilized for VM creation.
-func (s *VMSpec) generateStorageProfile() (*armcompute.StorageProfile, error) {
-	osDisk := &armcompute.OSDisk{
+func (s *VMSpec) generateStorageProfile() (*asocomputev1.StorageProfile, error) {
+	osDisk := &asocomputev1.OSDisk{
 		Name:         ptr.To(azure.GenerateOSDiskName(s.Name)),
-		OSType:       ptr.To(armcompute.OperatingSystemTypes(s.OSDisk.OSType)),
-		CreateOption: ptr.To(armcompute.DiskCreateOptionTypesFromImage),
+		OsType:       ptr.To(asocomputev1.OSDisk_OsType(s.OSDisk.OSType)),
+		CreateOption: ptr.To(asocomputev1.CreateOption_FromImage),
 		DiskSizeGB:   s.OSDisk.DiskSizeGB,
 	}
 	if s.OSDisk.CachingType != "" {
-		osDisk.Caching = ptr.To(armcompute.CachingTypes(s.OSDisk.CachingType))
+		osDisk.Caching = ptr.To(asocomputev1.Caching(s.OSDisk.CachingType))
 	}
-	storageProfile := &armcompute.StorageProfile{
-		OSDisk: osDisk,
+	storageProfile := &asocomputev1.StorageProfile{
+		OsDisk: osDisk,
 	}
 
 	// Checking if the requested VM size has at least 2 vCPUS
@@ -186,58 +222,56 @@ func (s *VMSpec) generateStorageProfile() (*armcompute.StorageProfile, error) {
 			return nil, azure.WithTerminalError(fmt.Errorf("VM size %s does not support ephemeral os. Select a different VM size or disable ephemeral os", s.Size))
 		}
 
-		storageProfile.OSDisk.DiffDiskSettings = &armcompute.DiffDiskSettings{
-			Option: ptr.To(armcompute.DiffDiskOptions(s.OSDisk.DiffDiskSettings.Option)),
+		storageProfile.OsDisk.DiffDiskSettings = &asocomputev1.DiffDiskSettings{
+			Option: ptr.To(asocomputev1.DiffDiskOption(s.OSDisk.DiffDiskSettings.Option)),
 		}
 	}
 
 	if s.OSDisk.ManagedDisk != nil {
-		storageProfile.OSDisk.ManagedDisk = &armcompute.ManagedDiskParameters{}
+		storageProfile.OsDisk.ManagedDisk = &asocomputev1.ManagedDiskParameters{}
 		if s.OSDisk.ManagedDisk.StorageAccountType != "" {
-			storageProfile.OSDisk.ManagedDisk.StorageAccountType = ptr.To(armcompute.StorageAccountTypes(s.OSDisk.ManagedDisk.StorageAccountType))
+			storageProfile.OsDisk.ManagedDisk.StorageAccountType = ptr.To(asocomputev1.StorageAccountType(s.OSDisk.ManagedDisk.StorageAccountType))
 		}
 		if s.OSDisk.ManagedDisk.DiskEncryptionSet != nil {
-			storageProfile.OSDisk.ManagedDisk.DiskEncryptionSet = &armcompute.DiskEncryptionSetParameters{ID: ptr.To(s.OSDisk.ManagedDisk.DiskEncryptionSet.ID)}
+			storageProfile.OsDisk.ManagedDisk.DiskEncryptionSet = &asocomputev1.SubResource{Reference: &genruntime.ResourceReference{ARMID: s.OSDisk.ManagedDisk.DiskEncryptionSet.ID}}
 		}
 		if s.OSDisk.ManagedDisk.SecurityProfile != nil {
 			if _, exists := s.SKU.GetCapability(resourceskus.ConfidentialComputingType); !exists {
 				return nil, azure.WithTerminalError(fmt.Errorf("VM size %s does not support confidential computing. Select a different VM size or remove the security profile of the OS disk", s.Size))
 			}
 
-			storageProfile.OSDisk.ManagedDisk.SecurityProfile = &armcompute.VMDiskSecurityProfile{}
-
 			if s.OSDisk.ManagedDisk.SecurityProfile.DiskEncryptionSet != nil {
-				storageProfile.OSDisk.ManagedDisk.SecurityProfile.DiskEncryptionSet = &armcompute.DiskEncryptionSetParameters{ID: ptr.To(s.OSDisk.ManagedDisk.SecurityProfile.DiskEncryptionSet.ID)}
+				storageProfile.OsDisk.ManagedDisk.DiskEncryptionSet = &asocomputev1.SubResource{Reference: &genruntime.ResourceReference{ARMID: s.OSDisk.ManagedDisk.SecurityProfile.DiskEncryptionSet.ID}}
 			}
-			if s.OSDisk.ManagedDisk.SecurityProfile.SecurityEncryptionType != "" {
-				storageProfile.OSDisk.ManagedDisk.SecurityProfile.SecurityEncryptionType = ptr.To(armcompute.SecurityEncryptionTypes(string(s.OSDisk.ManagedDisk.SecurityProfile.SecurityEncryptionType)))
-			}
+			// if s.OSDisk.ManagedDisk.SecurityProfile.SecurityEncryptionType != "" {
+			// 	storageProfile.OsDisk.ManagedDisk. = ptr.To(armcompute.SecurityEncryptionTypes(string(s.OSDisk.ManagedDisk.SecurityProfile.SecurityEncryptionType)))
+			// }
 		}
 	}
 
-	dataDisks := make([]*armcompute.DataDisk, len(s.DataDisks))
+	dataDisks := make([]asocomputev1.DataDisk, len(s.DataDisks))
 	for i, disk := range s.DataDisks {
-		dataDisks[i] = &armcompute.DataDisk{
-			CreateOption: ptr.To(armcompute.DiskCreateOptionTypesEmpty),
-			DiskSizeGB:   ptr.To[int32](disk.DiskSizeGB),
+		dataDisks[i] = asocomputev1.DataDisk{
+			CreateOption: ptr.To(asocomputev1.DiskCreateOptionTypesEmpty),
+			DiskSizeGB:   ptr.To[int](disk.DiskSizeGB),
 			Lun:          disk.Lun,
 			Name:         ptr.To(azure.GenerateDataDiskName(s.Name, disk.NameSuffix)),
 		}
 		if disk.CachingType != "" {
-			dataDisks[i].Caching = ptr.To(armcompute.CachingTypes(disk.CachingType))
+			dataDisks[i].Caching = ptr.To(asocomputev1.Caching(disk.CachingType))
 		}
 
 		if disk.ManagedDisk != nil {
-			dataDisks[i].ManagedDisk = &armcompute.ManagedDiskParameters{
-				StorageAccountType: ptr.To(armcompute.StorageAccountTypes(disk.ManagedDisk.StorageAccountType)),
+			dataDisks[i].ManagedDisk = &asocomputev1.ManagedDiskParameters{
+				StorageAccountType: ptr.To(asocomputev1.StorageAccountType(disk.ManagedDisk.StorageAccountType)),
 			}
 
 			if disk.ManagedDisk.DiskEncryptionSet != nil {
-				dataDisks[i].ManagedDisk.DiskEncryptionSet = &armcompute.DiskEncryptionSetParameters{ID: ptr.To(disk.ManagedDisk.DiskEncryptionSet.ID)}
+				dataDisks[i].ManagedDisk.DiskEncryptionSet = &asocomputev1.SubResource{Reference: &genruntime.ResourceReference{ARMID: disk.ManagedDisk.DiskEncryptionSet.ID}}
 			}
 
 			// check the support for ultra disks based on location and vm size
-			if disk.ManagedDisk.StorageAccountType == string(armcompute.StorageAccountTypesUltraSSDLRS) && !s.SKU.HasLocationCapability(resourceskus.UltraSSDAvailable, s.Location, s.Zone) {
+			if disk.ManagedDisk.StorageAccountType == string(asocomputev1.StorageAccountType_UltraSSD_LRS) && !s.SKU.HasLocationCapability(resourceskus.UltraSSDAvailable, s.Location, s.Zone) {
 				return nil, azure.WithTerminalError(fmt.Errorf("VM size %s does not support ultra disks in location %s. Select a different VM size or disable ultra disks", s.Size, s.Location))
 			}
 		}
@@ -395,14 +429,14 @@ func (s *VMSpec) generateNICRefs() []*armcompute.NetworkInterfaceReference {
 	return nicRefs
 }
 
-func (s *VMSpec) generateAdditionalCapabilities() *armcompute.AdditionalCapabilities {
-	var capabilities *armcompute.AdditionalCapabilities
+func (s *VMSpec) generateAdditionalCapabilities() *asocomputev1.AdditionalCapabilities {
+	var capabilities *asocomputev1.AdditionalCapabilities
 
 	// Provisionally detect whether there is any Data Disk defined which uses UltraSSDs.
 	// If that's the case, enable the UltraSSD capability.
 	for _, dataDisk := range s.DataDisks {
 		if dataDisk.ManagedDisk != nil && dataDisk.ManagedDisk.StorageAccountType == string(armcompute.StorageAccountTypesUltraSSDLRS) {
-			capabilities = &armcompute.AdditionalCapabilities{
+			capabilities = &asocomputev1.AdditionalCapabilities{
 				UltraSSDEnabled: ptr.To(true),
 			}
 			break
@@ -412,7 +446,7 @@ func (s *VMSpec) generateAdditionalCapabilities() *armcompute.AdditionalCapabili
 	// Set Additional Capabilities if any is present on the spec.
 	if s.AdditionalCapabilities != nil {
 		if capabilities == nil {
-			capabilities = &armcompute.AdditionalCapabilities{}
+			capabilities = &asocomputev1.AdditionalCapabilities{}
 		}
 		// Set UltraSSDEnabled if a specific value is set on the spec for it.
 		if s.AdditionalCapabilities.UltraSSDEnabled != nil {
@@ -423,10 +457,10 @@ func (s *VMSpec) generateAdditionalCapabilities() *armcompute.AdditionalCapabili
 	return capabilities
 }
 
-func (s *VMSpec) getAvailabilitySet() *armcompute.SubResource {
-	var as *armcompute.SubResource
+func (s *VMSpec) getAvailabilitySet() *asocomputev1.SubResource {
+	var as *asocomputev1.SubResource
 	if s.AvailabilitySetID != "" {
-		as = &armcompute.SubResource{ID: &s.AvailabilitySetID}
+		as = &asocomputev1.SubResource{Reference: &genruntime.ResourceReference{ARMID: s.AvailabilitySetID}}
 	}
 	return as
 }
