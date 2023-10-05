@@ -131,6 +131,8 @@ func (amr *AzureMachineReconciler) SetupWithManager(ctx context.Context, mgr ctr
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
+// +kubebuilder:rbac:groups=compute.azure.com,resources=virtualmachines,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=compute.azure.com,resources=virtualmachines/status,verbs=get;list;watch
 
 // Reconcile idempotently gets, creates, and updates a machine.
 func (amr *AzureMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
