@@ -348,7 +348,7 @@ func TestParameters(t *testing.T) {
 				Image:      &infrav1.Image{ID: ptr.To("fake-image-id")},
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Windows",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 					},
@@ -443,7 +443,7 @@ func TestParameters(t *testing.T) {
 				Size:       "Standard_D2v3",
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 					},
@@ -502,7 +502,7 @@ func TestParameters(t *testing.T) {
 				Image:             &infrav1.Image{ID: ptr.To("fake-image-id")},
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 						SecurityProfile: &infrav1.VMDiskSecurityProfile{
@@ -540,7 +540,7 @@ func TestParameters(t *testing.T) {
 				Image:             &infrav1.Image{ID: ptr.To("fake-image-id")},
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 						SecurityProfile: &infrav1.VMDiskSecurityProfile{
@@ -596,7 +596,7 @@ func TestParameters(t *testing.T) {
 				Image:             &infrav1.Image{ID: ptr.To("fake-image-id")},
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 					},
@@ -679,7 +679,7 @@ func TestParameters(t *testing.T) {
 				Image:             &infrav1.Image{ID: ptr.To("fake-image-id")},
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 						SecurityProfile: &infrav1.VMDiskSecurityProfile{
@@ -715,7 +715,7 @@ func TestParameters(t *testing.T) {
 				Image:             &infrav1.Image{ID: ptr.To("fake-image-id")},
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 						SecurityProfile: &infrav1.VMDiskSecurityProfile{
@@ -751,7 +751,7 @@ func TestParameters(t *testing.T) {
 				Image:             &infrav1.Image{ID: ptr.To("fake-image-id")},
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 						SecurityProfile: &infrav1.VMDiskSecurityProfile{
@@ -786,7 +786,7 @@ func TestParameters(t *testing.T) {
 				Image:             &infrav1.Image{ID: ptr.To("fake-image-id")},
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 						SecurityProfile: &infrav1.VMDiskSecurityProfile{
@@ -818,7 +818,7 @@ func TestParameters(t *testing.T) {
 				Size:       "Standard_D2v3",
 				OSDisk: infrav1.OSDisk{
 					OSType:     "Linux",
-					DiskSizeGB: ptr.To[int32](128),
+					DiskSizeGB: ptr.To(128),
 					ManagedDisk: &infrav1.ManagedDiskParameters{
 						StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 					},
@@ -950,12 +950,12 @@ func TestParameters(t *testing.T) {
 					{
 						NameSuffix: "mydisk",
 						DiskSizeGB: 64,
-						Lun:        ptr.To[int32](0),
+						Lun:        ptr.To(0),
 					},
 					{
 						NameSuffix: "myDiskWithUltraDisk",
 						DiskSizeGB: 128,
-						Lun:        ptr.To[int32](1),
+						Lun:        ptr.To(1),
 						ManagedDisk: &infrav1.ManagedDiskParameters{
 							StorageAccountType: string(armcompute.StorageAccountTypesUltraSSDLRS),
 						},
@@ -963,7 +963,7 @@ func TestParameters(t *testing.T) {
 					{
 						NameSuffix: "myDiskWithManagedDisk",
 						DiskSizeGB: 128,
-						Lun:        ptr.To[int32](2),
+						Lun:        ptr.To(2),
 						ManagedDisk: &infrav1.ManagedDiskParameters{
 							StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 						},
@@ -971,7 +971,7 @@ func TestParameters(t *testing.T) {
 					{
 						NameSuffix: "managedDiskWithEncryption",
 						DiskSizeGB: 128,
-						Lun:        ptr.To[int32](3),
+						Lun:        ptr.To(3),
 						ManagedDisk: &infrav1.ManagedDiskParameters{
 							StorageAccountType: string(armcompute.StorageAccountTypesPremiumLRS),
 							DiskEncryptionSet: &infrav1.DiskEncryptionSetParameters{
@@ -1043,7 +1043,7 @@ func TestParameters(t *testing.T) {
 					{
 						NameSuffix: "myDiskWithUltraDisk",
 						DiskSizeGB: 128,
-						Lun:        ptr.To[int32](1),
+						Lun:        ptr.To(1),
 						ManagedDisk: &infrav1.ManagedDiskParameters{
 							StorageAccountType: string(armcompute.StorageAccountTypesUltraSSDLRS),
 						},
@@ -1075,7 +1075,7 @@ func TestParameters(t *testing.T) {
 					{
 						NameSuffix: "myDiskWithUltraDisk",
 						DiskSizeGB: 128,
-						Lun:        ptr.To[int32](1),
+						Lun:        ptr.To(1),
 						ManagedDisk: &infrav1.ManagedDiskParameters{
 							StorageAccountType: string(armcompute.StorageAccountTypesUltraSSDLRS),
 						},
@@ -1117,7 +1117,7 @@ func TestParameters(t *testing.T) {
 					{
 						NameSuffix: "myDiskWithUltraDisk",
 						DiskSizeGB: 128,
-						Lun:        ptr.To[int32](1),
+						Lun:        ptr.To(1),
 						ManagedDisk: &infrav1.ManagedDiskParameters{
 							StorageAccountType: string(armcompute.StorageAccountTypesUltraSSDLRS),
 						},
@@ -1162,7 +1162,7 @@ func TestParameters(t *testing.T) {
 					{
 						NameSuffix: "myDiskWithUltraDisk",
 						DiskSizeGB: 128,
-						Lun:        ptr.To[int32](1),
+						Lun:        ptr.To(1),
 						ManagedDisk: &infrav1.ManagedDiskParameters{
 							StorageAccountType: string(armcompute.StorageAccountTypesUltraSSDLRS),
 						},

@@ -603,7 +603,7 @@ type OSDisk struct {
 	// DiskSizeGB is the size in GB to assign to the OS disk.
 	// Will have a default of 30GB if not provided
 	// +optional
-	DiskSizeGB *int32 `json:"diskSizeGB,omitempty"`
+	DiskSizeGB *int `json:"diskSizeGB,omitempty"`
 	// ManagedDisk specifies the Managed Disk parameters for the OS disk.
 	// +optional
 	ManagedDisk *ManagedDiskParameters `json:"managedDisk,omitempty"`
@@ -621,14 +621,14 @@ type DataDisk struct {
 	// Each disk name will be in format <machineName>_<nameSuffix>.
 	NameSuffix string `json:"nameSuffix"`
 	// DiskSizeGB is the size in GB to assign to the data disk.
-	DiskSizeGB int32 `json:"diskSizeGB"`
+	DiskSizeGB int `json:"diskSizeGB"`
 	// ManagedDisk specifies the Managed Disk parameters for the data disk.
 	// +optional
 	ManagedDisk *ManagedDiskParameters `json:"managedDisk,omitempty"`
 	// Lun Specifies the logical unit number of the data disk. This value is used to identify data disks within the VM and therefore must be unique for each data disk attached to a VM.
 	// The value must be between 0 and 63.
 	// +optional
-	Lun *int32 `json:"lun,omitempty"`
+	Lun *int `json:"lun,omitempty"`
 	// CachingType specifies the caching requirements.
 	// +optional
 	// +kubebuilder:validation:Enum=None;ReadOnly;ReadWrite

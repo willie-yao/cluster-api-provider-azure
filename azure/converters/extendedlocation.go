@@ -19,6 +19,7 @@ package converters
 import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 )
@@ -42,5 +43,15 @@ func ExtendedLocationToComputeSDK(src *infrav1.ExtendedLocationSpec) *armcompute
 	return &armcompute.ExtendedLocation{
 		Name: ptr.To(src.Name),
 		Type: ptr.To(armcompute.ExtendedLocationTypes(src.Type)),
+	}
+}
+
+func ExtendedLocationToComputeSDKASO(src *infrav1.ExtendedLocationSpec) *asocomputev1.ExtendedLocation {
+	if src == nil {
+		return nil
+	}
+	return &asocomputev1.ExtendedLocation{
+		Name: ptr.To(src.Name),
+		Type: ptr.To(asocomputev1.ExtendedLocationType(src.Type)),
 	}
 }

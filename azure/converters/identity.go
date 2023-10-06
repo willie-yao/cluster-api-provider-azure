@@ -20,6 +20,8 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -52,6 +54,29 @@ func VMIdentityToVMSDK(identity infrav1.VMIdentity, uami []infrav1.UserAssignedI
 	return nil, nil
 }
 
+// VMIdentityToVMSDKASO converts CAPZ VM identity to Azure SDK identity.
+func VMIdentityToVMSDKASO(identity infrav1.VMIdentity, uami []infrav1.UserAssignedIdentity) (*asocomputev1.VirtualMachineIdentity, error) {
+	if identity == infrav1.VMIdentitySystemAssigned {
+		return &asocomputev1.VirtualMachineIdentity{
+			Type: ptr.To(asocomputev1.VirtualMachineIdentity_Type_SystemAssigned),
+		}, nil
+	}
+
+	if identity == infrav1.VMIdentityUserAssigned {
+		userIdentitiesMap, err := UserAssignedIdentitiesToVMSDKASO(uami)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to assign VM identity")
+		}
+
+		return &asocomputev1.VirtualMachineIdentity{
+			Type:                   ptr.To(asocomputev1.VirtualMachineIdentity_Type_UserAssigned),
+			UserAssignedIdentities: userIdentitiesMap,
+		}, nil
+	}
+
+	return nil, nil
+}
+
 // UserAssignedIdentitiesToVMSDK converts CAPZ user assigned identities associated with the Virtual Machine to Azure SDK identities
 // The user identity dictionary key references will be ARM resource ids in the form:
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName}'.
@@ -66,6 +91,21 @@ func UserAssignedIdentitiesToVMSDK(identities []infrav1.UserAssignedIdentity) (m
 	}
 
 	return userIdentitiesMap, nil
+}
+
+func UserAssignedIdentitiesToVMSDKASO(identities []infrav1.UserAssignedIdentity) ([]asocomputev1.UserAssignedIdentityDetails, error) {
+	if len(identities) == 0 {
+		return nil, ErrUserAssignedIdentitiesNotFound
+	}
+	userAssignedIdentities := make([]asocomputev1.UserAssignedIdentityDetails, len(identities))
+	for _, id := range identities {
+		userAssignedIdentity := asocomputev1.UserAssignedIdentityDetails{
+			Reference: genruntime.ResourceReference{ARMID: id.ProviderID},
+		}
+		userAssignedIdentities = append(userAssignedIdentities, userAssignedIdentity)
+	}
+
+	return userAssignedIdentities, nil
 }
 
 // UserAssignedIdentitiesToVMSSSDK converts CAPZ user-assigned identities associated with the Virtual Machine Scale Set to Azure SDK identities

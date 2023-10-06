@@ -20,22 +20,18 @@ import (
 	"context"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4"
-	"github.com/pkg/errors"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 	azprovider "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/converters"
+	"sigs.k8s.io/cluster-api-provider-azure/azure/services/aso"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/async"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/identities"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/networkinterfaces"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/publicips"
 	azureutil "sigs.k8s.io/cluster-api-provider-azure/util/azure"
-	"sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
-	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -44,8 +40,8 @@ const serviceName = "virtualmachine"
 // VMScope defines the scope interface for a virtual machines service.
 type VMScope interface {
 	azure.Authorizer
-	azure.AsyncStatusUpdater
-	VMSpec() azure.ResourceSpecGetter
+	aso.Scope
+	VMSpecs() []azure.ASOResourceSpecGetter[*asocomputev1.VirtualMachine]
 	SetAnnotation(string, string)
 	SetProviderID(string)
 	SetAddresses([]corev1.NodeAddress)
@@ -56,7 +52,7 @@ type VMScope interface {
 // Service provides operations on Azure resources.
 type Service struct {
 	Scope VMScope
-	async.Reconciler
+	*aso.Service[*asocomputev1.VirtualMachine, VMScope]
 	interfacesGetter async.Getter
 	publicIPsGetter  async.Getter
 	identitiesGetter identities.Client
@@ -64,10 +60,10 @@ type Service struct {
 
 // New creates a new service.
 func New(scope VMScope) (*Service, error) {
-	Client, err := NewClient(scope)
-	if err != nil {
-		return nil, err
-	}
+	svc := aso.NewService[*asocomputev1.VirtualMachine, VMScope](serviceName, scope)
+	svc.Specs = scope.VMSpecs()
+	svc.ConditionType = infrav1.VMRunningCondition
+	svc.PostCreateOrUpdateResourceHook = postCreateOrUpdateResourceHook
 	identitiesSvc, err := identities.NewClient(scope)
 	if err != nil {
 		return nil, err
@@ -82,214 +78,169 @@ func New(scope VMScope) (*Service, error) {
 	}
 	return &Service{
 		Scope:            scope,
+		Service:          svc,
 		interfacesGetter: interfacesSvc,
 		publicIPsGetter:  publicIPsSvc,
 		identitiesGetter: identitiesSvc,
-		Reconciler: async.New[armcompute.VirtualMachinesClientCreateOrUpdateResponse,
-			armcompute.VirtualMachinesClientDeleteResponse](scope, Client, Client),
 	}, nil
 }
 
-// Name returns the service name.
-func (s *Service) Name() string {
-	return serviceName
-}
-
-// Reconcile idempotently creates or updates a virtual machine.
-func (s *Service) Reconcile(ctx context.Context) error {
-	ctx, _, done := tele.StartSpanWithLogger(ctx, "virtualmachines.Service.Reconcile")
-	defer done()
-
-	ctx, cancel := context.WithTimeout(ctx, reconciler.DefaultAzureServiceReconcileTimeout)
-	defer cancel()
-
-	vmSpec := s.Scope.VMSpec()
-	if vmSpec == nil {
-		return nil
+func postCreateOrUpdateResourceHook(scope VMScope, result *asocomputev1.VirtualMachine, err error) {
+	if err != nil {
+		return
 	}
 
-	result, err := s.CreateOrUpdateResource(ctx, vmSpec, serviceName)
-	s.Scope.UpdatePutStatus(infrav1.VMRunningCondition, serviceName, err)
-	// Set the DiskReady condition here since the disk gets created with the VM.
-	s.Scope.UpdatePutStatus(infrav1.DisksReadyCondition, serviceName, err)
 	if err == nil && result != nil {
-		vm, ok := result.(armcompute.VirtualMachine)
-		if !ok {
-			return errors.Errorf("%T is not an armcompute.VirtualMachine", result)
-		}
-		infraVM := converters.SDKToVM(vm)
+		infraVM := converters.ASOSDKToVM(*result)
 		// Transform the VM resource representation to conform to the cloud-provider-azure representation
 		providerID, err := azprovider.ConvertResourceGroupNameToLower(azureutil.ProviderIDPrefix + infraVM.ID)
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse VM ID %s", infraVM.ID)
+			return
 		}
-		s.Scope.SetProviderID(providerID)
-		s.Scope.SetAnnotation("cluster-api-provider-azure", "true")
+		scope.SetProviderID(providerID)
+		scope.SetAnnotation("cluster-api-provider-azure", "true")
 
 		// Discover addresses for NICs associated with the VM
-		addresses, err := s.getAddresses(ctx, vm, vmSpec.ResourceGroupName())
-		if err != nil {
-			return errors.Wrap(err, "failed to fetch VM addresses")
-		}
-		s.Scope.SetAddresses(addresses)
-		s.Scope.SetVMState(infraVM.State)
+		// TODO: Is using context.Background() here correct?
+		// addresses, err := getAddresses(context.Background(), result, vmSpec.ResourceGroupName())
+		// if err != nil {
+		// 	return
+		// }
+		// scope.SetAddresses(addresses)
+		// scope.SetVMState(infraVM.State)
 
-		spec, ok := vmSpec.(*VMSpec)
-		if !ok {
-			return errors.Errorf("%T is not a valid VM spec", vmSpec)
-		}
+		// spec, ok := scope.VMSpecs()
+		// if !ok {
+		// 	return
+		// }
 
-		err = s.checkUserAssignedIdentities(ctx, spec.UserAssignedIdentities, infraVM.UserAssignedIdentities)
-		if err != nil {
-			return errors.Wrap(err, "failed to check user assigned identities")
-		}
+		// err = checkUserAssignedIdentities(context.Background, scope, spec.UserAssignedIdentities, infraVM.UserAssignedIdentities)
+		// if err != nil {
+		// 	return
+		// }
 	}
-	return err
 }
 
-// Delete deletes the virtual machine with the provided name.
-func (s *Service) Delete(ctx context.Context) error {
-	ctx, _, done := tele.StartSpanWithLogger(ctx, "virtualmachines.Service.Delete")
-	defer done()
+// func checkUserAssignedIdentities(ctx context.Context, scope VMScope, specIdentities []infrav1.UserAssignedIdentity, vmIdentities []infrav1.UserAssignedIdentity) error {
+// 	expectedMap := make(map[string]struct{})
+// 	actualMap := make(map[string]struct{})
 
-	ctx, cancel := context.WithTimeout(ctx, reconciler.DefaultAzureServiceReconcileTimeout)
-	defer cancel()
+// 	// Create a map of the expected identities. The ProviderID is converted to match the format of the VM identity.
+// 	for _, expectedIdentity := range specIdentities {
+// 		expectedClientID, err := s.identitiesGetter.GetClientID(ctx, expectedIdentity.ProviderID)
+// 		if err != nil {
+// 			return errors.Wrap(err, "failed to get client ID")
+// 		}
+// 		expectedMap[expectedClientID] = struct{}{}
+// 	}
 
-	vmSpec := s.Scope.VMSpec()
-	if vmSpec == nil {
-		return nil
-	}
+// 	// Create a map of the actual identities from the vm.
+// 	for _, actualIdentity := range vmIdentities {
+// 		actualMap[actualIdentity.ProviderID] = struct{}{}
+// 	}
 
-	err := s.DeleteResource(ctx, vmSpec, serviceName)
-	if err != nil {
-		s.Scope.SetVMState(infrav1.Deleting)
-	} else {
-		s.Scope.SetVMState(infrav1.Deleted)
-	}
-	s.Scope.UpdateDeleteStatus(infrav1.VMRunningCondition, serviceName, err)
-	return err
-}
+// 	// Check if the expected identities are present in the vm.
+// 	for expectedKey := range expectedMap {
+// 		_, exists := actualMap[expectedKey]
+// 		if !exists {
+// 			scope.SetConditionFalse(infrav1.VMIdentitiesReadyCondition, infrav1.UserAssignedIdentityMissingReason, clusterv1.ConditionSeverityWarning, "VM is missing expected user assigned identity with client ID: "+expectedKey)
+// 			return nil
+// 		}
+// 	}
 
-func (s *Service) checkUserAssignedIdentities(ctx context.Context, specIdentities []infrav1.UserAssignedIdentity, vmIdentities []infrav1.UserAssignedIdentity) error {
-	expectedMap := make(map[string]struct{})
-	actualMap := make(map[string]struct{})
+// 	return nil
+// }
 
-	// Create a map of the expected identities. The ProviderID is converted to match the format of the VM identity.
-	for _, expectedIdentity := range specIdentities {
-		expectedClientID, err := s.identitiesGetter.GetClientID(ctx, expectedIdentity.ProviderID)
-		if err != nil {
-			return errors.Wrap(err, "failed to get client ID")
-		}
-		expectedMap[expectedClientID] = struct{}{}
-	}
+// func (s *Service) getAddresses(ctx context.Context, vm armcompute.VirtualMachine, rgName string) ([]corev1.NodeAddress, error) {
+// 	ctx, _, done := tele.StartSpanWithLogger(ctx, "virtualmachines.Service.getAddresses")
+// 	defer done()
 
-	// Create a map of the actual identities from the vm.
-	for _, actualIdentity := range vmIdentities {
-		actualMap[actualIdentity.ProviderID] = struct{}{}
-	}
+// 	addresses := []corev1.NodeAddress{
+// 		{
+// 			Type:    corev1.NodeInternalDNS,
+// 			Address: ptr.Deref(vm.Name, ""),
+// 		},
+// 	}
+// 	if vm.Properties.NetworkProfile.NetworkInterfaces == nil {
+// 		return addresses, nil
+// 	}
+// 	for _, nicRef := range vm.Properties.NetworkProfile.NetworkInterfaces {
+// 		// The full ID includes the name at the very end. Split the string and pull the last element
+// 		// Ex: /subscriptions/$SUB/resourceGroups/$RG/providers/Microsoft.Network/networkInterfaces/$NICNAME
+// 		// We'll check to see if ID is nil and bail early if we don't have it
+// 		if nicRef.ID == nil {
+// 			continue
+// 		}
+// 		nicName := getResourceNameByID(ptr.Deref(nicRef.ID, ""))
 
-	// Check if the expected identities are present in the vm.
-	for expectedKey := range expectedMap {
-		_, exists := actualMap[expectedKey]
-		if !exists {
-			s.Scope.SetConditionFalse(infrav1.VMIdentitiesReadyCondition, infrav1.UserAssignedIdentityMissingReason, clusterv1.ConditionSeverityWarning, "VM is missing expected user assigned identity with client ID: "+expectedKey)
-			return nil
-		}
-	}
+// 		// Fetch nic and append its addresses
+// 		existingNic, err := s.interfacesGetter.Get(ctx, &networkinterfaces.NICSpec{
+// 			Name:          nicName,
+// 			ResourceGroup: rgName,
+// 		})
+// 		if err != nil {
+// 			return addresses, err
+// 		}
 
-	return nil
-}
+// 		nic, ok := existingNic.(armnetwork.Interface)
+// 		if !ok {
+// 			return nil, errors.Errorf("%T is not an armnetwork.Interface", existingNic)
+// 		}
 
-func (s *Service) getAddresses(ctx context.Context, vm armcompute.VirtualMachine, rgName string) ([]corev1.NodeAddress, error) {
-	ctx, _, done := tele.StartSpanWithLogger(ctx, "virtualmachines.Service.getAddresses")
-	defer done()
+// 		if nic.Properties.IPConfigurations == nil {
+// 			continue
+// 		}
+// 		for _, ipConfig := range nic.Properties.IPConfigurations {
+// 			if ipConfig != nil && ipConfig.Properties != nil && ipConfig.Properties.PrivateIPAddress != nil {
+// 				addresses = append(addresses,
+// 					corev1.NodeAddress{
+// 						Type:    corev1.NodeInternalIP,
+// 						Address: ptr.Deref(ipConfig.Properties.PrivateIPAddress, ""),
+// 					},
+// 				)
+// 			}
 
-	addresses := []corev1.NodeAddress{
-		{
-			Type:    corev1.NodeInternalDNS,
-			Address: ptr.Deref(vm.Name, ""),
-		},
-	}
-	if vm.Properties.NetworkProfile.NetworkInterfaces == nil {
-		return addresses, nil
-	}
-	for _, nicRef := range vm.Properties.NetworkProfile.NetworkInterfaces {
-		// The full ID includes the name at the very end. Split the string and pull the last element
-		// Ex: /subscriptions/$SUB/resourceGroups/$RG/providers/Microsoft.Network/networkInterfaces/$NICNAME
-		// We'll check to see if ID is nil and bail early if we don't have it
-		if nicRef.ID == nil {
-			continue
-		}
-		nicName := getResourceNameByID(ptr.Deref(nicRef.ID, ""))
+// 			if ipConfig.Properties.PublicIPAddress == nil {
+// 				continue
+// 			}
+// 			// ID is the only field populated in PublicIPAddress sub-resource.
+// 			// Thus, we have to go fetch the publicIP with the name.
+// 			publicIPName := getResourceNameByID(ptr.Deref(ipConfig.Properties.PublicIPAddress.ID, ""))
+// 			publicNodeAddress, err := s.getPublicIPAddress(ctx, publicIPName, rgName)
+// 			if err != nil {
+// 				return addresses, err
+// 			}
+// 			addresses = append(addresses, publicNodeAddress)
+// 		}
+// 	}
 
-		// Fetch nic and append its addresses
-		existingNic, err := s.interfacesGetter.Get(ctx, &networkinterfaces.NICSpec{
-			Name:          nicName,
-			ResourceGroup: rgName,
-		})
-		if err != nil {
-			return addresses, err
-		}
+// 	return addresses, nil
+// }
 
-		nic, ok := existingNic.(armnetwork.Interface)
-		if !ok {
-			return nil, errors.Errorf("%T is not an armnetwork.Interface", existingNic)
-		}
+// // getPublicIPAddress will fetch a public ip address resource by name and return a nodeaddresss representation.
+// func (s *Service) getPublicIPAddress(ctx context.Context, publicIPAddressName string, rgName string) (corev1.NodeAddress, error) {
+// 	ctx, _, done := tele.StartSpanWithLogger(ctx, "virtualmachines.Service.getPublicIPAddress")
+// 	defer done()
 
-		if nic.Properties.IPConfigurations == nil {
-			continue
-		}
-		for _, ipConfig := range nic.Properties.IPConfigurations {
-			if ipConfig != nil && ipConfig.Properties != nil && ipConfig.Properties.PrivateIPAddress != nil {
-				addresses = append(addresses,
-					corev1.NodeAddress{
-						Type:    corev1.NodeInternalIP,
-						Address: ptr.Deref(ipConfig.Properties.PrivateIPAddress, ""),
-					},
-				)
-			}
+// 	retAddress := corev1.NodeAddress{}
+// 	result, err := s.publicIPsGetter.Get(ctx, &publicips.PublicIPSpec{
+// 		Name:          publicIPAddressName,
+// 		ResourceGroup: rgName,
+// 	})
+// 	if err != nil {
+// 		return retAddress, err
+// 	}
 
-			if ipConfig.Properties.PublicIPAddress == nil {
-				continue
-			}
-			// ID is the only field populated in PublicIPAddress sub-resource.
-			// Thus, we have to go fetch the publicIP with the name.
-			publicIPName := getResourceNameByID(ptr.Deref(ipConfig.Properties.PublicIPAddress.ID, ""))
-			publicNodeAddress, err := s.getPublicIPAddress(ctx, publicIPName, rgName)
-			if err != nil {
-				return addresses, err
-			}
-			addresses = append(addresses, publicNodeAddress)
-		}
-	}
+// 	publicIP, ok := result.(armnetwork.PublicIPAddress)
+// 	if !ok {
+// 		return retAddress, errors.Errorf("%T is not an armnetwork.PublicIPAddress", result)
+// 	}
 
-	return addresses, nil
-}
+// 	retAddress.Type = corev1.NodeExternalIP
+// 	retAddress.Address = ptr.Deref(publicIP.Properties.IPAddress, "")
 
-// getPublicIPAddress will fetch a public ip address resource by name and return a nodeaddresss representation.
-func (s *Service) getPublicIPAddress(ctx context.Context, publicIPAddressName string, rgName string) (corev1.NodeAddress, error) {
-	ctx, _, done := tele.StartSpanWithLogger(ctx, "virtualmachines.Service.getPublicIPAddress")
-	defer done()
-
-	retAddress := corev1.NodeAddress{}
-	result, err := s.publicIPsGetter.Get(ctx, &publicips.PublicIPSpec{
-		Name:          publicIPAddressName,
-		ResourceGroup: rgName,
-	})
-	if err != nil {
-		return retAddress, err
-	}
-
-	publicIP, ok := result.(armnetwork.PublicIPAddress)
-	if !ok {
-		return retAddress, errors.Errorf("%T is not an armnetwork.PublicIPAddress", result)
-	}
-
-	retAddress.Type = corev1.NodeExternalIP
-	retAddress.Address = ptr.Deref(publicIP.Properties.IPAddress, "")
-
-	return retAddress, nil
-}
+// 	return retAddress, nil
+// }
 
 // getResourceNameById takes a resource ID like
 // `/subscriptions/$SUB/resourceGroups/$RG/providers/Microsoft.Network/networkInterfaces/$NICNAME`

@@ -18,6 +18,7 @@ package converters
 
 import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -72,6 +73,36 @@ func SDKToVM(v armcompute.VirtualMachine) *VM {
 					ProviderID: *identity.ClientID,
 				})
 			}
+		}
+	}
+
+	return vm
+}
+
+func ASOSDKToVM(v asocomputev1.VirtualMachine) *VM {
+	vm := &VM{
+		ID:    ptr.Deref(v.Status.Id, ""),
+		Name:  v.Name,
+		State: infrav1.ProvisioningState(ptr.Deref(v.Status.ProvisioningState, "")),
+	}
+
+	if v.Spec.HardwareProfile != nil && v.Spec.HardwareProfile.VmSize != nil {
+		vm.VMSize = string(*v.Spec.HardwareProfile.VmSize)
+	}
+
+	if len(v.Spec.Zones) > 0 {
+		vm.AvailabilityZone = v.Spec.Zones[0]
+	}
+
+	if len(v.Spec.Tags) > 0 {
+		vm.Tags = ASOMapToTags(v.Spec.Tags)
+	}
+
+	if v.Spec.Identity != nil {
+		for _, identity := range v.Spec.Identity.UserAssignedIdentities {
+			vm.UserAssignedIdentities = append(vm.UserAssignedIdentities, infrav1.UserAssignedIdentity{
+				ProviderID: identity.Reference.ARMID,
+			})
 		}
 	}
 

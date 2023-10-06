@@ -20,6 +20,7 @@ import (
 	"strconv"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 )
@@ -49,4 +50,29 @@ func GetSpotVMOptions(spotVMOptions *infrav1.SpotVMOptions, diffDiskSettings *in
 	}
 
 	return ptr.To(armcompute.VirtualMachinePriorityTypesSpot), evictionPolicy, billingProfile, nil
+}
+
+func GetSpotVMOptionsASO(spotVMOptions *infrav1.SpotVMOptions, diffDiskSettings *infrav1.DiffDiskSettings) (*asocomputev1.Priority, *asocomputev1.EvictionPolicy, *asocomputev1.BillingProfile, error) {
+	// Spot VM not requested, return zero values to apply defaults
+	if spotVMOptions == nil {
+		return nil, nil, nil, nil
+	}
+	var billingProfile *asocomputev1.BillingProfile
+	if spotVMOptions.MaxPrice != nil {
+		maxPrice, err := strconv.ParseFloat(spotVMOptions.MaxPrice.AsDec().String(), 64)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		billingProfile = &asocomputev1.BillingProfile{
+			MaxPrice: &maxPrice,
+		}
+	}
+
+	// Set the spot vm eviction policy if provided.
+	var evictionPolicy *asocomputev1.EvictionPolicy
+	if spotVMOptions.EvictionPolicy != nil {
+		evictionPolicy = ptr.To(asocomputev1.EvictionPolicy(*spotVMOptions.EvictionPolicy))
+	}
+
+	return ptr.To(asocomputev1.Priority(asocomputev1.Priority_Spot)), evictionPolicy, billingProfile, nil
 }

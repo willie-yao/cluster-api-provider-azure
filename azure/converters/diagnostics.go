@@ -18,6 +18,7 @@ package converters
 
 import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 )
@@ -43,6 +44,34 @@ func GetDiagnosticsProfile(diagnostics *infrav1.Diagnostics) *armcompute.Diagnos
 				BootDiagnostics: &armcompute.BootDiagnostics{
 					Enabled:    ptr.To(true),
 					StorageURI: &diagnostics.Boot.UserManaged.StorageAccountURI,
+				},
+			}
+		}
+	}
+
+	return nil
+}
+
+func GetDiagnosticsProfileASO(diagnostics *infrav1.Diagnostics) *asocomputev1.DiagnosticsProfile {
+	if diagnostics != nil && diagnostics.Boot != nil {
+		switch diagnostics.Boot.StorageAccountType {
+		case infrav1.DisabledDiagnosticsStorage:
+			return &asocomputev1.DiagnosticsProfile{
+				BootDiagnostics: &asocomputev1.BootDiagnostics{
+					Enabled: ptr.To(false),
+				},
+			}
+		case infrav1.ManagedDiagnosticsStorage:
+			return &asocomputev1.DiagnosticsProfile{
+				BootDiagnostics: &asocomputev1.BootDiagnostics{
+					Enabled: ptr.To(true),
+				},
+			}
+		case infrav1.UserManagedDiagnosticsStorage:
+			return &asocomputev1.DiagnosticsProfile{
+				BootDiagnostics: &asocomputev1.BootDiagnostics{
+					Enabled:    ptr.To(true),
+					StorageUri: &diagnostics.Boot.UserManaged.StorageAccountURI,
 				},
 			}
 		}
