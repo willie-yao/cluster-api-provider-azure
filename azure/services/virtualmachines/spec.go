@@ -441,6 +441,5 @@ func (s *VMSpec) getZones() []string {
 
 // WasManaged returns always returns true as CAPZ does not support BYO VM.
 func (s *VMSpec) WasManaged(resource *asocomputev1.VirtualMachine) bool {
-	// TODO: implement
 	return true
 }
