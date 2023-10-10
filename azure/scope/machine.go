@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -157,7 +158,7 @@ func (m *MachineScope) InitMachineCache(ctx context.Context) error {
 }
 
 // VMSpec returns the VM spec.
-func (m *MachineScope) VMSpec() azure.ResourceSpecGetter {
+func (m *MachineScope) VMSpec() azure.ASOResourceSpecGetter[*asocomputev1.VirtualMachine] {
 	spec := &virtualmachines.VMSpec{
 		Name:                   m.Name(),
 		Namespace:              m.Namespace(),

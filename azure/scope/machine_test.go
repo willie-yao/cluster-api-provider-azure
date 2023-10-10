@@ -2888,7 +2888,7 @@ func TestDiskSpecs(t *testing.T) {
 					},
 					Spec: infrav1.AzureMachineSpec{
 						OSDisk: infrav1.OSDisk{
-							DiskSizeGB: ptr.To[int32](30),
+							DiskSizeGB: ptr.To[int](30),
 							OSType:     "Linux",
 						},
 					},
@@ -2930,7 +2930,7 @@ func TestDiskSpecs(t *testing.T) {
 					},
 					Spec: infrav1.AzureMachineSpec{
 						OSDisk: infrav1.OSDisk{
-							DiskSizeGB: ptr.To[int32](30),
+							DiskSizeGB: ptr.To[int](30),
 							OSType:     "Linux",
 						},
 						DataDisks: []infrav1.DataDisk{
@@ -2980,7 +2980,7 @@ func TestDiskSpecs(t *testing.T) {
 					},
 					Spec: infrav1.AzureMachineSpec{
 						OSDisk: infrav1.OSDisk{
-							DiskSizeGB: ptr.To[int32](30),
+							DiskSizeGB: ptr.To[int](30),
 							OSType:     "Linux",
 						},
 						DataDisks: []infrav1.DataDisk{

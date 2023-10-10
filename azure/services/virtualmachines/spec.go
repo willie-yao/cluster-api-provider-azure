@@ -21,7 +21,6 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
 	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
 	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
@@ -147,7 +146,7 @@ func (s *VMSpec) Parameters(ctx context.Context, existing *asocomputev1.VirtualM
 	return virtualMachineToCreate, nil
 }
 
-// generateStorageProfile generates a pointer to an armcompute.StorageProfile which can utilized for VM creation.
+// generateStorageProfile generates a pointer to an asocomputev1.StorageProfile which can utilized for VM creation.
 func (s *VMSpec) generateStorageProfile() (*asocomputev1.StorageProfile, error) {
 	osDisk := &asocomputev1.OSDisk{
 		Name:         ptr.To(azure.GenerateOSDiskName(s.Name)),
@@ -401,7 +400,7 @@ func (s *VMSpec) generateAdditionalCapabilities() *asocomputev1.AdditionalCapabi
 	// Provisionally detect whether there is any Data Disk defined which uses UltraSSDs.
 	// If that's the case, enable the UltraSSD capability.
 	for _, dataDisk := range s.DataDisks {
-		if dataDisk.ManagedDisk != nil && dataDisk.ManagedDisk.StorageAccountType == string(armcompute.StorageAccountTypesUltraSSDLRS) {
+		if dataDisk.ManagedDisk != nil && dataDisk.ManagedDisk.StorageAccountType == string(asocomputev1.StorageAccountType_UltraSSD_LRS) {
 			capabilities = &asocomputev1.AdditionalCapabilities{
 				UltraSSDEnabled: ptr.To(true),
 			}
