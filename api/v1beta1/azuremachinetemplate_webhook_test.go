@@ -271,7 +271,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:     "type",
-								DiskSizeGB: ptr.To[int32](11),
+								DiskSizeGB: ptr.To(11),
 							},
 							DataDisks:    []DataDisk{},
 							SSHPublicKey: "",
@@ -287,7 +287,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:     "type",
-								DiskSizeGB: ptr.To[int32](11),
+								DiskSizeGB: ptr.To(11),
 							},
 							DataDisks:    []DataDisk{},
 							SSHPublicKey: "fake ssh key",
@@ -307,7 +307,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:     "type",
-								DiskSizeGB: ptr.To[int32](11),
+								DiskSizeGB: ptr.To(11),
 							},
 							DataDisks:    []DataDisk{},
 							SSHPublicKey: "fake ssh key",
@@ -326,7 +326,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:     "type",
-								DiskSizeGB: ptr.To[int32](11),
+								DiskSizeGB: ptr.To(11),
 							},
 							DataDisks:    []DataDisk{},
 							SSHPublicKey: "fake ssh key",
@@ -349,7 +349,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "",
 							},
 							DataDisks:    []DataDisk{},
@@ -369,7 +369,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:    []DataDisk{},
@@ -396,7 +396,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:    []DataDisk{},
@@ -416,7 +416,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:    []DataDisk{},
@@ -440,7 +440,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:             []DataDisk{},
@@ -459,7 +459,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:             []DataDisk{},
@@ -489,7 +489,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:             []DataDisk{},
@@ -509,7 +509,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:             []DataDisk{},
@@ -539,7 +539,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:    []DataDisk{},
@@ -563,7 +563,7 @@ func TestAzureMachineTemplate_ValidateUpdate(t *testing.T) {
 							FailureDomain: &failureDomain,
 							OSDisk: OSDisk{
 								OSType:      "type",
-								DiskSizeGB:  ptr.To[int32](11),
+								DiskSizeGB:  ptr.To(11),
 								CachingType: "None",
 							},
 							DataDisks:    []DataDisk{},

@@ -64,18 +64,18 @@ type Service struct {
 }
 
 // New creates a new service.
-func New(scope VMScope) (*Service, error) {
+func New(scope VMScope) *Service {
 	identitiesSvc, err := identities.NewClient(scope)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	interfacesSvc, err := networkinterfaces.NewClient(scope)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	publicIPsSvc, err := publicips.NewClient(scope)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	return &Service{
 		Scope:            scope,
@@ -83,7 +83,7 @@ func New(scope VMScope) (*Service, error) {
 		publicIPsGetter:  publicIPsSvc,
 		identitiesGetter: identitiesSvc,
 		Reconciler:       aso.New[*asocomputev1.VirtualMachine](scope.GetClient(), scope.ClusterName()),
-	}, nil
+	}
 }
 
 // Name returns the service name.

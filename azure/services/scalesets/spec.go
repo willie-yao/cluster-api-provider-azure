@@ -371,7 +371,7 @@ func (s *ScaleSetSpec) generateStorageProfile(ctx context.Context) (*armcompute.
 		OSDisk: &armcompute.VirtualMachineScaleSetOSDisk{
 			OSType:       ptr.To(armcompute.OperatingSystemTypes(s.OSDisk.OSType)),
 			CreateOption: ptr.To(armcompute.DiskCreateOptionTypesFromImage),
-			DiskSizeGB:   s.OSDisk.DiskSizeGB,
+			DiskSizeGB:   ptr.To(int32(*s.OSDisk.DiskSizeGB)),
 		},
 	}
 
@@ -404,8 +404,8 @@ func (s *ScaleSetSpec) generateStorageProfile(ctx context.Context) (*armcompute.
 	for i, disk := range s.DataDisks {
 		dataDisks[i] = armcompute.VirtualMachineScaleSetDataDisk{
 			CreateOption: ptr.To(armcompute.DiskCreateOptionTypesEmpty),
-			DiskSizeGB:   ptr.To[int32](disk.DiskSizeGB),
-			Lun:          disk.Lun,
+			DiskSizeGB:   ptr.To(int32(disk.DiskSizeGB)),
+			Lun:          ptr.To(int32(*disk.Lun)),
 			Name:         ptr.To(azure.GenerateDataDiskName(s.Name, disk.NameSuffix)),
 		}
 

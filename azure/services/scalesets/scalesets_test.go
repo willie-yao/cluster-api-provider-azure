@@ -73,7 +73,7 @@ func getDefaultVMSSSpec() azure.ResourceSpecGetter {
 	defaultSpec.DataDisks = append(defaultSpec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -630,7 +630,7 @@ func newDefaultVMSSSpec() ScaleSetSpec {
 		SSHKeyData: sshKeyData,
 		OSDisk: infrav1.OSDisk{
 			OSType:     "Linux",
-			DiskSizeGB: ptr.To[int32](120),
+			DiskSizeGB: ptr.To(120),
 			ManagedDisk: &infrav1.ManagedDiskParameters{
 				StorageAccountType: "Premium_LRS",
 			},
@@ -639,12 +639,12 @@ func newDefaultVMSSSpec() ScaleSetSpec {
 			{
 				NameSuffix: "my_disk",
 				DiskSizeGB: 128,
-				Lun:        ptr.To[int32](0),
+				Lun:        ptr.To(0),
 			},
 			{
 				NameSuffix: "my_disk_with_managed_disk",
 				DiskSizeGB: 128,
-				Lun:        ptr.To[int32](1),
+				Lun:        ptr.To(1),
 				ManagedDisk: &infrav1.ManagedDiskParameters{
 					StorageAccountType: "Standard_LRS",
 				},
@@ -652,7 +652,7 @@ func newDefaultVMSSSpec() ScaleSetSpec {
 			{
 				NameSuffix: "managed_disk_with_encryption",
 				DiskSizeGB: 128,
-				Lun:        ptr.To[int32](2),
+				Lun:        ptr.To(2),
 				ManagedDisk: &infrav1.ManagedDiskParameters{
 					StorageAccountType: "Standard_LRS",
 					DiskEncryptionSet: &infrav1.DiskEncryptionSetParameters{

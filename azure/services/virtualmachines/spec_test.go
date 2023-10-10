@@ -966,34 +966,34 @@ func TestParameters(t *testing.T) {
 				g.Expect(result.(asocomputev1.VirtualMachine).Spec.AdditionalCapabilities.UltraSSDEnabled).To(Equal(ptr.To(true)))
 				expectedDataDisks := []*asocomputev1.DataDisk{
 					{
-						Lun:          ptr.To[int](0),
+						Lun:          ptr.To(0),
 						Name:         ptr.To("my-ultra-ssd-vm_mydisk"),
 						CreateOption: ptr.To(asocomputev1.CreateOption_Empty),
-						DiskSizeGB:   ptr.To[int](64),
+						DiskSizeGB:   ptr.To(64),
 					},
 					{
-						Lun:          ptr.To[int](1),
+						Lun:          ptr.To(1),
 						Name:         ptr.To("my-ultra-ssd-vm_myDiskWithUltraDisk"),
 						CreateOption: ptr.To(asocomputev1.CreateOption_Empty),
-						DiskSizeGB:   ptr.To[int](128),
+						DiskSizeGB:   ptr.To(128),
 						ManagedDisk: &asocomputev1.ManagedDiskParameters{
 							StorageAccountType: ptr.To(asocomputev1.StorageAccountType_UltraSSD_LRS),
 						},
 					},
 					{
-						Lun:          ptr.To[int](2),
+						Lun:          ptr.To(2),
 						Name:         ptr.To("my-ultra-ssd-vm_myDiskWithManagedDisk"),
 						CreateOption: ptr.To(asocomputev1.CreateOption_Empty),
-						DiskSizeGB:   ptr.To[int](128),
+						DiskSizeGB:   ptr.To(128),
 						ManagedDisk: &asocomputev1.ManagedDiskParameters{
 							StorageAccountType: ptr.To(asocomputev1.StorageAccountType_Premium_LRS),
 						},
 					},
 					{
-						Lun:          ptr.To[int](3),
+						Lun:          ptr.To(3),
 						Name:         ptr.To("my-ultra-ssd-vm_managedDiskWithEncryption"),
 						CreateOption: ptr.To(asocomputev1.CreateOption_Empty),
-						DiskSizeGB:   ptr.To[int](128),
+						DiskSizeGB:   ptr.To(128),
 						ManagedDisk: &asocomputev1.ManagedDiskParameters{
 							StorageAccountType: ptr.To(asocomputev1.StorageAccountType_Premium_LRS),
 							DiskEncryptionSet: &asocomputev1.SubResource{
@@ -1068,10 +1068,10 @@ func TestParameters(t *testing.T) {
 				g.Expect(result.(asocomputev1.VirtualMachine).Spec.AdditionalCapabilities.UltraSSDEnabled).To(Equal(ptr.To(false)))
 				expectedDataDisks := []*asocomputev1.DataDisk{
 					{
-						Lun:          ptr.To[int](1),
+						Lun:          ptr.To(1),
 						Name:         ptr.To("my-ultra-ssd-vm_myDiskWithUltraDisk"),
 						CreateOption: ptr.To(asocomputev1.CreateOption_Empty),
-						DiskSizeGB:   ptr.To[int](128),
+						DiskSizeGB:   ptr.To(128),
 						ManagedDisk: &asocomputev1.ManagedDiskParameters{
 							StorageAccountType: ptr.To(asocomputev1.StorageAccountType_UltraSSD_LRS),
 						},
@@ -1109,10 +1109,10 @@ func TestParameters(t *testing.T) {
 				g.Expect(result.(asocomputev1.VirtualMachine).Spec.AdditionalCapabilities.UltraSSDEnabled).To(Equal(ptr.To(true)))
 				expectedDataDisks := []*asocomputev1.DataDisk{
 					{
-						Lun:          ptr.To[int](1),
+						Lun:          ptr.To(1),
 						Name:         ptr.To("my-ultra-ssd-vm_myDiskWithUltraDisk"),
 						CreateOption: ptr.To(asocomputev1.CreateOption_Empty),
-						DiskSizeGB:   ptr.To[int](128),
+						DiskSizeGB:   ptr.To(128),
 						ManagedDisk: &asocomputev1.ManagedDiskParameters{
 							StorageAccountType: ptr.To(asocomputev1.StorageAccountType_UltraSSD_LRS),
 						},
@@ -1153,10 +1153,10 @@ func TestParameters(t *testing.T) {
 				g.Expect(result.(asocomputev1.VirtualMachine).Spec.AdditionalCapabilities.UltraSSDEnabled).To(Equal(ptr.To(true)))
 				expectedDataDisks := []*asocomputev1.DataDisk{
 					{
-						Lun:          ptr.To[int](1),
+						Lun:          ptr.To(1),
 						Name:         ptr.To("my-ultra-ssd-vm_myDiskWithUltraDisk"),
 						CreateOption: ptr.To(asocomputev1.CreateOption_Empty),
-						DiskSizeGB:   ptr.To[int](128),
+						DiskSizeGB:   ptr.To(128),
 						ManagedDisk: &asocomputev1.ManagedDiskParameters{
 							StorageAccountType: ptr.To(asocomputev1.StorageAccountType_UltraSSD_LRS),
 						},

@@ -115,6 +115,11 @@ type MachineCache struct {
 	availabilitySetSKU resourceskus.SKU
 }
 
+// GetClient implements aso.Scope.
+func (m *MachineScope) GetClient() client.Client {
+	return m.client
+}
+
 // InitMachineCache sets cached information about the machine to be used in the scope.
 func (m *MachineScope) InitMachineCache(ctx context.Context) error {
 	ctx, _, done := tele.StartSpanWithLogger(ctx, "azure.MachineScope.InitMachineCache")

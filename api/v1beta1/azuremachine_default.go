@@ -57,7 +57,7 @@ func (s *AzureMachineSpec) SetDefaultCachingType() {
 
 // SetDataDisksDefaults sets the data disk defaults for an AzureMachine.
 func (s *AzureMachineSpec) SetDataDisksDefaults() {
-	set := make(map[int32]struct{})
+	set := make(map[int]struct{})
 	// populate all the existing values in the set
 	for _, disk := range s.DataDisks {
 		if disk.Lun != nil {
@@ -67,8 +67,7 @@ func (s *AzureMachineSpec) SetDataDisksDefaults() {
 	// Look for unique values for unassigned LUNs
 	for i, disk := range s.DataDisks {
 		if disk.Lun == nil {
-			for l := range s.DataDisks {
-				lun := int32(l)
+			for lun := range s.DataDisks {
 				if _, ok := set[lun]; !ok {
 					s.DataDisks[i].Lun = &lun
 					set[lun] = struct{}{}

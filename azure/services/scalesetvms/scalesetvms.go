@@ -39,7 +39,6 @@ type (
 	// ScaleSetVMScope defines the scope interface for a scale sets service.
 	ScaleSetVMScope interface {
 		azure.ClusterDescriber
-		azure.AsyncStatusUpdater
 		aso.Scope
 		ScaleSetVMSpec() azure.ResourceSpecGetter
 		SetVMSSVM(vmssvm *azure.VMSSVM)

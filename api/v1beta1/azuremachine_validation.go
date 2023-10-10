@@ -168,7 +168,7 @@ func ValidateSystemAssignedIdentityRole(identityType VMIdentity, roleAssignmentN
 // ValidateDataDisks validates a list of data disks.
 func ValidateDataDisks(dataDisks []DataDisk, fieldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	lunSet := make(map[int32]struct{})
+	lunSet := make(map[int]struct{})
 	nameSet := make(map[string]struct{})
 	for _, disk := range dataDisks {
 		// validate that the disk size is between 4 and 32767.

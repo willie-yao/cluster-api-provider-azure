@@ -92,6 +92,11 @@ type (
 	}
 )
 
+// GetClient implements aso.Scope.
+func (s *MachinePoolMachineScope) GetClient() client.Client {
+	return s.client
+}
+
 // NewMachinePoolMachineScope creates a new MachinePoolMachineScope from the supplied parameters.
 // This is meant to be called for each reconcile iteration.
 func NewMachinePoolMachineScope(params MachinePoolMachineScopeParams) (*MachinePoolMachineScope, error) {

@@ -77,10 +77,6 @@ func newAzureMachineService(machineScope *scope.MachineScope) (*azureMachineServ
 	if err != nil {
 		return nil, errors.Wrap(err, "failed creating tags service")
 	}
-	virtualmachinesSvc, err := virtualmachines.New(machineScope)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed creating virtualmachines service")
-	}
 	vmextensionsSvc, err := vmextensions.New(machineScope)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed creating vmextensions service")
@@ -97,7 +93,7 @@ func newAzureMachineService(machineScope *scope.MachineScope) (*azureMachineServ
 			networkInterfacesSvc,
 			availabilitySetsSvc,
 			disksSvc,
-			virtualmachinesSvc,
+			virtualmachines.New(machineScope),
 			roleAssignmentsSvc,
 			vmextensionsSvc,
 			tagsSvc,

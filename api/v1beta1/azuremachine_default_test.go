@@ -142,13 +142,13 @@ func TestAzureMachineSpec_SetDataDisksDefaults(t *testing.T) {
 				{
 					NameSuffix:  "testdisk1",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](0),
+					Lun:         ptr.To(0),
 					CachingType: "ReadWrite",
 				},
 				{
 					NameSuffix:  "testdisk2",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](1),
+					Lun:         ptr.To(1),
 					CachingType: "ReadWrite",
 				},
 			},
@@ -159,13 +159,13 @@ func TestAzureMachineSpec_SetDataDisksDefaults(t *testing.T) {
 				{
 					NameSuffix:  "testdisk1",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](5),
+					Lun:         ptr.To(5),
 					CachingType: "ReadWrite",
 				},
 				{
 					NameSuffix:  "testdisk2",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](3),
+					Lun:         ptr.To(3),
 					CachingType: "ReadWrite",
 				},
 			},
@@ -173,13 +173,13 @@ func TestAzureMachineSpec_SetDataDisksDefaults(t *testing.T) {
 				{
 					NameSuffix:  "testdisk1",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](5),
+					Lun:         ptr.To(5),
 					CachingType: "ReadWrite",
 				},
 				{
 					NameSuffix:  "testdisk2",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](3),
+					Lun:         ptr.To(3),
 					CachingType: "ReadWrite",
 				},
 			},
@@ -190,7 +190,7 @@ func TestAzureMachineSpec_SetDataDisksDefaults(t *testing.T) {
 				{
 					NameSuffix:  "testdisk1",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](0),
+					Lun:         ptr.To(0),
 					CachingType: "ReadWrite",
 				},
 				{
@@ -201,7 +201,7 @@ func TestAzureMachineSpec_SetDataDisksDefaults(t *testing.T) {
 				{
 					NameSuffix:  "testdisk3",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](1),
+					Lun:         ptr.To(1),
 					CachingType: "ReadWrite",
 				},
 				{
@@ -214,25 +214,25 @@ func TestAzureMachineSpec_SetDataDisksDefaults(t *testing.T) {
 				{
 					NameSuffix:  "testdisk1",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](0),
+					Lun:         ptr.To(0),
 					CachingType: "ReadWrite",
 				},
 				{
 					NameSuffix:  "testdisk2",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](2),
+					Lun:         ptr.To(2),
 					CachingType: "ReadWrite",
 				},
 				{
 					NameSuffix:  "testdisk3",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](1),
+					Lun:         ptr.To(1),
 					CachingType: "ReadWrite",
 				},
 				{
 					NameSuffix:  "testdisk4",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](3),
+					Lun:         ptr.To(3),
 					CachingType: "ReadWrite",
 				},
 			},
@@ -243,12 +243,12 @@ func TestAzureMachineSpec_SetDataDisksDefaults(t *testing.T) {
 				{
 					NameSuffix: "testdisk1",
 					DiskSizeGB: 30,
-					Lun:        ptr.To[int32](0),
+					Lun:        ptr.To(0),
 				},
 				{
 					NameSuffix: "testdisk2",
 					DiskSizeGB: 30,
-					Lun:        ptr.To[int32](2),
+					Lun:        ptr.To(2),
 				},
 				{
 					NameSuffix: "testdisk3",
@@ -256,26 +256,26 @@ func TestAzureMachineSpec_SetDataDisksDefaults(t *testing.T) {
 					ManagedDisk: &ManagedDiskParameters{
 						StorageAccountType: "UltraSSD_LRS",
 					},
-					Lun: ptr.To[int32](3),
+					Lun: ptr.To(3),
 				},
 			},
 			output: []DataDisk{
 				{
 					NameSuffix:  "testdisk1",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](0),
+					Lun:         ptr.To(0),
 					CachingType: "ReadWrite",
 				},
 				{
 					NameSuffix:  "testdisk2",
 					DiskSizeGB:  30,
-					Lun:         ptr.To[int32](2),
+					Lun:         ptr.To(2),
 					CachingType: "ReadWrite",
 				},
 				{
 					NameSuffix: "testdisk3",
 					DiskSizeGB: 30,
-					Lun:        ptr.To[int32](3),
+					Lun:        ptr.To(3),
 					ManagedDisk: &ManagedDiskParameters{
 						StorageAccountType: "UltraSSD_LRS",
 					},

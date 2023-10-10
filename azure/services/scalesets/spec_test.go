@@ -58,7 +58,7 @@ func getDefaultVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleSet) {
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -76,7 +76,7 @@ func getDefaultWindowsVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleSet) {
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -142,7 +142,7 @@ func getCustomNetworkingVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleSet)
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -196,7 +196,7 @@ func getSpotVMVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleSet) {
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -254,7 +254,7 @@ func getMaxPriceVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleSet) {
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -277,7 +277,7 @@ func getEncryptionVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleSet) {
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -300,7 +300,7 @@ func getUserIdentityVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleSet) {
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -381,7 +381,7 @@ func getExistingDefaultVMSS() (s ScaleSetSpec, existing armcompute.VirtualMachin
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -429,7 +429,7 @@ func getUserManagedAndStorageAcccountDiagnosticsVMSS() (ScaleSetSpec, armcompute
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -458,7 +458,7 @@ func getManagedDiagnosticsVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleSe
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -484,7 +484,7 @@ func getDisabledDiagnosticsVMSS() (ScaleSetSpec, armcompute.VirtualMachineScaleS
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},
@@ -507,7 +507,7 @@ func getNilDiagnosticsProfileVMSS() (ScaleSetSpec, armcompute.VirtualMachineScal
 	spec.DataDisks = append(spec.DataDisks, infrav1.DataDisk{
 		NameSuffix: "my_disk_with_ultra_disks",
 		DiskSizeGB: 128,
-		Lun:        ptr.To[int32](3),
+		Lun:        ptr.To(3),
 		ManagedDisk: &infrav1.ManagedDiskParameters{
 			StorageAccountType: "UltraSSD_LRS",
 		},

@@ -1036,7 +1036,7 @@ func createMachineWithConfidentialCompute(securityEncryptionType SecurityEncrypt
 	}
 
 	osDisk := OSDisk{
-		DiskSizeGB: ptr.To[int32](30),
+		DiskSizeGB: ptr.To(30),
 		OSType:     LinuxOS,
 		ManagedDisk: &ManagedDiskParameters{
 			StorageAccountType: "Premium_LRS",
