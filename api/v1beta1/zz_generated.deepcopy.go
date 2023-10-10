@@ -1732,7 +1732,7 @@ func (in *DataDisk) DeepCopyInto(out *DataDisk) {
 	}
 	if in.Lun != nil {
 		in, out := &in.Lun, &out.Lun
-		*out = new(int32)
+		*out = new(int)
 		**out = **in
 	}
 }
@@ -2468,7 +2468,7 @@ func (in *OSDisk) DeepCopyInto(out *OSDisk) {
 	*out = *in
 	if in.DiskSizeGB != nil {
 		in, out := &in.DiskSizeGB, &out.DiskSizeGB
-		*out = new(int32)
+		*out = new(int)
 		**out = **in
 	}
 	if in.ManagedDisk != nil {

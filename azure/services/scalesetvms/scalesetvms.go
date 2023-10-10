@@ -22,12 +22,13 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asocomputev1 "github.com/Azure/azure-service-operator/v2/api/compute/v1api20220301"
 	"github.com/pkg/errors"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/converters"
+	"sigs.k8s.io/cluster-api-provider-azure/azure/services/aso"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/async"
-	"sigs.k8s.io/cluster-api-provider-azure/azure/services/virtualmachines"
 	azureutil "sigs.k8s.io/cluster-api-provider-azure/util/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 )
@@ -39,6 +40,7 @@ type (
 	ScaleSetVMScope interface {
 		azure.ClusterDescriber
 		azure.AsyncStatusUpdater
+		aso.Scope
 		ScaleSetVMSpec() azure.ResourceSpecGetter
 		SetVMSSVM(vmssvm *azure.VMSSVM)
 		SetVMSSVMState(state infrav1.ProvisioningState)
@@ -48,7 +50,7 @@ type (
 	Service struct {
 		Scope ScaleSetVMScope
 		async.Reconciler
-		VMReconciler async.Reconciler
+		VMReconciler aso.Reconciler[*asocomputev1.VirtualMachine]
 	}
 )
 
@@ -58,16 +60,11 @@ func NewService(scope ScaleSetVMScope) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	vmClient, err := virtualmachines.NewClient(scope)
-	if err != nil {
-		return nil, err
-	}
 	return &Service{
 		Reconciler: async.New[armcompute.VirtualMachineScaleSetVMsClientUpdateResponse,
 			armcompute.VirtualMachineScaleSetVMsClientDeleteResponse](scope, client, client),
-		VMReconciler: async.New[armcompute.VirtualMachinesClientCreateOrUpdateResponse,
-			armcompute.VirtualMachinesClientDeleteResponse](scope, vmClient, vmClient),
-		Scope: scope,
+		VMReconciler: aso.New[*asocomputev1.VirtualMachine](scope.GetClient(), scope.ClusterName()),
+		Scope:        scope,
 	}, nil
 }
 
