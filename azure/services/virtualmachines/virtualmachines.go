@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/networkinterfaces"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/publicips"
 	azureutil "sigs.k8s.io/cluster-api-provider-azure/util/azure"
+	"sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -43,8 +44,8 @@ const serviceName = "virtualmachine"
 
 // VMScope defines the scope interface for a virtual machines service.
 type VMScope interface {
-	azure.Authorizer
 	aso.Scope
+	azure.Authorizer
 	VMSpec() azure.ASOResourceSpecGetter[*asocomputev1.VirtualMachine]
 	SetAnnotation(string, string)
 	SetProviderID(string)
@@ -56,7 +57,7 @@ type VMScope interface {
 // Service provides operations on Azure resources.
 type Service struct {
 	Scope VMScope
-	*aso.Service[*asocomputev1.VirtualMachine, VMScope]
+	aso.Reconciler[*asocomputev1.VirtualMachine]
 	interfacesGetter async.Getter
 	publicIPsGetter  async.Getter
 	identitiesGetter identities.Client
@@ -64,57 +65,114 @@ type Service struct {
 
 // New creates a new service.
 func New(scope VMScope) (*Service, error) {
-	svc := aso.NewService[*asocomputev1.VirtualMachine, VMScope](serviceName, scope)
-	svc.Specs = []azure.ASOResourceSpecGetter[*asocomputev1.VirtualMachine]{scope.VMSpec()}
-	svc.ConditionType = infrav1.VMRunningCondition
-	svc.PostCreateOrUpdateResourceHook = postCreateOrUpdateResourceHook
-
+	identitiesSvc, err := identities.NewClient(scope)
+	if err != nil {
+		return nil, err
+	}
+	interfacesSvc, err := networkinterfaces.NewClient(scope)
+	if err != nil {
+		return nil, err
+	}
+	publicIPsSvc, err := publicips.NewClient(scope)
+	if err != nil {
+		return nil, err
+	}
 	return &Service{
-		Scope:   scope,
-		Service: svc,
+		Scope:            scope,
+		interfacesGetter: interfacesSvc,
+		publicIPsGetter:  publicIPsSvc,
+		identitiesGetter: identitiesSvc,
+		Reconciler:       aso.New[*asocomputev1.VirtualMachine](scope.GetClient(), scope.ClusterName()),
 	}, nil
 }
 
-func postCreateOrUpdateResourceHook(scope VMScope, result *asocomputev1.VirtualMachine, err error) {
-	if err != nil {
-		return
+// Name returns the service name.
+func (s *Service) Name() string {
+	return serviceName
+}
+
+// Reconcile idempotently creates or updates a virtual machine.
+func (s *Service) Reconcile(ctx context.Context) error {
+	ctx, _, done := tele.StartSpanWithLogger(ctx, "virtualmachines.Service.Reconcile")
+	defer done()
+
+	ctx, cancel := context.WithTimeout(ctx, reconciler.DefaultAzureServiceReconcileTimeout)
+	defer cancel()
+
+	vmSpec := s.Scope.VMSpec()
+	if vmSpec == nil {
+		return nil
 	}
 
+	result, err := s.CreateOrUpdateResource(ctx, vmSpec, serviceName)
+	s.Scope.UpdatePutStatus(infrav1.VMRunningCondition, serviceName, err)
+	// Set the DiskReady condition here since the disk gets created with the VM.
+	s.Scope.UpdatePutStatus(infrav1.DisksReadyCondition, serviceName, err)
 	if err == nil && result != nil {
 		infraVM := converters.ASOSDKToVM(*result)
 		// Transform the VM resource representation to conform to the cloud-provider-azure representation
 		providerID, err := azprovider.ConvertResourceGroupNameToLower(azureutil.ProviderIDPrefix + infraVM.ID)
 		if err != nil {
-			return
+			return errors.Wrapf(err, "failed to parse VM ID %s", infraVM.ID)
 		}
-		scope.SetProviderID(providerID)
-		scope.SetAnnotation("cluster-api-provider-azure", "true")
-
-		vmSpec := scope.VMSpec().ResourceRef()
+		s.Scope.SetProviderID(providerID)
+		s.Scope.SetAnnotation("cluster-api-provider-azure", "true")
 
 		// Discover addresses for NICs associated with the VM
-		// TODO: Is using context.Background() here correct?
-		addresses, err := getAddresses(context.Background(), scope, *result, vmSpec.Namespace)
+		addresses, err := getAddresses(ctx, s.Scope, *result, vmSpec.ResourceRef().Namespace)
 		if err != nil {
-			return
+			return errors.Wrap(err, "failed to fetch VM addresses")
 		}
-		scope.SetAddresses(addresses)
-		scope.SetVMState(infraVM.State)
+		s.Scope.SetAddresses(addresses)
+		s.Scope.SetVMState(infraVM.State)
 
-		err = checkUserAssignedIdentities(scope, vmSpec.Spec.Identity.UserAssignedIdentities, infraVM.UserAssignedIdentities)
+		spec, ok := vmSpec.(*VMSpec)
+		if !ok {
+			return errors.Errorf("%T is not a valid VM spec", vmSpec)
+		}
+
+		err = s.checkUserAssignedIdentities(ctx, spec.UserAssignedIdentities, infraVM.UserAssignedIdentities)
 		if err != nil {
-			return
+			return errors.Wrap(err, "failed to check user assigned identities")
 		}
 	}
+	return err
 }
 
-func checkUserAssignedIdentities(scope VMScope, specIdentities []asocomputev1.UserAssignedIdentityDetails, vmIdentities []infrav1.UserAssignedIdentity) error {
+// Delete deletes the virtual machine with the provided name.
+func (s *Service) Delete(ctx context.Context) error {
+	ctx, _, done := tele.StartSpanWithLogger(ctx, "virtualmachines.Service.Delete")
+	defer done()
+
+	ctx, cancel := context.WithTimeout(ctx, reconciler.DefaultAzureServiceReconcileTimeout)
+	defer cancel()
+
+	vmSpec := s.Scope.VMSpec()
+	if vmSpec == nil {
+		return nil
+	}
+
+	err := s.DeleteResource(ctx, vmSpec, serviceName)
+	if err != nil {
+		s.Scope.SetVMState(infrav1.Deleting)
+	} else {
+		s.Scope.SetVMState(infrav1.Deleted)
+	}
+	s.Scope.UpdateDeleteStatus(infrav1.VMRunningCondition, serviceName, err)
+	return err
+}
+
+func (s *Service) checkUserAssignedIdentities(ctx context.Context, specIdentities []infrav1.UserAssignedIdentity, vmIdentities []infrav1.UserAssignedIdentity) error {
 	expectedMap := make(map[string]struct{})
 	actualMap := make(map[string]struct{})
 
 	// Create a map of the expected identities. The ProviderID is converted to match the format of the VM identity.
 	for _, expectedIdentity := range specIdentities {
-		expectedMap[expectedIdentity.Reference.ARMID] = struct{}{}
+		expectedClientID, err := s.identitiesGetter.GetClientID(ctx, expectedIdentity.ProviderID)
+		if err != nil {
+			return errors.Wrap(err, "failed to get client ID")
+		}
+		expectedMap[expectedClientID] = struct{}{}
 	}
 
 	// Create a map of the actual identities from the vm.
@@ -126,7 +184,7 @@ func checkUserAssignedIdentities(scope VMScope, specIdentities []asocomputev1.Us
 	for expectedKey := range expectedMap {
 		_, exists := actualMap[expectedKey]
 		if !exists {
-			scope.SetConditionFalse(infrav1.VMIdentitiesReadyCondition, infrav1.UserAssignedIdentityMissingReason, clusterv1.ConditionSeverityWarning, "VM is missing expected user assigned identity with client ID: "+expectedKey)
+			s.Scope.SetConditionFalse(infrav1.VMIdentitiesReadyCondition, infrav1.UserAssignedIdentityMissingReason, clusterv1.ConditionSeverityWarning, "VM is missing expected user assigned identity with client ID: "+expectedKey)
 			return nil
 		}
 	}
