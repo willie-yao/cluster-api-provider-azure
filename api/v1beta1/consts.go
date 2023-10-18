@@ -166,3 +166,8 @@ const (
 	// value for the label is the CAPI Cluster Name.
 	OwnedByClusterLabelKey = NameAzureProviderPrefix + string(ResourceLifecycleOwned)
 )
+
+const (
+	// NetworkPluginName is the name of the network plugin.
+	NetworkPluginName = "azure"
+)

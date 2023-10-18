@@ -73,7 +73,11 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 		return apierrors.NewBadRequest("expected an AzureManagedControlPlane")
 	}
 	if m.Spec.NetworkPlugin == nil {
+<<<<<<< Updated upstream
 		networkPlugin := "azure"
+=======
+		networkPlugin := NetworkPluginName
+>>>>>>> Stashed changes
 		m.Spec.NetworkPlugin = &networkPlugin
 	}
 	if m.Spec.LoadBalancerSKU == nil {
