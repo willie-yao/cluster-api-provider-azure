@@ -103,10 +103,10 @@ func (mpw *AzureManagedMachinePoolTemplateWebhook) ValidateCreate(ctx context.Co
 		mp.Spec.Template.Spec.OSType,
 		field.NewPath("Spec", "OSType")))
 
-	errs = append(errs, validateAgentPoolName(
-		mp.Spec.Template.Spec.OSType,
-		mp.Spec.Template.Spec.Name,
-		field.NewPath("Spec", "Name")))
+	// errs = append(errs, validateAgentPoolName(
+	// 	mp.Spec.Template.Spec.OSType,
+	// 	mp.Spec.Template.Spec.Name,
+	// 	field.NewPath("Spec", "Name")))
 
 	errs = append(errs, validateNodeLabels(
 		mp.Spec.Template.Spec.NodeLabels,
