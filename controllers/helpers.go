@@ -945,6 +945,10 @@ func MachinePoolToAzureManagedControlPlaneMapFunc(ctx context.Context, c client.
 
 		gk := gvk.GroupKind()
 		ref := cluster.Spec.ControlPlaneRef
+		if ref == nil || ref.Name == "" {
+			log.Error(errors.New("control plane ref is nil or empty"), "failed to get the control plane ref")
+			return nil
+		}
 		// Return early if the GroupKind doesn't match what we expect.
 		controlPlaneGK := ref.GroupVersionKind().GroupKind()
 		if gk != controlPlaneGK {
