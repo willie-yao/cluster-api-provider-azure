@@ -94,6 +94,7 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 	m.setDefaultSubnet()
 	m.setDefaultOIDCIssuerProfile()
 	m.setDefaultDNSPrefix()
+	m.setDefaultFleetsMember()
 
 	return nil
 }

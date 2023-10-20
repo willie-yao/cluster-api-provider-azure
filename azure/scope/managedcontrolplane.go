@@ -24,6 +24,7 @@ import (
 	"time"
 
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230201"
+	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230315preview"
 	asonetworkv1 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	"github.com/pkg/errors"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
+	"sigs.k8s.io/cluster-api-provider-azure/azure/services/fleetsmember"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/groups"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/managedclusters"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/privateendpoints"
@@ -214,6 +216,11 @@ func (s *ManagedControlPlaneScope) AdditionalTags() infrav1.Tags {
 	return tags
 }
 
+// AzureFleetMembership returns the cluster AzureFleetMembership.
+func (s *ManagedControlPlaneScope) AzureFleetMembership() *infrav1.FleetsMember {
+	return s.ControlPlane.Spec.FleetsMember
+}
+
 // SubscriptionID returns the Azure client Subscription ID.
 func (s *ManagedControlPlaneScope) SubscriptionID() string {
 	return s.AzureClients.SubscriptionID()
@@ -287,6 +294,23 @@ func (s *ManagedControlPlaneScope) VNetSpec() azure.ResourceSpecGetter {
 		Location:       s.Location(),
 		ClusterName:    s.ClusterName(),
 		AdditionalTags: s.AdditionalTags(),
+	}
+}
+
+// AzureFleetsMemberSpec returns the fleet spec.
+func (s *ManagedControlPlaneScope) AzureFleetsMemberSpec() azure.ASOResourceSpecGetter[*asocontainerservicev1preview.FleetsMember] {
+	if s.AzureFleetMembership() == nil {
+		return nil
+	}
+	return &fleetsmember.AzureFleetsMemberSpec{
+		Name:                 s.AzureFleetMembership().Name,
+		Namespace:            s.Cluster.Namespace,
+		ClusterName:          s.ClusterName(),
+		ClusterResourceGroup: s.ResourceGroup(),
+		Group:                s.AzureFleetMembership().Group,
+		SubscriptionID:       s.SubscriptionID(),
+		ManagerName:          s.AzureFleetMembership().ManagerName,
+		ManagerResourceGroup: s.AzureFleetMembership().ManagerResourceGroup,
 	}
 }
 
