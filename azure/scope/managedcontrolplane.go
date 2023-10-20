@@ -24,6 +24,7 @@ import (
 	"time"
 
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230201"
+	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230315preview"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
@@ -36,6 +37,7 @@ import (
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
+	"sigs.k8s.io/cluster-api-provider-azure/azure/services/fleets"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/groups"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/managedclusters"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/privateendpoints"
@@ -213,6 +215,11 @@ func (s *ManagedControlPlaneScope) AdditionalTags() infrav1.Tags {
 	return tags
 }
 
+// AzureFleet returns the cluster AzureFleet.
+func (s *ManagedControlPlaneScope) AzureFleet() *infrav1.FleetHub {
+	return s.ControlPlane.Spec.FleetHub
+}
+
 // SubscriptionID returns the Azure client Subscription ID.
 func (s *ManagedControlPlaneScope) SubscriptionID() string {
 	return s.AzureClients.SubscriptionID()
@@ -286,6 +293,18 @@ func (s *ManagedControlPlaneScope) VNetSpec() azure.ResourceSpecGetter {
 		Location:       s.Location(),
 		ClusterName:    s.ClusterName(),
 		AdditionalTags: s.AdditionalTags(),
+	}
+}
+
+// AzureFleetSpec returns the fleet spec.
+func (s *ManagedControlPlaneScope) AzureFleetSpec() azure.ASOResourceSpecGetter[*asocontainerservicev1preview.Fleet] {
+	return &fleets.AzureFleetSpec{
+		ResourceGroup: s.ResourceGroup(),
+		Name:          s.AzureFleet().Name,
+		Namespace:     s.Cluster.Namespace,
+		Location:      s.Location(),
+		ClusterName:   s.ClusterName(),
+		DNSPrefix:     s.AzureFleet().DNSPrefix,
 	}
 }
 

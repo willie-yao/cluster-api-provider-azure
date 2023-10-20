@@ -1005,6 +1005,13 @@ type AzureBastion struct {
 	EnableTunneling bool `json:"enableTunneling,omitempty"`
 }
 
+type FleetHub struct {
+	// Name is the name of the AzureFleet.
+	Name string `json:"name"`
+	// DNSPrefix is the DNS prefix to use for the AzureFleet.
+	DNSPrefix string `json:"dnsPrefix"`
+}
+
 // BackendPool describes the backend pool of the load balancer.
 type BackendPool struct {
 	// Name specifies the name of backend pool for the load balancer. If not specified, the default name will

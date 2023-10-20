@@ -110,6 +110,10 @@ type AzureManagedControlPlaneSpec struct {
 	// Immutable.
 	// +optional
 	DNSPrefix *string `json:"dnsPrefix,omitempty"`
+
+	// FleetHub is the spec for the fleet this cluster is a member of.
+	// +optional
+	FleetHub *FleetHub `json:"fleetHub,omitempty"`
 }
 
 // HTTPProxyConfig is the HTTP proxy configuration for the cluster.

@@ -133,6 +133,26 @@ rules:
   - list
   - watch
 - apiGroups:
+  - containerservice.azure.com
+  resources:
+  - fleets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - containerservice.azure.com
+  resources:
+  - fleets/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - nodes
