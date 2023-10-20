@@ -844,6 +844,16 @@ var _ = Describe("Workload cluster creation", func() {
 					}
 				})
 			})
+
+			By("attaching the cluster to azure fleet", func() {
+				AKSFleetsMemberSpec(ctx, func() AKSFleetsMemberInput {
+					return AKSFleetsMemberInput{
+						Cluster:            result.Cluster,
+						WaitIntervals:      e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+						WaitFleetIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+					}
+				})
+			})
 		})
 	})
 

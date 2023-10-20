@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230201"
+	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230315preview"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -105,6 +106,7 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 		infrav1.AddToScheme,
 		asoresourcesv1.AddToScheme,
 		asocontainerservicev1.AddToScheme,
+		asocontainerservicev1preview.AddToScheme,
 	)
 	s := runtime.NewScheme()
 	g.Expect(sb.AddToScheme(s)).To(Succeed())
@@ -150,6 +152,9 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 		Spec: infrav1.AzureManagedControlPlaneSpec{
 			AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
 				SubscriptionID: "something",
+				FleetsMember: &infrav1.FleetsMember{
+					Name: name,
+				},
 			},
 			ResourceGroupName: name,
 		},
@@ -171,6 +176,14 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 		},
 	}
 	g.Expect(c.Create(ctx, mc)).To(Succeed())
+
+	fleetsMember := &asocontainerservicev1preview.FleetsMember{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	g.Expect(c.Create(ctx, fleetsMember)).To(Succeed())
 
 	result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: client.ObjectKey{

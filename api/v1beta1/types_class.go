@@ -187,6 +187,10 @@ type AzureManagedControlPlaneClassSpec struct {
 	// DisableLocalAccounts disables getting static credentials for this cluster when set. Expected to only be used for AAD clusters.
 	// +optional
 	DisableLocalAccounts *bool `json:"disableLocalAccounts,omitempty"`
+
+	// FleetsMember is the spec for the fleet this cluster is a member of.
+	// +optional
+	FleetsMember *FleetsMember `json:"fleetManager,omitempty"`
 }
 
 // AzureManagedMachinePoolClassSpec defines the AzureManagedMachinePool properties that may be shared across several Azure managed machinepools.
@@ -422,6 +426,21 @@ type LoadBalancerClassSpec struct {
 	// IdleTimeoutInMinutes specifies the timeout for the TCP idle connection.
 	// +optional
 	IdleTimeoutInMinutes *int32 `json:"idleTimeoutInMinutes,omitempty"`
+}
+
+// FleetsMemberClassSpec defines the FleetsMemberSpec properties that may be shared across several Azure clusters.
+type FleetsMemberClassSpec struct {
+	// Group is the group this member belongs to for multi-cluster update management.
+	// +optional
+	Group string `json:"group,omitempty"`
+
+	// ManagerName is the name of the fleet manager.
+	// +kubebuilder:validation:Required
+	ManagerName string `json:"managerName,omitempty"`
+
+	// ManagerResourceGroup is the resource group of the fleet manager.
+	// +kubebuilder:validation:Required
+	ManagerResourceGroup string `json:"managerResourceGroup,omitempty"`
 }
 
 // SecurityGroupClass defines the SecurityGroup properties that may be shared across several Azure clusters.

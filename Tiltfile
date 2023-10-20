@@ -22,7 +22,7 @@ settings = {
     "capi_version": "v1.6.0",
     "cert_manager_version": "v1.13.2",
     "kubernetes_version": "v1.28.0",
-    "aks_kubernetes_version": "v1.26.3",
+    "aks_kubernetes_version": "v1.27.3",
     "flatcar_version": "3374.2.1",
 }
 

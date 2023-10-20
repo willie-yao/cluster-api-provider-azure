@@ -83,6 +83,7 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 	m.Spec.Version = setDefaultVersion(m.Spec.Version)
 	m.Spec.SKU = setDefaultSku(m.Spec.SKU)
 	m.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(m.Spec.AutoScalerProfile)
+	m.Spec.FleetsMember = setDefaultFleetsMember(m.Spec.FleetsMember, m.Labels)
 
 	if err := m.setDefaultSSHPublicKey(); err != nil {
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Error(err, "setDefaultSSHPublicKey failed")
@@ -256,6 +257,10 @@ func (mw *azureManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, o
 	}
 
 	if errs := m.validateOIDCIssuerProfileUpdate(old); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+
+	if errs := m.validateFleetsMember(old); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
@@ -678,6 +683,24 @@ func (m *AzureManagedControlPlane) validateOIDCIssuerProfileUpdate(old *AzureMan
 				field.Forbidden(
 					field.NewPath("Spec", "OIDCIssuerProfile", "Enabled"),
 					"cannot be disabled",
+				),
+			)
+		}
+	}
+
+	return allErrs
+}
+
+// validateFleetsMember validates a FleetsMember.
+func (m *AzureManagedControlPlane) validateFleetsMember(old *AzureManagedControlPlane) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if old.Spec.FleetsMember != nil && m.Spec.FleetsMember != nil {
+		if old.Spec.FleetsMember.Name != m.Spec.FleetsMember.Name {
+			allErrs = append(allErrs,
+				field.Forbidden(
+					field.NewPath("Spec", "FleetsMember", "Name"),
+					"Name is immutable",
 				),
 			)
 		}
