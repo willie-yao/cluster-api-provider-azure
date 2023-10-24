@@ -147,7 +147,6 @@ func TestValidateDNSServiceIP(t *testing.T) {
 }
 
 func TestValidateVersion(t *testing.T) {
-	g := NewWithT(t)
 	tests := []struct {
 		name      string
 		version   string
@@ -178,6 +177,7 @@ func TestValidateVersion(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			allErrs := validateVersion(tt.version, field.NewPath("spec").Child("Version"))
 			if tt.expectErr {
 				g.Expect(allErrs).NotTo(BeNil())
@@ -189,11 +189,9 @@ func TestValidateVersion(t *testing.T) {
 }
 
 func TestValidateLoadBalancerProfile(t *testing.T) {
-	g := NewWithT(t)
 	tests := []struct {
 		name        string
 		profile     *LoadBalancerProfile
-		wantErr     bool
 		expectedErr field.Error
 	}{
 		{
@@ -203,14 +201,12 @@ func TestValidateLoadBalancerProfile(t *testing.T) {
 				AllocatedOutboundPorts: ptr.To[int32](1000),
 				IdleTimeoutInMinutes:   ptr.To[int32](60),
 			},
-			wantErr: false,
 		},
 		{
 			name: "Invalid LoadBalancerProfile.ManagedOutboundIPs",
 			profile: &LoadBalancerProfile{
 				ManagedOutboundIPs: ptr.To[int32](200),
 			},
-			wantErr: true,
 			expectedErr: field.Error{
 				Type:     field.ErrorTypeInvalid,
 				Field:    "spec.LoadBalancerProfile.ManagedOutboundIPs",
@@ -223,7 +219,6 @@ func TestValidateLoadBalancerProfile(t *testing.T) {
 			profile: &LoadBalancerProfile{
 				IdleTimeoutInMinutes: ptr.To[int32](600),
 			},
-			wantErr: true,
 			expectedErr: field.Error{
 				Type:     field.ErrorTypeInvalid,
 				Field:    "spec.LoadBalancerProfile.IdleTimeoutInMinutes",
@@ -239,7 +234,6 @@ func TestValidateLoadBalancerProfile(t *testing.T) {
 					"/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/foo-bar/providers/Microsoft.Network/publicIPAddresses/my-public-ip",
 				},
 			},
-			wantErr: true,
 			expectedErr: field.Error{
 				Type:     field.ErrorTypeForbidden,
 				Field:    "spec.LoadBalancerProfile",
@@ -251,8 +245,9 @@ func TestValidateLoadBalancerProfile(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			allErrs := validateLoadBalancerProfile(tt.profile, field.NewPath("spec").Child("LoadBalancerProfile"))
-			if tt.wantErr {
+			if tt.expectedErr != (field.Error{}) {
 				g.Expect(allErrs).To(ContainElement(MatchError(tt.expectedErr.Error())))
 			} else {
 				g.Expect(allErrs).To(BeNil())
@@ -262,7 +257,6 @@ func TestValidateLoadBalancerProfile(t *testing.T) {
 }
 
 func TestValidateAutoScalerProfile(t *testing.T) {
-	g := NewWithT(t)
 	tests := []struct {
 		name      string
 		profile   *AutoScalerProfile
@@ -443,6 +437,7 @@ func TestValidateAutoScalerProfile(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			allErrs := validateAutoScalerProfile(tt.profile, field.NewPath("spec").Child("AutoScalerProfile"))
 			if tt.expectErr {
 				g.Expect(allErrs).NotTo(BeNil())
@@ -457,7 +452,6 @@ func TestValidatingWebhook(t *testing.T) {
 	// NOTE: AzureManageControlPlane is behind AKS feature gate flag; the webhook
 	// must prevent creating new objects in case the feature flag is disabled.
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, capifeature.MachinePool, true)()
-
 	tests := []struct {
 		name      string
 		amcp      AzureManagedControlPlane
@@ -1327,6 +1321,7 @@ func TestAzureManagedControlPlane_ValidateCreateFailure(t *testing.T) {
 	client := mockClient{ReturnError: false}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
 			defer tc.deferFunc()
 			g := NewWithT(t)
 			mcpw := &azureManagedControlPlaneWebhook{

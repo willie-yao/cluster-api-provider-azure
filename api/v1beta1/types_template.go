@@ -29,6 +29,8 @@ import (
 type AzureManagedControlPlaneTemplateResourceSpec struct {
 	// MachineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.
+	// For the AzureManagedControlPlaneTemplate, this field is used
+	// only to fulfill the CAPI contract.
 	// +optional
 	MachineTemplate *AzureManagedControlPlaneTemplateMachineTemplate `json:"machineTemplate,omitempty"`
 
@@ -106,7 +108,8 @@ type AzureManagedControlPlaneTemplateResourceSpec struct {
 	AutoScalerProfile *AutoScalerProfile `json:"autoscalerProfile,omitempty"`
 }
 
-// AzureManagedControlPlaneTemplateMachineTemplate specifies an Azure managed control plane template.
+// AzureManagedControlPlaneTemplateMachineTemplate is only used to fulfill the CAPI contract which expects a
+// MachineTemplate field for any controlplane ref in a topology.
 type AzureManagedControlPlaneTemplateMachineTemplate struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata

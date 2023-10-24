@@ -168,6 +168,6 @@ const (
 )
 
 const (
-	// NetworkPluginName is the name of the network plugin.
-	NetworkPluginName = "azure"
+	// AzureNetworkPluginName is the name of the Azure network plugin.
+	AzureNetworkPluginName = "azure"
 )

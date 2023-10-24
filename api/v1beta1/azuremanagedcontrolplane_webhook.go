@@ -26,10 +26,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api-provider-azure/feature"
@@ -73,7 +71,7 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 		return apierrors.NewBadRequest("expected an AzureManagedControlPlane")
 	}
 	if m.Spec.NetworkPlugin == nil {
-		networkPlugin := NetworkPluginName
+		networkPlugin := AzureNetworkPluginName
 		m.Spec.NetworkPlugin = &networkPlugin
 	}
 	if m.Spec.LoadBalancerSKU == nil {
@@ -106,8 +104,8 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 	m.setDefaultNodeResourceGroupName()
 	m.setDefaultVirtualNetwork()
 	m.setDefaultSubnet()
-	m.setDefaultSku()
-	m.setDefaultAutoScalerProfile()
+	m.Spec.SKU = setDefaultSku(m.Spec.SKU)
+	m.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(m.Spec.AutoScalerProfile)
 	m.setDefaultOIDCIssuerProfile()
 	m.setDefaultDNSPrefix()
 
@@ -280,7 +278,7 @@ func (mw *azureManagedControlPlaneWebhook) ValidateDelete(ctx context.Context, o
 // Validate the Azure Managed Control Plane and return an aggregate error.
 func (m *AzureManagedControlPlane) Validate(cli client.Client) error {
 	var allErrs field.ErrorList
-	validators := []func(client client.Client) error{
+	validators := []func(client client.Client) field.ErrorList{
 		m.validateSSHKey,
 		m.validateAPIServerAccessProfile,
 		m.validateIdentity,
@@ -290,21 +288,21 @@ func (m *AzureManagedControlPlane) Validate(cli client.Client) error {
 	}
 	for _, validator := range validators {
 		if err := validator(cli); err != nil {
-			allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+			allErrs = append(allErrs, err...)
 		}
 	}
 
 	allErrs = append(allErrs, validateDNSServiceIP(
 		m.Spec.DNSServiceIP,
-		field.NewPath("spec").Child("DNSServiceIP"))...)
+		field.NewPath("Spec").Child("DNSServiceIP"))...)
 
 	allErrs = append(allErrs, validateVersion(
 		m.Spec.Version,
-		field.NewPath("spec").Child("Version"))...)
+		field.NewPath("Spec").Child("Version"))...)
 
 	allErrs = append(allErrs, validateLoadBalancerProfile(
 		m.Spec.LoadBalancerProfile,
-		field.NewPath("spec").Child("LoadBalancerProfile"))...)
+		field.NewPath("Spec").Child("LoadBalancerProfile"))...)
 
 	allErrs = append(allErrs, validateManagedClusterNetwork(
 		cli,
@@ -312,7 +310,7 @@ func (m *AzureManagedControlPlane) Validate(cli client.Client) error {
 		m.Namespace,
 		m.Spec.DNSServiceIP,
 		m.Spec.VirtualNetwork.Subnet,
-		field.NewPath("spec").Child("spec"))...)
+		field.NewPath("Spec"))...)
 
 	allErrs = append(allErrs, validateName(m.Name, field.NewPath("Name"))...)
 
@@ -333,7 +331,7 @@ func validateDNSServiceIP(dnsServiceIP *string, fldPath *field.Path) field.Error
 	return allErrs
 }
 
-func (m *AzureManagedControlPlane) validateDNSPrefix(_ client.Client) error {
+func (m *AzureManagedControlPlane) validateDNSPrefix(_ client.Client) field.ErrorList {
 	if m.Spec.DNSPrefix == nil {
 		return nil
 	}
@@ -350,13 +348,15 @@ func (m *AzureManagedControlPlane) validateDNSPrefix(_ client.Client) error {
 	allErrs := field.ErrorList{
 		field.Invalid(field.NewPath("Spec", "DNSPrefix"), *m.Spec.DNSPrefix, "DNSPrefix is invalid, does not match regex: "+pattern),
 	}
-	return kerrors.NewAggregate(allErrs.ToAggregate().Errors())
+	return allErrs
 }
 
 // validateVersion disabling local accounts for AAD based clusters.
-func (m *AzureManagedControlPlane) validateDisableLocalAccounts(_ client.Client) error {
+func (m *AzureManagedControlPlane) validateDisableLocalAccounts(_ client.Client) field.ErrorList {
 	if m.Spec.DisableLocalAccounts != nil && m.Spec.AADProfile == nil {
-		return errors.New("DisableLocalAccounts should be set only for AAD enabled clusters")
+		return field.ErrorList{
+			field.Invalid(field.NewPath("Spec", "DisableLocalAccounts"), *m.Spec.DisableLocalAccounts, "DisableLocalAccounts should be set only for AAD enabled clusters"),
+		}
 	}
 	return nil
 }
@@ -372,10 +372,10 @@ func validateVersion(version string, fldPath *field.Path) field.ErrorList {
 }
 
 // validateSSHKey validates an SSHKey.
-func (m *AzureManagedControlPlane) validateSSHKey(_ client.Client) error {
+func (m *AzureManagedControlPlane) validateSSHKey(_ client.Client) field.ErrorList {
 	if sshKey := m.Spec.SSHPublicKey; sshKey != nil && *sshKey != "" {
 		if errs := ValidateSSHKey(*sshKey, field.NewPath("sshKey")); len(errs) > 0 {
-			return kerrors.NewAggregate(errs.ToAggregate().Errors())
+			return errs
 		}
 	}
 
@@ -424,7 +424,7 @@ func validateLoadBalancerProfile(loadBalancerProfile *LoadBalancerProfile, fldPa
 }
 
 // validateAPIServerAccessProfile validates an APIServerAccessProfile.
-func (m *AzureManagedControlPlane) validateAPIServerAccessProfile(_ client.Client) error {
+func (m *AzureManagedControlPlane) validateAPIServerAccessProfile(_ client.Client) field.ErrorList {
 	if m.Spec.APIServerAccessProfile != nil {
 		var allErrs field.ErrorList
 		for _, ipRange := range m.Spec.APIServerAccessProfile.AuthorizedIPRanges {
@@ -433,7 +433,7 @@ func (m *AzureManagedControlPlane) validateAPIServerAccessProfile(_ client.Clien
 			}
 		}
 		if len(allErrs) > 0 {
-			return kerrors.NewAggregate(allErrs.ToAggregate().Errors())
+			return allErrs
 		}
 	}
 	return nil
@@ -461,7 +461,7 @@ func validateManagedClusterNetwork(cli client.Client, labels map[string]string, 
 	}
 
 	if err := cli.Get(ctx, key, ownerCluster); err != nil {
-		allErrs = append(allErrs, field.InternalError(fldPath, err))
+		allErrs = append(allErrs, field.InternalError(field.NewPath("Cluster", "Spec", "ClusterNetwork"), err))
 		return allErrs
 	}
 
@@ -853,7 +853,7 @@ func validateIntegerStringGreaterThanZero(input *string, fldPath *field.Path, fi
 }
 
 // validateIdentity validates an Identity.
-func (m *AzureManagedControlPlane) validateIdentity(_ client.Client) error {
+func (m *AzureManagedControlPlane) validateIdentity(_ client.Client) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if m.Spec.Identity != nil {
@@ -869,14 +869,14 @@ func (m *AzureManagedControlPlane) validateIdentity(_ client.Client) error {
 	}
 
 	if len(allErrs) > 0 {
-		return kerrors.NewAggregate(allErrs.ToAggregate().Errors())
+		return allErrs
 	}
 
 	return nil
 }
 
 // validateNetworkPluginMode validates a NetworkPluginMode.
-func (m *AzureManagedControlPlane) validateNetworkPluginMode(_ client.Client) error {
+func (m *AzureManagedControlPlane) validateNetworkPluginMode(_ client.Client) field.ErrorList {
 	var allErrs field.ErrorList
 
 	const kubenet = "kubenet"
@@ -886,7 +886,7 @@ func (m *AzureManagedControlPlane) validateNetworkPluginMode(_ client.Client) er
 	}
 
 	if len(allErrs) > 0 {
-		return kerrors.NewAggregate(allErrs.ToAggregate().Errors())
+		return allErrs
 	}
 
 	return nil
