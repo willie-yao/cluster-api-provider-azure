@@ -19,11 +19,13 @@ package v1beta1
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"golang.org/x/crypto/ssh"
 	"k8s.io/utils/ptr"
 	utilSSH "sigs.k8s.io/cluster-api-provider-azure/util/ssh"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -97,10 +99,49 @@ func (m *AzureManagedControlPlane) setDefaultSubnet() {
 }
 
 func setDefaultSku(sku *AKSSku) *AKSSku {
-	if sku == nil {
-		return &AKSSku{
-			Tier: FreeManagedControlPlaneTier,
+	if sku != nil && sku.Tier == PaidManagedControlPlaneTier {
+		sku.Tier = StandardManagedControlPlaneTier
+		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Info("Paid SKU tier is deprecated and has been replaced by Standard")
+	}
+	return sku
+}
+
+func setDefaultNetworkPlugin(networkPlugin *string) *string {
+	if networkPlugin == nil {
+		networkPlugin = ptr.To(AzureNetworkPluginName)
+	}
+	return networkPlugin
+}
+
+func setDefaultLoadBalancerSKU(loadBalancerSKU *string) *string {
+	if loadBalancerSKU == nil {
+		loadBalancerSKU = ptr.To("Standard")
+	}
+	return loadBalancerSKU
+}
+
+func setDefaultVersion(version string) string {
+	if version != "" && !strings.HasPrefix(version, "v") {
+		normalizedVersion := "v" + version
+		version = normalizedVersion
+	}
+	return version
+}
+
+func setDefaultIdentity(identity *Identity) *Identity {
+	if identity == nil {
+		identity = &Identity{
+			Type: ManagedControlPlaneIdentityTypeSystemAssigned,
 		}
+	}
+	return identity
+}
+
+// PaidManagedControlPlaneTier has been replaced with StandardManagedControlPlaneTier since v2023-02-01.
+func setDefaultSKUTier(sku *AKSSku) *AKSSku {
+	if sku != nil && sku.Tier == PaidManagedControlPlaneTier {
+		sku.Tier = StandardManagedControlPlaneTier
+		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Info("Paid SKU tier is deprecated and has been replaced by Standard")
 	}
 	return sku
 }

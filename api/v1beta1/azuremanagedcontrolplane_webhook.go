@@ -70,34 +70,14 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 	if !ok {
 		return apierrors.NewBadRequest("expected an AzureManagedControlPlane")
 	}
-	if m.Spec.NetworkPlugin == nil {
-		networkPlugin := AzureNetworkPluginName
-		m.Spec.NetworkPlugin = &networkPlugin
-	}
-	if m.Spec.LoadBalancerSKU == nil {
-		loadBalancerSKU := "Standard"
-		m.Spec.LoadBalancerSKU = &loadBalancerSKU
-	}
 
-	if m.Spec.Version != "" && !strings.HasPrefix(m.Spec.Version, "v") {
-		normalizedVersion := "v" + m.Spec.Version
-		m.Spec.Version = normalizedVersion
-	}
-
-	if m.Spec.Identity == nil {
-		m.Spec.Identity = &Identity{
-			Type: ManagedControlPlaneIdentityTypeSystemAssigned,
-		}
-	}
+	m.Spec.NetworkPlugin = setDefaultNetworkPlugin(m.Spec.NetworkPlugin)
+	m.Spec.LoadBalancerSKU = setDefaultLoadBalancerSKU(m.Spec.LoadBalancerSKU)
+	m.Spec.Version = setDefaultVersion(m.Spec.Version)
+	m.Spec.Identity = setDefaultIdentity(m.Spec.Identity)
 
 	if err := m.setDefaultSSHPublicKey(); err != nil {
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Error(err, "setDefaultSSHPublicKey failed")
-	}
-
-	// PaidManagedControlPlaneTier has been replaced with StandardManagedControlPlaneTier since v2023-02-01.
-	if m.Spec.SKU != nil && m.Spec.SKU.Tier == PaidManagedControlPlaneTier {
-		m.Spec.SKU.Tier = StandardManagedControlPlaneTier
-		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Info("Paid SKU tier is deprecated and has been replaced by Standard")
 	}
 
 	m.setDefaultResourceGroupName()
