@@ -98,57 +98,51 @@ func (m *AzureManagedControlPlane) setDefaultSubnet() {
 	}
 }
 
-func setDefaultSku(sku *AKSSku) *AKSSku {
+func setDefaultSku(sku *AKSSku) {
 	if sku != nil && sku.Tier == PaidManagedControlPlaneTier {
 		sku.Tier = StandardManagedControlPlaneTier
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Info("Paid SKU tier is deprecated and has been replaced by Standard")
 	}
-	return sku
 }
 
-func setDefaultNetworkPlugin(networkPlugin *string) *string {
+func setDefaultNetworkPlugin(networkPlugin *string) {
 	if networkPlugin == nil {
 		networkPlugin = ptr.To(AzureNetworkPluginName)
 	}
-	return networkPlugin
 }
 
-func setDefaultLoadBalancerSKU(loadBalancerSKU *string) *string {
+func setDefaultLoadBalancerSKU(loadBalancerSKU *string) {
 	if loadBalancerSKU == nil {
 		loadBalancerSKU = ptr.To("Standard")
 	}
-	return loadBalancerSKU
 }
 
-func setDefaultVersion(version string) string {
+func setDefaultVersion(version string) {
 	if version != "" && !strings.HasPrefix(version, "v") {
 		normalizedVersion := "v" + version
 		version = normalizedVersion
 	}
-	return version
 }
 
-func setDefaultIdentity(identity *Identity) *Identity {
+func setDefaultIdentity(identity *Identity) {
 	if identity == nil {
 		identity = &Identity{
 			Type: ManagedControlPlaneIdentityTypeSystemAssigned,
 		}
 	}
-	return identity
 }
 
 // PaidManagedControlPlaneTier has been replaced with StandardManagedControlPlaneTier since v2023-02-01.
-func setDefaultSKUTier(sku *AKSSku) *AKSSku {
+func setDefaultSKUTier(sku *AKSSku) {
 	if sku != nil && sku.Tier == PaidManagedControlPlaneTier {
 		sku.Tier = StandardManagedControlPlaneTier
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Info("Paid SKU tier is deprecated and has been replaced by Standard")
 	}
-	return sku
 }
 
-func setDefaultAutoScalerProfile(autoScalerProfile *AutoScalerProfile) *AutoScalerProfile {
+func setDefaultAutoScalerProfile(autoScalerProfile *AutoScalerProfile) {
 	if autoScalerProfile == nil {
-		return nil
+		return
 	}
 
 	// Default values are from https://learn.microsoft.com/en-us/azure/aks/cluster-autoscaler#using-the-autoscaler-profile
@@ -205,8 +199,6 @@ func setDefaultAutoScalerProfile(autoScalerProfile *AutoScalerProfile) *AutoScal
 	if autoScalerProfile.SkipNodesWithSystemPods == nil {
 		autoScalerProfile.SkipNodesWithSystemPods = (*SkipNodesWithSystemPods)(ptr.To(string(SkipNodesWithSystemPodsTrue)))
 	}
-
-	return autoScalerProfile
 }
 
 func (m *AzureManagedControlPlane) setDefaultOIDCIssuerProfile() {

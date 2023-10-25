@@ -92,7 +92,7 @@ func TestSetDefaultAutoScalerProfile(t *testing.T) {
 		},
 	}}
 
-	allFieldsAreNilTest.amcp.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(allFieldsAreNilTest.amcp.Spec.AutoScalerProfile)
+	setDefaultAutoScalerProfile(allFieldsAreNilTest.amcp.Spec.AutoScalerProfile)
 
 	g.Expect(allFieldsAreNilTest.amcp.Spec.AutoScalerProfile).To(Equal(defaultAMP.Spec.AutoScalerProfile))
 
@@ -122,11 +122,11 @@ func TestSetDefaultAutoScalerProfile(t *testing.T) {
 
 	allFieldsAreNotNilTest := test{amcp: &AzureManagedControlPlane{
 		Spec: AzureManagedControlPlaneSpec{
-			AutoScalerProfile: expectedNotNil.Spec.AutoScalerProfile,
+			AutoScalerProfile: ptr.To(*expectedNotNil.Spec.AutoScalerProfile),
 		},
 	}}
 
-	allFieldsAreNotNilTest.amcp.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(allFieldsAreNotNilTest.amcp.Spec.AutoScalerProfile)
+	setDefaultAutoScalerProfile(allFieldsAreNotNilTest.amcp.Spec.AutoScalerProfile)
 
 	g.Expect(allFieldsAreNotNilTest.amcp.Spec.AutoScalerProfile).To(Equal(expectedNotNil.Spec.AutoScalerProfile))
 }
