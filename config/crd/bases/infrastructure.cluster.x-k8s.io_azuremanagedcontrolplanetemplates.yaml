@@ -325,7 +325,8 @@ spec:
                       machineTemplate:
                         description: MachineTemplate contains information about how
                           machines should be shaped when creating or updating a control
-                          plane.
+                          plane. For the AzureManagedControlPlaneTemplate, this field
+                          is used only to fulfill the CAPI contract.
                         properties:
                           metadata:
                             description: 'Standard object''s metadata. More info:

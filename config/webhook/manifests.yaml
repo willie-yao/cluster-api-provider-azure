@@ -124,7 +124,7 @@ webhooks:
       path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-azuremanagedcontrolplanetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: default.azuremanagedcontrolplanetemplate.infrastructure.cluster.x-k8s.io
+  name: default.azuremanagedcontrolplanetemplates.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -390,7 +390,7 @@ webhooks:
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-azuremanagedcontrolplanetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
-  name: validation.azuremanagedcontrolplanetemplate.infrastructure.cluster.x-k8s.io
+  name: validation.azuremanagedcontrolplanetemplates.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
