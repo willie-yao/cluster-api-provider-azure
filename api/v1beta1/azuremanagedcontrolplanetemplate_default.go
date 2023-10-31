@@ -37,8 +37,8 @@ func (mcp *AzureManagedControlPlaneTemplate) setDefaults() {
 
 	mcp.setDefaultVirtualNetwork()
 	mcp.setDefaultSubnet()
-	setDefaultSku(mcp.Spec.Template.Spec.SKU)
-	setDefaultAutoScalerProfile(mcp.Spec.Template.Spec.AutoScalerProfile)
+	setDefaultSku(&mcp.Spec.Template.Spec.SKU)
+	setDefaultAutoScalerProfile(&mcp.Spec.Template.Spec.AutoScalerProfile)
 }
 
 // setDefaultVirtualNetwork sets the default VirtualNetwork for an AzureManagedControlPlaneTemplate.
