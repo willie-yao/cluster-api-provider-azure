@@ -247,6 +247,8 @@ func newScheme() (*runtime.Scheme, error) {
 		infrav1exp.AddToScheme,
 		aadpodv1.AddToScheme,
 		expv1.AddToScheme,
+		corev1.AddToScheme,
+		aadpodv1.AddToScheme,
 	}
 	for _, fn := range schemeFn {
 		fn := fn

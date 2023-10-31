@@ -53,7 +53,8 @@ func TestASOSecretReconcile(t *testing.T) {
 	defaultCluster := getASOCluster()
 	defaultAzureCluster := getASOAzureCluster()
 	defaultAzureManagedControlPlane := getASOAzureManagedControlPlane()
-	defaultASOSecret := getASOSecret(defaultAzureCluster)
+	defaultASOSecret := getASOAzureClusterIdentitySecret()
+	defaultAzureClusterIdentity := getASOAzureClusterIdentity()
 	defaultClusterIdentityType := infrav1.ServicePrincipal
 
 	cases := map[string]struct {
@@ -263,8 +264,11 @@ func TestASOSecretReconcile(t *testing.T) {
 					c.Spec.Paused = true
 				}),
 				defaultAzureCluster,
+				defaultAzureClusterIdentity,
+				defaultASOSecret,
 			},
-			event: "AzureCluster or linked Cluster is marked as paused. Won't reconcile",
+			asoSecret: defaultASOSecret,
+			event:     "AzureCluster or linked Cluster is marked as paused. Won't reconcile",
 		},
 		"should return if azureCluster is not yet available": {
 			clusterName: defaultAzureCluster.Name,
@@ -279,6 +283,9 @@ func TestASOSecretReconcile(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 			clientBuilder := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(tc.objects...).Build()
+			resultSecret := &corev1.Secret{}
+			key := client.ObjectKey{Name: tc.asoSecret.Name, Namespace: tc.asoSecret.Namespace}
+			g.Expect(clientBuilder.Get(context.Background(), key, resultSecret)).To(Succeed())
 
 			reconciler := &ASOSecretReconciler{
 				Client:   clientBuilder,
@@ -306,7 +313,7 @@ func TestASOSecretReconcile(t *testing.T) {
 			}
 
 			if tc.event != "" {
-				g.Expect(reconciler.Recorder.(*record.FakeRecorder).Events).To(Receive(ContainSubstring(tc.event)))
+				g.Eventually(reconciler.Recorder.(*record.FakeRecorder).Events).Should(Receive(ContainSubstring(tc.event)))
 			}
 			if tc.err != "" {
 				g.Expect(err).To(MatchError(ContainSubstring(tc.err)))
@@ -356,6 +363,11 @@ func getASOAzureCluster(changes ...func(*infrav1.AzureCluster)) *infrav1.AzureCl
 		Spec: infrav1.AzureClusterSpec{
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				SubscriptionID: "123",
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "my-azure-cluster-identity",
+					Namespace: "default",
+					Kind:      "AzureClusterIdentity",
+				},
 			},
 		},
 	}
@@ -399,8 +411,13 @@ func getASOAzureClusterIdentity(changes ...func(identity *infrav1.AzureClusterId
 			Namespace: "default",
 		},
 		Spec: infrav1.AzureClusterIdentitySpec{
+			Type:     infrav1.ServicePrincipal,
 			ClientID: "fooClient",
 			TenantID: "fooTenant",
+			ClientSecret: corev1.SecretReference{
+				Name:      "fooSecret",
+				Namespace: "default",
+			},
 		},
 	}
 
