@@ -281,7 +281,7 @@ func (mcp *AzureManagedControlPlaneTemplate) validateAPIServerAccessProfileTempl
 	if !reflect.DeepEqual(newAPIServerAccessProfileNormalized, oldAPIServerAccessProfileNormalized) {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("Spec", "Template", "Spec", "APIServerAccessProfile"),
-				mcp.Spec.Template.Spec.APIServerAccessProfile, "fields (except for AuthorizedIPRanges) are immutable"),
+				mcp.Spec.Template.Spec.APIServerAccessProfile, "fields are immutable"),
 		)
 	}
 

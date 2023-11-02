@@ -22,25 +22,14 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 func TestControlPlaneTemplateDefaultingWebhook(t *testing.T) {
 	g := NewWithT(t)
 
 	t.Logf("Testing amcp defaulting webhook with no baseline")
-	amcpt := &AzureManagedControlPlaneTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "fooName",
-		},
-		Spec: AzureManagedControlPlaneTemplateSpec{
-			Template: AzureManagedControlPlaneTemplateResource{
-				Spec: AzureManagedControlPlaneTemplateResourceSpec{
-					Location: "fooLocation",
-					Version:  "1.17.5",
-				},
-			},
-		},
-	}
+	amcpt := getAzureManagedControlPlaneTemplate()
 	mcptw := &azureManagedControlPlaneTemplateWebhook{}
 	err := mcptw.Default(context.Background(), amcpt)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -74,4 +63,286 @@ func TestControlPlaneTemplateDefaultingWebhook(t *testing.T) {
 	g.Expect(amcpt.Spec.Template.Spec.VirtualNetwork.Name).To(Equal("fooVnetName"))
 	g.Expect(amcpt.Spec.Template.Spec.VirtualNetwork.Subnet.Name).To(Equal("fooSubnetName"))
 	g.Expect(amcpt.Spec.Template.Spec.SKU.Tier).To(Equal(StandardManagedControlPlaneTier))
+}
+
+func TestControlPlaneTemplateUpdateWebhook(t *testing.T) {
+	tests := []struct {
+		name                    string
+		oldControlPlaneTemplate *AzureManagedControlPlaneTemplate
+		controlPlaneTemplate    *AzureManagedControlPlaneTemplate
+		wantErr                 bool
+	}{
+		{
+			name:                    "azuremanagedcontrolplanetemplate no changes - valid spec",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(),
+			controlPlaneTemplate:    getAzureManagedControlPlaneTemplate(),
+			wantErr:                 false,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate subscriptionID is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.SubscriptionID = "foo"
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.SubscriptionID = "bar"
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate location is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.Location = "foo"
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.Location = "bar"
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate DNSServiceIP is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.DNSServiceIP = ptr.To("foo")
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.DNSServiceIP = ptr.To("bar")
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate NetworkPlugin is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.NetworkPlugin = ptr.To("foo")
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.NetworkPlugin = ptr.To("bar")
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate NetworkPolicy is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.NetworkPolicy = ptr.To("foo")
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.NetworkPolicy = ptr.To("bar")
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate LoadBalancerSKU is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.LoadBalancerSKU = ptr.To("foo")
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.LoadBalancerSKU = ptr.To("bar")
+			}),
+			wantErr: true,
+		},
+		{
+			name: "cannot disable AADProfile",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.AADProfile = &AADProfile{
+					Managed: true,
+				}
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(),
+			wantErr:              true,
+		},
+		{
+			name: "cannot set AADProfile.Managed to false",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.AADProfile = &AADProfile{
+					Managed: true,
+				}
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.AADProfile = &AADProfile{
+					Managed: false,
+				}
+			}),
+			wantErr: true,
+		},
+		{
+			name: "length of AADProfile.AdminGroupObjectIDs cannot be zero",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.AADProfile = &AADProfile{
+					AdminGroupObjectIDs: []string{"foo"},
+				}
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.AADProfile = &AADProfile{
+					AdminGroupObjectIDs: []string{},
+				}
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate OutboundType is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.OutboundType = (*ManagedControlPlaneOutboundType)(ptr.To(string(ManagedControlPlaneOutboundTypeLoadBalancer)))
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.OutboundType = (*ManagedControlPlaneOutboundType)(ptr.To(string(ManagedControlPlaneOutboundTypeManagedNATGateway)))
+			}),
+			wantErr: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			cpw := &azureManagedControlPlaneTemplateWebhook{}
+			_, err := cpw.ValidateUpdate(context.Background(), tc.oldControlPlaneTemplate, tc.controlPlaneTemplate)
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func TestValidateVirtualNetworkTemplateUpdate(t *testing.T) {
+	tests := []struct {
+		name                    string
+		oldControlPlaneTemplate *AzureManagedControlPlaneTemplate
+		controlPlaneTemplate    *AzureManagedControlPlaneTemplate
+		wantErr                 bool
+	}{
+		{
+			name:                    "azuremanagedcontrolplanetemplate no changes - valid spec",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(),
+			controlPlaneTemplate:    getAzureManagedControlPlaneTemplate(),
+			wantErr:                 false,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate name is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetworkTemplate{
+					Name: "fooName",
+				}
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetworkTemplate{
+					Name: "barName",
+				}
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate networkCIDRBlock is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetworkTemplate{
+					CIDRBlock: "fooCIDRBlock",
+				}
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetworkTemplate{
+					CIDRBlock: "barCIDRBlock",
+				}
+			}),
+			wantErr: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			allErrs := tc.controlPlaneTemplate.validateVirtualNetworkTemplateUpdate(tc.oldControlPlaneTemplate)
+			if tc.wantErr {
+				g.Expect(allErrs).NotTo(BeEmpty())
+			} else {
+				g.Expect(allErrs).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func TestValidateAPIServerAccessProfileTemplateUpdate(t *testing.T) {
+	tests := []struct {
+		name                    string
+		oldControlPlaneTemplate *AzureManagedControlPlaneTemplate
+		controlPlaneTemplate    *AzureManagedControlPlaneTemplate
+		wantErr                 bool
+	}{
+		{
+			name:                    "azuremanagedcontrolplanetemplate no changes - valid spec",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(),
+			controlPlaneTemplate:    getAzureManagedControlPlaneTemplate(),
+			wantErr:                 false,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate enablePrivateCluster is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
+					EnablePrivateCluster: ptr.To(true),
+				}
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
+					EnablePrivateCluster: ptr.To(false),
+				}
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate privateDNSZone is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
+					PrivateDNSZone: ptr.To("foo"),
+				}
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
+					PrivateDNSZone: ptr.To("bar"),
+				}
+			}),
+			wantErr: true,
+		},
+		{
+			name: "azuremanagedcontrolplanetemplate enablePrivateClusterPublicFQDN is immutable",
+			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
+					EnablePrivateClusterPublicFQDN: ptr.To(true),
+				}
+			}),
+			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
+					EnablePrivateClusterPublicFQDN: ptr.To(false),
+				}
+			}),
+			wantErr: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			allErrs := tc.controlPlaneTemplate.validateAPIServerAccessProfileTemplateUpdate(tc.oldControlPlaneTemplate)
+			if tc.wantErr {
+				g.Expect(allErrs).NotTo(BeEmpty())
+			} else {
+				g.Expect(allErrs).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func getAzureManagedControlPlaneTemplate(changes ...func(*AzureManagedControlPlaneTemplate)) *AzureManagedControlPlaneTemplate {
+	input := &AzureManagedControlPlaneTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "fooName",
+		},
+		Spec: AzureManagedControlPlaneTemplateSpec{
+			Template: AzureManagedControlPlaneTemplateResource{
+				Spec: AzureManagedControlPlaneTemplateResourceSpec{
+					Location: "fooLocation",
+					Version:  "v1.17.5",
+				},
+			},
+		},
+	}
+
+	for _, change := range changes {
+		change(input)
+	}
+
+	return input
 }
