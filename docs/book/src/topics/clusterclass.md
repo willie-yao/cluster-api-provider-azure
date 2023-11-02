@@ -1,7 +1,7 @@
 # ClusterClass
 
 - **Feature status:** GA
-- **Feature gate:** `MachinePool=true`, `ClusterTopology=true`
+- **Feature gate:** `ClusterTopology=true`
 
 [ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/index.html) is a collection of templates that define a topology (control plane and machine deployments) to be used to continuously reconcile one or more Clusters. It is a new Cluster API feature that is built on top of the existing Cluster API resources and provides a set of tools and operations to streamline cluster lifecycle management while maintaining the same underlying API.
 
@@ -9,6 +9,7 @@ CAPZ currently supports ClusterClass for both managed (AKS) and self-managed clu
 1. AzureClusterTemplate
 2. AzureManagedClusterTemplate
 3. AzureManagedControlPlaneTemplate
+4. AzureManagedMachinePoolTemplate
 
 Each resource is a template for the corresponding CAPZ resource. For example, the AzureClusterTemplate is a template for the CAPZ AzureCluster resource. The template contains a set of parameters that are able to be shared across multiple clusters.
 
@@ -43,9 +44,11 @@ spec:
 
 ## Deploying a Managed Cluster (AKS) with ClusterClass
 
-Deploying an AKS cluster with ClusterClass is similar to deploying a self-managed cluster. Instead of using the AzureClusterTemplate, you must use both an AzureManagedClusterTemplate and AzureManagedControlPlaneTemplate. Due to the nature of managed Kubernetes and the control plane implementation, the infrastructure provider (and therefore the AzureManagedClusterTemplate) for AKS cluster is basically a no-op. The AzureManagedControlPlaneTemplate is used to define the AKS cluster configuration, such as the Kubernetes version and the number of nodes. 
+**Feature gate:** `MachinePool=true`
 
-The following example shows a basic AzureManagedClusterTemplate and AzureManagedControlPlaneTemplate resource:
+Deploying an AKS cluster with ClusterClass is similar to deploying a self-managed cluster. Instead of using the AzureClusterTemplate, you must use both an AzureManagedClusterTemplate and AzureManagedControlPlaneTemplate. Due to the nature of managed Kubernetes and the control plane implementation, the infrastructure provider (and therefore the AzureManagedClusterTemplate) for AKS cluster is basically a no-op. The AzureManagedControlPlaneTemplate is used to define the AKS cluster configuration, such as the Kubernetes version and the number of nodes. Finally, the AzureManagedMachinePoolTemplate defines the worker nodes (agentpools) for the AKS cluster.
+
+The following example shows a basic AzureManagedClusterTemplate, AzureManagedControlPlaneTemplate, and AzureManagedMachinePoolTemplate resource:
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -61,28 +64,16 @@ spec:
   location: westus2
   subscriptionID: 00000000-0000-0000-0000-000000000000
   version: 1.25.2
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AzureManagedMachinePoolTemplate
+metadata:
+  name: capz-clusterclass-pool0
+  namespace: default
+spec:
+  template:
+    spec:
+      mode: System
+      name: pool0
+      sku: Standard_D2s_v3
 ```
-
-## Excluded Fields
-
-Since a ClusterClass is a template for a Cluster, there are some fields that are not allowed to be shared across multiple clusters. For each of the ClusterClass resources, the following fields are excluded:
-
-### AzureClusterTemplate
-- `spec.resourceGroup`
-- `spec.controlPlaneEndpoint`
-- `spec.bastionSpec.azureBastion.name`
-- `spec.bastionSpec.azureBastion.subnetSpec.routeTable`
-- `spec.bastionSpec.azureBastion.publicIP`
-- `spec.bastionSpec.azureBastion.sku`
-- `spec.bastionSpec.azureBastion.enableTunneling`
-
-### AzureManagedControlPlaneTemplate
-
-- `spec.resourceGroupName`
-- `spec.nodeResourceGroupName`
-- `spec.virtualNetwork.name`
-- `spec.virtualNetwork.subnet`
-- `spec.virtualNetwork.resourceGroup`
-- `spec.controlPlaneEndpoint`
-- `spec.sshPublicKey`
-- `spec.apiServerAccessProfile.authorizedIPRanges`
