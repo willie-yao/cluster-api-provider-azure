@@ -140,7 +140,9 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 			},
 		},
 		Spec: infrav1.AzureManagedControlPlaneSpec{
-			SubscriptionID:    "something",
+			AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
+				SubscriptionID: "something",
+			},
 			ResourceGroupName: name,
 		},
 	}

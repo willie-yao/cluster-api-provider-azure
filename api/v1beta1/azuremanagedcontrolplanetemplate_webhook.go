@@ -265,16 +265,20 @@ func (mcp *AzureManagedControlPlaneTemplate) validateAPIServerAccessProfileTempl
 	oldAPIServerAccessProfileNormalized := &APIServerAccessProfile{}
 	if mcp.Spec.Template.Spec.APIServerAccessProfile != nil {
 		newAPIServerAccessProfileNormalized = &APIServerAccessProfile{
-			EnablePrivateCluster:           mcp.Spec.Template.Spec.APIServerAccessProfile.EnablePrivateCluster,
-			PrivateDNSZone:                 mcp.Spec.Template.Spec.APIServerAccessProfile.PrivateDNSZone,
-			EnablePrivateClusterPublicFQDN: mcp.Spec.Template.Spec.APIServerAccessProfile.EnablePrivateClusterPublicFQDN,
+			APIServerAccessProfileClassSpec: APIServerAccessProfileClassSpec{
+				EnablePrivateCluster:           mcp.Spec.Template.Spec.APIServerAccessProfile.EnablePrivateCluster,
+				PrivateDNSZone:                 mcp.Spec.Template.Spec.APIServerAccessProfile.PrivateDNSZone,
+				EnablePrivateClusterPublicFQDN: mcp.Spec.Template.Spec.APIServerAccessProfile.EnablePrivateClusterPublicFQDN,
+			},
 		}
 	}
 	if old.Spec.Template.Spec.APIServerAccessProfile != nil {
 		oldAPIServerAccessProfileNormalized = &APIServerAccessProfile{
-			EnablePrivateCluster:           old.Spec.Template.Spec.APIServerAccessProfile.EnablePrivateCluster,
-			PrivateDNSZone:                 old.Spec.Template.Spec.APIServerAccessProfile.PrivateDNSZone,
-			EnablePrivateClusterPublicFQDN: old.Spec.Template.Spec.APIServerAccessProfile.EnablePrivateClusterPublicFQDN,
+			APIServerAccessProfileClassSpec: APIServerAccessProfileClassSpec{
+				EnablePrivateCluster:           old.Spec.Template.Spec.APIServerAccessProfile.EnablePrivateCluster,
+				PrivateDNSZone:                 old.Spec.Template.Spec.APIServerAccessProfile.PrivateDNSZone,
+				EnablePrivateClusterPublicFQDN: old.Spec.Template.Spec.APIServerAccessProfile.EnablePrivateClusterPublicFQDN,
+			},
 		}
 	}
 

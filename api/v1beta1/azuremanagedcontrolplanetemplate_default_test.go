@@ -48,9 +48,13 @@ func TestDefaultVirtualNetworkTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Name:      "test-cluster-template",
-								CIDRBlock: defaultAKSVnetCIDR,
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Name:      "test-cluster-template",
+										CIDRBlock: defaultAKSVnetCIDR,
+									},
+								},
 							},
 						},
 					},
@@ -66,8 +70,12 @@ func TestDefaultVirtualNetworkTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Name: "custom-vnet-name",
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Name: "custom-vnet-name",
+									},
+								},
 							},
 						},
 					},
@@ -80,9 +88,13 @@ func TestDefaultVirtualNetworkTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Name:      "custom-vnet-name",
-								CIDRBlock: defaultAKSVnetCIDR,
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Name:      "custom-vnet-name",
+										CIDRBlock: defaultAKSVnetCIDR,
+									},
+								},
 							},
 						},
 					},
@@ -98,8 +110,12 @@ func TestDefaultVirtualNetworkTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								CIDRBlock: "10.0.0.16/24",
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										CIDRBlock: "10.0.0.16/24",
+									},
+								},
 							},
 						},
 					},
@@ -112,9 +128,13 @@ func TestDefaultVirtualNetworkTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Name:      "test-cluster-template",
-								CIDRBlock: "10.0.0.16/24",
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Name:      "test-cluster-template",
+										CIDRBlock: "10.0.0.16/24",
+									},
+								},
 							},
 						},
 					},
@@ -160,10 +180,14 @@ func TestDefaultSubnetTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Subnet: ManagedControlPlaneSubnet{
-									Name:      "test-cluster-template",
-									CIDRBlock: defaultAKSNodeSubnetCIDR,
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Subnet: ManagedControlPlaneSubnet{
+											Name:      "test-cluster-template",
+											CIDRBlock: defaultAKSNodeSubnetCIDR,
+										},
+									},
 								},
 							},
 						},
@@ -180,9 +204,13 @@ func TestDefaultSubnetTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Subnet: ManagedControlPlaneSubnet{
-									Name: "custom-subnet-name",
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Subnet: ManagedControlPlaneSubnet{
+											Name: "custom-subnet-name",
+										},
+									},
 								},
 							},
 						},
@@ -196,10 +224,14 @@ func TestDefaultSubnetTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Subnet: ManagedControlPlaneSubnet{
-									Name:      "custom-subnet-name",
-									CIDRBlock: defaultAKSNodeSubnetCIDR,
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Subnet: ManagedControlPlaneSubnet{
+											Name:      "custom-subnet-name",
+											CIDRBlock: defaultAKSNodeSubnetCIDR,
+										},
+									},
 								},
 							},
 						},
@@ -216,9 +248,13 @@ func TestDefaultSubnetTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Subnet: ManagedControlPlaneSubnet{
-									CIDRBlock: "10.0.0.16/24",
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Subnet: ManagedControlPlaneSubnet{
+											CIDRBlock: "10.0.0.16/24",
+										},
+									},
 								},
 							},
 						},
@@ -232,10 +268,14 @@ func TestDefaultSubnetTemplate(t *testing.T) {
 				Spec: AzureManagedControlPlaneTemplateSpec{
 					Template: AzureManagedControlPlaneTemplateResource{
 						Spec: AzureManagedControlPlaneTemplateResourceSpec{
-							VirtualNetwork: ManagedControlPlaneVirtualNetworkTemplate{
-								Subnet: ManagedControlPlaneSubnet{
-									Name:      "test-cluster-template",
-									CIDRBlock: "10.0.0.16/24",
+							AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+								VirtualNetwork: ManagedControlPlaneVirtualNetwork{
+									ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+										Subnet: ManagedControlPlaneSubnet{
+											Name:      "test-cluster-template",
+											CIDRBlock: "10.0.0.16/24",
+										},
+									},
 								},
 							},
 						},

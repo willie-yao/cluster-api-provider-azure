@@ -217,13 +217,17 @@ func TestValidateVirtualNetworkTemplateUpdate(t *testing.T) {
 		{
 			name: "azuremanagedcontrolplanetemplate name is immutable",
 			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetworkTemplate{
-					Name: "fooName",
+				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetwork{
+					ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+						Name: "fooName",
+					},
 				}
 			}),
 			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetworkTemplate{
-					Name: "barName",
+				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetwork{
+					ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+						Name: "barName",
+					},
 				}
 			}),
 			wantErr: true,
@@ -231,13 +235,17 @@ func TestValidateVirtualNetworkTemplateUpdate(t *testing.T) {
 		{
 			name: "azuremanagedcontrolplanetemplate networkCIDRBlock is immutable",
 			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetworkTemplate{
-					CIDRBlock: "fooCIDRBlock",
+				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetwork{
+					ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+						CIDRBlock: "fooCIDRBlock",
+					},
 				}
 			}),
 			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetworkTemplate{
-					CIDRBlock: "barCIDRBlock",
+				cpt.Spec.Template.Spec.VirtualNetwork = ManagedControlPlaneVirtualNetwork{
+					ManagedControlPlaneVirtualNetworkClassSpec: ManagedControlPlaneVirtualNetworkClassSpec{
+						CIDRBlock: "barCIDRBlock",
+					},
 				}
 			}),
 			wantErr: true,
@@ -256,7 +264,7 @@ func TestValidateVirtualNetworkTemplateUpdate(t *testing.T) {
 	}
 }
 
-func TestValidateAPIServerAccessProfileTemplateUpdate(t *testing.T) {
+func TestValidateAPIServerAccessProfileUpdate(t *testing.T) {
 	tests := []struct {
 		name                    string
 		oldControlPlaneTemplate *AzureManagedControlPlaneTemplate
@@ -272,13 +280,17 @@ func TestValidateAPIServerAccessProfileTemplateUpdate(t *testing.T) {
 		{
 			name: "azuremanagedcontrolplanetemplate enablePrivateCluster is immutable",
 			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
-					EnablePrivateCluster: ptr.To(true),
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfile{
+					APIServerAccessProfileClassSpec: APIServerAccessProfileClassSpec{
+						EnablePrivateCluster: ptr.To(true),
+					},
 				}
 			}),
 			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
-					EnablePrivateCluster: ptr.To(false),
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfile{
+					APIServerAccessProfileClassSpec: APIServerAccessProfileClassSpec{
+						EnablePrivateCluster: ptr.To(false),
+					},
 				}
 			}),
 			wantErr: true,
@@ -286,13 +298,17 @@ func TestValidateAPIServerAccessProfileTemplateUpdate(t *testing.T) {
 		{
 			name: "azuremanagedcontrolplanetemplate privateDNSZone is immutable",
 			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
-					PrivateDNSZone: ptr.To("foo"),
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfile{
+					APIServerAccessProfileClassSpec: APIServerAccessProfileClassSpec{
+						PrivateDNSZone: ptr.To("foo"),
+					},
 				}
 			}),
 			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
-					PrivateDNSZone: ptr.To("bar"),
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfile{
+					APIServerAccessProfileClassSpec: APIServerAccessProfileClassSpec{
+						PrivateDNSZone: ptr.To("bar"),
+					},
 				}
 			}),
 			wantErr: true,
@@ -300,13 +316,17 @@ func TestValidateAPIServerAccessProfileTemplateUpdate(t *testing.T) {
 		{
 			name: "azuremanagedcontrolplanetemplate enablePrivateClusterPublicFQDN is immutable",
 			oldControlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
-					EnablePrivateClusterPublicFQDN: ptr.To(true),
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfile{
+					APIServerAccessProfileClassSpec: APIServerAccessProfileClassSpec{
+						EnablePrivateClusterPublicFQDN: ptr.To(true),
+					},
 				}
 			}),
 			controlPlaneTemplate: getAzureManagedControlPlaneTemplate(func(cpt *AzureManagedControlPlaneTemplate) {
-				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfileTemplate{
-					EnablePrivateClusterPublicFQDN: ptr.To(false),
+				cpt.Spec.Template.Spec.APIServerAccessProfile = &APIServerAccessProfile{
+					APIServerAccessProfileClassSpec: APIServerAccessProfileClassSpec{
+						EnablePrivateClusterPublicFQDN: ptr.To(false),
+					},
 				}
 			}),
 			wantErr: true,
@@ -333,8 +353,10 @@ func getAzureManagedControlPlaneTemplate(changes ...func(*AzureManagedControlPla
 		Spec: AzureManagedControlPlaneTemplateSpec{
 			Template: AzureManagedControlPlaneTemplateResource{
 				Spec: AzureManagedControlPlaneTemplateResourceSpec{
-					Location: "fooLocation",
-					Version:  "v1.17.5",
+					AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+						Location: "fooLocation",
+						Version:  "v1.17.5",
+					},
 				},
 			},
 		},

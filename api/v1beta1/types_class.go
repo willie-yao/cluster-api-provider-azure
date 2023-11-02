@@ -66,6 +66,109 @@ type AzureClusterClassSpec struct {
 	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
 }
 
+// AzureManagedControlPlaneClassSpec defines the AzureManagedControlPlane properties that may be shared across several azure managed control planes.
+type AzureManagedControlPlaneClassSpec struct {
+	// MachineTemplate contains information about how machines
+	// should be shaped when creating or updating a control plane.
+	// For the AzureManagedControlPlaneTemplate, this field is used
+	// only to fulfill the CAPI contract.
+	// +optional
+	MachineTemplate *AzureManagedControlPlaneTemplateMachineTemplate `json:"machineTemplate,omitempty"`
+
+	// Version defines the desired Kubernetes version.
+	// +kubebuilder:validation:MinLength:=2
+	Version string `json:"version"`
+
+	// VirtualNetwork describes the virtual network for the AKS cluster. It will be created if it does not already exist.
+	// +optional
+	VirtualNetwork ManagedControlPlaneVirtualNetwork `json:"virtualNetwork,omitempty"`
+
+	// SubscriptionID is the GUID of the Azure subscription that owns this cluster.
+	// +optional
+	SubscriptionID string `json:"subscriptionID,omitempty"`
+
+	// Location is a string matching one of the canonical Azure region names. Examples: "westus2", "eastus".
+	Location string `json:"location"`
+
+	// AdditionalTags is an optional set of tags to add to Azure resources managed by the Azure provider, in addition to the
+	// ones added by default.
+	// +optional
+	AdditionalTags Tags `json:"additionalTags,omitempty"`
+
+	// NetworkPlugin used for building Kubernetes network.
+	// +kubebuilder:validation:Enum=azure;kubenet
+	// +optional
+	NetworkPlugin *string `json:"networkPlugin,omitempty"`
+
+	// NetworkPolicy used for building Kubernetes network.
+	// +kubebuilder:validation:Enum=azure;calico
+	// +optional
+	NetworkPolicy *string `json:"networkPolicy,omitempty"`
+
+	// Outbound configuration used by Nodes.
+	// +kubebuilder:validation:Enum=loadBalancer;managedNATGateway;userAssignedNATGateway;userDefinedRouting
+	// +optional
+	OutboundType *ManagedControlPlaneOutboundType `json:"outboundType,omitempty"`
+
+	// DNSServiceIP is an IP address assigned to the Kubernetes DNS service.
+	// It must be within the Kubernetes service address range specified in serviceCidr.
+	// +optional
+	DNSServiceIP *string `json:"dnsServiceIP,omitempty"`
+
+	// LoadBalancerSKU is the SKU of the loadBalancer to be provisioned.
+	// +kubebuilder:validation:Enum=Basic;Standard
+	// +optional
+	LoadBalancerSKU *string `json:"loadBalancerSKU,omitempty"`
+
+	// IdentityRef is a reference to a AzureClusterIdentity to be used when reconciling this cluster
+	// +optional
+	IdentityRef *corev1.ObjectReference `json:"identityRef,omitempty"`
+
+	// AadProfile is Azure Active Directory configuration to integrate with AKS for aad authentication.
+	// +optional
+	AADProfile *AADProfile `json:"aadProfile,omitempty"`
+
+	// AddonProfiles are the profiles of managed cluster add-on.
+	// +optional
+	AddonProfiles []AddonProfile `json:"addonProfiles,omitempty"`
+
+	// SKU is the SKU of the AKS to be provisioned.
+	// +optional
+	SKU *AKSSku `json:"sku,omitempty"`
+
+	// LoadBalancerProfile is the profile of the cluster load balancer.
+	// +optional
+	LoadBalancerProfile *LoadBalancerProfile `json:"loadBalancerProfile,omitempty"`
+
+	// APIServerAccessProfile is the access profile for AKS API server.
+	// +optional
+	APIServerAccessProfile *APIServerAccessProfile `json:"apiServerAccessProfile,omitempty"`
+
+	// AutoscalerProfile is the parameters to be applied to the cluster-autoscaler when enabled
+	// +optional
+	AutoScalerProfile *AutoScalerProfile `json:"autoscalerProfile,omitempty"`
+}
+
+type ManagedControlPlaneVirtualNetworkClassSpec struct {
+	Name      string `json:"name"`
+	CIDRBlock string `json:"cidrBlock"`
+	// +optional
+	Subnet ManagedControlPlaneSubnet `json:"subnet,omitempty"`
+}
+
+type APIServerAccessProfileClassSpec struct {
+	// EnablePrivateCluster - Whether to create the cluster as a private cluster or not.
+	// +optional
+	EnablePrivateCluster *bool `json:"enablePrivateCluster,omitempty"`
+	// PrivateDNSZone - Private dns zone mode for private cluster.
+	// +kubebuilder:validation:Enum=System;None
+	// +optional
+	PrivateDNSZone *string `json:"privateDNSZone,omitempty"`
+	// EnablePrivateClusterPublicFQDN - Whether to create additional public FQDN for private cluster or not.
+	// +optional
+	EnablePrivateClusterPublicFQDN *bool `json:"enablePrivateClusterPublicFQDN,omitempty"`
+}
+
 // ExtendedLocationSpec defines the ExtendedLocation properties to enable CAPZ for Azure public MEC.
 type ExtendedLocationSpec struct {
 	// Name defines the name for the extended location.
@@ -145,6 +248,13 @@ type FrontendIPClass struct {
 func (acc *AzureClusterClassSpec) setDefaults() {
 	if acc.AzureEnvironment == "" {
 		acc.AzureEnvironment = DefaultAzureCloud
+	}
+}
+
+// setDefaults sets default values for AzureManagedControlPlaneSpec.
+func (amcp *AzureManagedControlPlaneSpec) setDefaults() {
+	if amcp.AzureEnvironment == "" {
+		amcp.AzureEnvironment = DefaultAzureCloud
 	}
 }
 

@@ -102,6 +102,12 @@ spec:
                         description: APIServerAccessProfile is the access profile
                           for AKS API server.
                         properties:
+                          authorizedIPRanges:
+                            description: AuthorizedIPRanges - Authorized IP Ranges
+                              to kubernetes API server.
+                            items:
+                              type: string
+                            type: array
                           enablePrivateCluster:
                             description: EnablePrivateCluster - Whether to create
                               the cluster as a private cluster or not.
@@ -422,6 +428,10 @@ spec:
                           cidrBlock:
                             type: string
                           name:
+                            type: string
+                          resourceGroup:
+                            description: ResourceGroup is the name of the Azure resource
+                              group for the VNet and Subnet.
                             type: string
                           subnet:
                             description: ManagedControlPlaneSubnet describes a subnet
