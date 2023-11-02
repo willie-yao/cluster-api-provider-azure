@@ -67,9 +67,7 @@ func (mpw *azureManagedMachinePoolTemplateWebhook) Default(ctx context.Context, 
 		mp.Spec.Template.Spec.Name = &mp.Name
 	}
 
-	if mp.Spec.Template.Spec.OSType == nil {
-		mp.Spec.Template.Spec.OSType = ptr.To(DefaultOSType)
-	}
+	SetDefault[*string](&mp.Spec.Template.Spec.OSType, ptr.To(DefaultOSType))
 
 	return nil
 }

@@ -18,21 +18,16 @@ package v1beta1
 
 import (
 	"strings"
+
+	"k8s.io/utils/ptr"
 )
 
 func (mcp *AzureManagedControlPlaneTemplate) setDefaults() {
-	if mcp.Spec.Template.Spec.NetworkPlugin == nil {
-		networkPlugin := AzureNetworkPluginName
-		mcp.Spec.Template.Spec.NetworkPlugin = &networkPlugin
-	}
-	if mcp.Spec.Template.Spec.LoadBalancerSKU == nil {
-		loadBalancerSKU := "Standard"
-		mcp.Spec.Template.Spec.LoadBalancerSKU = &loadBalancerSKU
-	}
+	SetDefault[*string](&mcp.Spec.Template.Spec.NetworkPlugin, ptr.To(AzureNetworkPluginName))
+	SetDefault[*string](&mcp.Spec.Template.Spec.LoadBalancerSKU, ptr.To("Standard"))
 
 	if mcp.Spec.Template.Spec.Version != "" && !strings.HasPrefix(mcp.Spec.Template.Spec.Version, "v") {
-		normalizedVersion := "v" + mcp.Spec.Template.Spec.Version
-		mcp.Spec.Template.Spec.Version = normalizedVersion
+		SetDefault[string](&mcp.Spec.Template.Spec.Version, "v"+mcp.Spec.Template.Spec.Version)
 	}
 
 	mcp.setDefaultVirtualNetwork()
@@ -58,5 +53,16 @@ func (mcp *AzureManagedControlPlaneTemplate) setDefaultSubnet() {
 	}
 	if mcp.Spec.Template.Spec.VirtualNetwork.Subnet.CIDRBlock == "" {
 		mcp.Spec.Template.Spec.VirtualNetwork.Subnet.CIDRBlock = defaultAKSNodeSubnetCIDR
+	}
+}
+
+func SetDefault[T comparable](field *T, value T) {
+	if field == nil {
+		// shouldn't happen with proper use
+		return
+	}
+	var zero T
+	if *field == zero {
+		*field = value
 	}
 }

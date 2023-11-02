@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -256,4 +257,30 @@ func TestDefaultSubnetTemplate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSetDefault(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	type Struct struct{ name string }
+
+	var s *Struct
+	SetDefault(&s, &Struct{"hello"})
+	g.Expect(s.name).To(Equal("hello"))
+	SetDefault(&s, &Struct{"world"})
+	g.Expect(s.name).To(Equal("hello"))
+
+	r := &Struct{}
+	SetDefault(&r, &Struct{"a name"})
+	g.Expect(r.name).To(BeEmpty())
+	SetDefault(&r.name, "hello")
+	g.Expect(r.name).To(Equal("hello"))
+	SetDefault(&r.name, "world")
+	g.Expect(r.name).To(Equal("hello"))
+
+	str := ""
+	SetDefault(&str, "a string")
+	g.Expect(str).To(Equal("a string"))
+	SetDefault(&str, "another string")
+	g.Expect(str).To(Equal("a string"))
 }
