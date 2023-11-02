@@ -265,22 +265,22 @@ func TestSetDefault(t *testing.T) {
 	type Struct struct{ name string }
 
 	var s *Struct
-	SetDefault(&s, &Struct{"hello"})
+	setDefault(&s, &Struct{"hello"})
 	g.Expect(s.name).To(Equal("hello"))
-	SetDefault(&s, &Struct{"world"})
+	setDefault(&s, &Struct{"world"})
 	g.Expect(s.name).To(Equal("hello"))
 
 	r := &Struct{}
-	SetDefault(&r, &Struct{"a name"})
+	setDefault(&r, &Struct{"a name"})
 	g.Expect(r.name).To(BeEmpty())
-	SetDefault(&r.name, "hello")
+	setDefault(&r.name, "hello")
 	g.Expect(r.name).To(Equal("hello"))
-	SetDefault(&r.name, "world")
+	setDefault(&r.name, "world")
 	g.Expect(r.name).To(Equal("hello"))
 
 	str := ""
-	SetDefault(&str, "a string")
+	setDefault(&str, "a string")
 	g.Expect(str).To(Equal("a string"))
-	SetDefault(&str, "another string")
+	setDefault(&str, "another string")
 	g.Expect(str).To(Equal("a string"))
 }

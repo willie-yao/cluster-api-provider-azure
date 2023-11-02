@@ -23,11 +23,11 @@ import (
 )
 
 func (mcp *AzureManagedControlPlaneTemplate) setDefaults() {
-	SetDefault[*string](&mcp.Spec.Template.Spec.NetworkPlugin, ptr.To(AzureNetworkPluginName))
-	SetDefault[*string](&mcp.Spec.Template.Spec.LoadBalancerSKU, ptr.To("Standard"))
+	setDefault[*string](&mcp.Spec.Template.Spec.NetworkPlugin, ptr.To(AzureNetworkPluginName))
+	setDefault[*string](&mcp.Spec.Template.Spec.LoadBalancerSKU, ptr.To("Standard"))
 
 	if mcp.Spec.Template.Spec.Version != "" && !strings.HasPrefix(mcp.Spec.Template.Spec.Version, "v") {
-		SetDefault[string](&mcp.Spec.Template.Spec.Version, "v"+mcp.Spec.Template.Spec.Version)
+		setDefaultVersion(&mcp.Spec.Template.Spec.Version)
 	}
 
 	mcp.setDefaultVirtualNetwork()
@@ -56,7 +56,8 @@ func (mcp *AzureManagedControlPlaneTemplate) setDefaultSubnet() {
 	}
 }
 
-func SetDefault[T comparable](field *T, value T) {
+// setDefault sets the default value for a pointer to a value for any comparable type.
+func setDefault[T comparable](field *T, value T) {
 	if field == nil {
 		// shouldn't happen with proper use
 		return
