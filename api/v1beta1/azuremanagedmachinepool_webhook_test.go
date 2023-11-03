@@ -713,12 +713,16 @@ func TestAzureManagedMachinePoolUpdatingWebhook(t *testing.T) {
 			name: "Cannot update enableEncryptionAtHost",
 			new: &AzureManagedMachinePool{
 				Spec: AzureManagedMachinePoolSpec{
-					EnableEncryptionAtHost: ptr.To(true),
+					AzureManagedMachinePoolClassSpec: AzureManagedMachinePoolClassSpec{
+						EnableEncryptionAtHost: ptr.To(true),
+					},
 				},
 			},
 			old: &AzureManagedMachinePool{
 				Spec: AzureManagedMachinePoolSpec{
-					EnableEncryptionAtHost: ptr.To(false),
+					AzureManagedMachinePoolClassSpec: AzureManagedMachinePoolClassSpec{
+						EnableEncryptionAtHost: ptr.To(false),
+					},
 				},
 			},
 			wantErr: true,

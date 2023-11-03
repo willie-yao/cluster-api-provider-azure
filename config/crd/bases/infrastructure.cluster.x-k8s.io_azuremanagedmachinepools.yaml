@@ -80,24 +80,19 @@ spec:
                   nodes. Immutable.
                 properties:
                   allowedUnsafeSysctls:
-                    allOf:
-                    - items:
-                        type: string
-                    - items:
-                        type: string
                     description: AllowedUnsafeSysctls - Allowlist of unsafe sysctls
                       or unsafe sysctl patterns (ending in `*`). Valid values match
                       `kernel.shm*`, `kernel.msg*`, `kernel.sem`, `fs.mqueue.*`, or
                       `net.*`.
+                    items:
+                      type: string
                     type: array
                   containerLogMaxFiles:
-                    allOf:
-                    - minimum: 2
-                    - minimum: 2
                     description: ContainerLogMaxFiles - The maximum number of container
                       log files that can be present for a container. The number must
                       be ≥ 2.
                     format: int32
+                    minimum: 2
                     type: integer
                   containerLogMaxSizeMB:
                     description: ContainerLogMaxSizeMB - The maximum size in MB of
@@ -113,206 +108,150 @@ spec:
                       Must end in "ms", e.g. "100ms"
                     type: string
                   cpuManagerPolicy:
-                    allOf:
-                    - enum:
-                      - none
-                      - static
-                    - enum:
-                      - none
-                      - static
                     description: CPUManagerPolicy - CPU Manager policy to use.
+                    enum:
+                    - none
+                    - static
                     type: string
                   failSwapOn:
                     description: FailSwapOn - If set to true it will make the Kubelet
                       fail to start if swap is enabled on the node.
                     type: boolean
                   imageGcHighThreshold:
-                    allOf:
-                    - maximum: 100
-                      minimum: 0
-                    - maximum: 100
-                      minimum: 0
                     description: ImageGcHighThreshold - The percent of disk usage
                       after which image garbage collection is always run. Valid values
                       are 0-100 (inclusive).
                     format: int32
+                    maximum: 100
+                    minimum: 0
                     type: integer
                   imageGcLowThreshold:
-                    allOf:
-                    - maximum: 100
-                      minimum: 0
-                    - maximum: 100
-                      minimum: 0
                     description: ImageGcLowThreshold - The percent of disk usage before
                       which image garbage collection is never run. Valid values are
                       0-100 (inclusive) and must be less than `imageGcHighThreshold`.
                     format: int32
+                    maximum: 100
+                    minimum: 0
                     type: integer
                   podMaxPids:
-                    allOf:
-                    - minimum: -1
-                    - minimum: -1
                     description: PodMaxPids - The maximum number of processes per
                       pod. Must not exceed kernel PID limit. -1 disables the limit.
                     format: int32
+                    minimum: -1
                     type: integer
                   topologyManagerPolicy:
-                    allOf:
-                    - enum:
-                      - none
-                      - best-effort
-                      - restricted
-                      - single-numa-node
-                    - enum:
-                      - none
-                      - best-effort
-                      - restricted
-                      - single-numa-node
                     description: TopologyManagerPolicy - Topology Manager policy to
                       use.
+                    enum:
+                    - none
+                    - best-effort
+                    - restricted
+                    - single-numa-node
                     type: string
                 type: object
               kubeletDiskType:
-                allOf:
-                - enum:
-                  - OS
-                  - Temporary
-                - enum:
-                  - OS
-                  - Temporary
                 description: "KubeletDiskType specifies the kubelet disk type. Default
                   to OS. Possible values include: 'OS', 'Temporary'. Requires Microsoft.ContainerService/KubeletDisk
                   preview feature to be set. Immutable. See also [AKS doc]. \n [AKS
                   doc]: https://learn.microsoft.com/rest/api/aks/agent-pools/create-or-update?tabs=HTTP#kubeletdisktype"
+                enum:
+                - OS
+                - Temporary
                 type: string
               linuxOSConfig:
                 description: LinuxOSConfig specifies the custom Linux OS settings
                   and configurations. Immutable.
                 properties:
                   swapFileSizeMB:
-                    allOf:
-                    - minimum: 1
-                    - minimum: 1
                     description: "SwapFileSizeMB specifies size in MB of a swap file
                       will be created on the agent nodes from this node pool. Max
                       value of SwapFileSizeMB should be the size of temporary disk(/dev/sdb).
                       Must be at least 1. See also [AKS doc]. \n [AKS doc]: https://learn.microsoft.com/azure/virtual-machines/managed-disks-overview#temporary-disk"
                     format: int32
+                    minimum: 1
                     type: integer
                   sysctls:
                     description: Sysctl specifies the settings for Linux agent nodes.
                     properties:
                       fsAioMaxNr:
-                        allOf:
-                        - maximum: 6553500
-                          minimum: 65536
-                        - maximum: 6553500
-                          minimum: 65536
                         description: FsAioMaxNr specifies the maximum number of system-wide
                           asynchronous io requests. Valid values are 65536-6553500
                           (inclusive). Maps to fs.aio-max-nr.
                         format: int32
+                        maximum: 6553500
+                        minimum: 65536
                         type: integer
                       fsFileMax:
-                        allOf:
-                        - maximum: 12000500
-                          minimum: 8192
-                        - maximum: 12000500
-                          minimum: 8192
                         description: FsFileMax specifies the max number of file-handles
                           that the Linux kernel will allocate, by increasing increases
                           the maximum number of open files permitted. Valid values
                           are 8192-12000500 (inclusive). Maps to fs.file-max.
                         format: int32
+                        maximum: 12000500
+                        minimum: 8192
                         type: integer
                       fsInotifyMaxUserWatches:
-                        allOf:
-                        - maximum: 2097152
-                          minimum: 781250
-                        - maximum: 2097152
-                          minimum: 781250
                         description: FsInotifyMaxUserWatches specifies the number
                           of file watches allowed by the system. Each watch is roughly
                           90 bytes on a 32-bit kernel, and roughly 160 bytes on a
                           64-bit kernel. Valid values are 781250-2097152 (inclusive).
                           Maps to fs.inotify.max_user_watches.
                         format: int32
+                        maximum: 2097152
+                        minimum: 781250
                         type: integer
                       fsNrOpen:
-                        allOf:
-                        - maximum: 20000500
-                          minimum: 8192
-                        - maximum: 20000500
-                          minimum: 8192
                         description: FsNrOpen specifies the maximum number of file-handles
                           a process can allocate. Valid values are 8192-20000500 (inclusive).
                           Maps to fs.nr_open.
                         format: int32
+                        maximum: 20000500
+                        minimum: 8192
                         type: integer
                       kernelThreadsMax:
-                        allOf:
-                        - maximum: 513785
-                          minimum: 20
-                        - maximum: 513785
-                          minimum: 20
                         description: KernelThreadsMax specifies the maximum number
                           of all threads that can be created. Valid values are 20-513785
                           (inclusive). Maps to kernel.threads-max.
                         format: int32
+                        maximum: 513785
+                        minimum: 20
                         type: integer
                       netCoreNetdevMaxBacklog:
-                        allOf:
-                        - maximum: 3240000
-                          minimum: 1000
-                        - maximum: 3240000
-                          minimum: 1000
                         description: NetCoreNetdevMaxBacklog specifies maximum number
                           of packets, queued on the INPUT side, when the interface
                           receives packets faster than kernel can process them. Valid
                           values are 1000-3240000 (inclusive). Maps to net.core.netdev_max_backlog.
                         format: int32
+                        maximum: 3240000
+                        minimum: 1000
                         type: integer
                       netCoreOptmemMax:
-                        allOf:
-                        - maximum: 4194304
-                          minimum: 20480
-                        - maximum: 4194304
-                          minimum: 20480
                         description: NetCoreOptmemMax specifies the maximum ancillary
                           buffer size (option memory buffer) allowed per socket. Socket
                           option memory is used in a few cases to store extra structures
                           relating to usage of the socket. Valid values are 20480-4194304
                           (inclusive). Maps to net.core.optmem_max.
                         format: int32
+                        maximum: 4194304
+                        minimum: 20480
                         type: integer
                       netCoreRmemDefault:
-                        allOf:
-                        - maximum: 134217728
-                          minimum: 212992
-                        - maximum: 134217728
-                          minimum: 212992
                         description: NetCoreRmemDefault specifies the default receive
                           socket buffer size in bytes. Valid values are 212992-134217728
                           (inclusive). Maps to net.core.rmem_default.
                         format: int32
+                        maximum: 134217728
+                        minimum: 212992
                         type: integer
                       netCoreRmemMax:
-                        allOf:
-                        - maximum: 134217728
-                          minimum: 212992
-                        - maximum: 134217728
-                          minimum: 212992
                         description: NetCoreRmemMax specifies the maximum receive
                           socket buffer size in bytes. Valid values are 212992-134217728
                           (inclusive). Maps to net.core.rmem_max.
                         format: int32
+                        maximum: 134217728
+                        minimum: 212992
                         type: integer
                       netCoreSomaxconn:
-                        allOf:
-                        - maximum: 3240000
-                          minimum: 4096
-                        - maximum: 3240000
-                          minimum: 4096
                         description: NetCoreSomaxconn specifies maximum number of
                           connection requests that can be queued for any given listening
                           socket. An upper limit for the value of the backlog parameter
@@ -321,28 +260,24 @@ spec:
                           then it's silently truncated to this limit. Valid values
                           are 4096-3240000 (inclusive). Maps to net.core.somaxconn.
                         format: int32
+                        maximum: 3240000
+                        minimum: 4096
                         type: integer
                       netCoreWmemDefault:
-                        allOf:
-                        - maximum: 134217728
-                          minimum: 212992
-                        - maximum: 134217728
-                          minimum: 212992
                         description: NetCoreWmemDefault specifies the default send
                           socket buffer size in bytes. Valid values are 212992-134217728
                           (inclusive). Maps to net.core.wmem_default.
                         format: int32
+                        maximum: 134217728
+                        minimum: 212992
                         type: integer
                       netCoreWmemMax:
-                        allOf:
-                        - maximum: 134217728
-                          minimum: 212992
-                        - maximum: 134217728
-                          minimum: 212992
                         description: NetCoreWmemMax specifies the maximum send socket
                           buffer size in bytes. Valid values are 212992-134217728
                           (inclusive). Maps to net.core.wmem_max.
                         format: int32
+                        maximum: 134217728
+                        minimum: 212992
                         type: integer
                       netIpv4IPLocalPortRange:
                         description: NetIpv4IPLocalPortRange is used by TCP and UDP
@@ -352,84 +287,61 @@ spec:
                           an integer, must be between [32768 - 65000]. Maps to net.ipv4.ip_local_port_range.
                         type: string
                       netIpv4NeighDefaultGcThresh1:
-                        allOf:
-                        - maximum: 80000
-                          minimum: 128
-                        - maximum: 80000
-                          minimum: 128
                         description: NetIpv4NeighDefaultGcThresh1 specifies the minimum
                           number of entries that may be in the ARP cache. Garbage
                           collection won't be triggered if the number of entries is
                           below this setting. Valid values are 128-80000 (inclusive).
                           Maps to net.ipv4.neigh.default.gc_thresh1.
                         format: int32
+                        maximum: 80000
+                        minimum: 128
                         type: integer
                       netIpv4NeighDefaultGcThresh2:
-                        allOf:
-                        - maximum: 90000
-                          minimum: 512
-                        - maximum: 90000
-                          minimum: 512
                         description: NetIpv4NeighDefaultGcThresh2 specifies soft maximum
                           number of entries that may be in the ARP cache. ARP garbage
                           collection will be triggered about 5 seconds after reaching
                           this soft maximum. Valid values are 512-90000 (inclusive).
                           Maps to net.ipv4.neigh.default.gc_thresh2.
                         format: int32
+                        maximum: 90000
+                        minimum: 512
                         type: integer
                       netIpv4NeighDefaultGcThresh3:
-                        allOf:
-                        - maximum: 100000
-                          minimum: 1024
-                        - maximum: 100000
-                          minimum: 1024
                         description: NetIpv4NeighDefaultGcThresh3 specified hard maximum
                           number of entries in the ARP cache. Valid values are 1024-100000
                           (inclusive). Maps to net.ipv4.neigh.default.gc_thresh3.
                         format: int32
+                        maximum: 100000
+                        minimum: 1024
                         type: integer
                       netIpv4TCPFinTimeout:
-                        allOf:
-                        - maximum: 120
-                          minimum: 5
-                        - maximum: 120
-                          minimum: 5
                         description: NetIpv4TCPFinTimeout specifies the length of
                           time an orphaned connection will remain in the FIN_WAIT_2
                           state before it's aborted at the local end. Valid values
                           are 5-120 (inclusive). Maps to net.ipv4.tcp_fin_timeout.
                         format: int32
+                        maximum: 120
+                        minimum: 5
                         type: integer
                       netIpv4TCPKeepaliveProbes:
-                        allOf:
-                        - maximum: 15
-                          minimum: 1
-                        - maximum: 15
-                          minimum: 1
                         description: NetIpv4TCPKeepaliveProbes specifies the number
                           of keepalive probes TCP sends out, until it decides the
                           connection is broken. Valid values are 1-15 (inclusive).
                           Maps to net.ipv4.tcp_keepalive_probes.
                         format: int32
+                        maximum: 15
+                        minimum: 1
                         type: integer
                       netIpv4TCPKeepaliveTime:
-                        allOf:
-                        - maximum: 432000
-                          minimum: 30
-                        - maximum: 432000
-                          minimum: 30
                         description: NetIpv4TCPKeepaliveTime specifies the rate at
                           which TCP sends out a keepalive message when keepalive is
                           enabled. Valid values are 30-432000 (inclusive). Maps to
                           net.ipv4.tcp_keepalive_time.
                         format: int32
+                        maximum: 432000
+                        minimum: 30
                         type: integer
                       netIpv4TCPMaxSynBacklog:
-                        allOf:
-                        - maximum: 3240000
-                          minimum: 128
-                        - maximum: 3240000
-                          minimum: 128
                         description: NetIpv4TCPMaxSynBacklog specifies the maximum
                           number of queued connection requests that have still not
                           received an acknowledgment from the connecting client. If
@@ -437,19 +349,18 @@ spec:
                           requests. Valid values are 128-3240000 (inclusive). Maps
                           to net.ipv4.tcp_max_syn_backlog.
                         format: int32
+                        maximum: 3240000
+                        minimum: 128
                         type: integer
                       netIpv4TCPMaxTwBuckets:
-                        allOf:
-                        - maximum: 1440000
-                          minimum: 8000
-                        - maximum: 1440000
-                          minimum: 8000
                         description: NetIpv4TCPMaxTwBuckets specifies maximal number
                           of timewait sockets held by system simultaneously. If this
                           number is exceeded, time-wait socket is immediately destroyed
                           and warning is printed. Valid values are 8000-1440000 (inclusive).
                           Maps to net.ipv4.tcp_max_tw_buckets.
                         format: int32
+                        maximum: 1440000
+                        minimum: 8000
                         type: integer
                       netIpv4TCPTwReuse:
                         description: NetIpv4TCPTwReuse is used to allow to reuse TIME-WAIT
@@ -457,112 +368,82 @@ spec:
                           viewpoint. Maps to net.ipv4.tcp_tw_reuse.
                         type: boolean
                       netIpv4TCPkeepaliveIntvl:
-                        allOf:
-                        - maximum: 75
-                          minimum: 1
-                        - maximum: 75
-                          minimum: 1
                         description: NetIpv4TCPkeepaliveIntvl specifies the frequency
                           of the probes sent out. Multiplied by tcpKeepaliveprobes,
                           it makes up the time to kill a connection that isn't responding,
                           after probes started. Valid values are 1-75 (inclusive).
                           Maps to net.ipv4.tcp_keepalive_intvl.
                         format: int32
+                        maximum: 75
+                        minimum: 1
                         type: integer
                       netNetfilterNfConntrackBuckets:
-                        allOf:
-                        - maximum: 147456
-                          minimum: 65536
-                        - maximum: 147456
-                          minimum: 65536
                         description: NetNetfilterNfConntrackBuckets specifies the
                           size of hash table used by nf_conntrack module to record
                           the established connection record of the TCP protocol. Valid
                           values are 65536-147456 (inclusive). Maps to net.netfilter.nf_conntrack_buckets.
                         format: int32
+                        maximum: 147456
+                        minimum: 65536
                         type: integer
                       netNetfilterNfConntrackMax:
-                        allOf:
-                        - maximum: 1048576
-                          minimum: 131072
-                        - maximum: 1048576
-                          minimum: 131072
                         description: NetNetfilterNfConntrackMax specifies the maximum
                           number of connections supported by the nf_conntrack module
                           or the size of connection tracking table. Valid values are
                           131072-1048576 (inclusive). Maps to net.netfilter.nf_conntrack_max.
                         format: int32
+                        maximum: 1048576
+                        minimum: 131072
                         type: integer
                       vmMaxMapCount:
-                        allOf:
-                        - maximum: 262144
-                          minimum: 65530
-                        - maximum: 262144
-                          minimum: 65530
                         description: VMMaxMapCount specifies the maximum number of
                           memory map areas a process may have. Maps to vm.max_map_count.
                           Valid values are 65530-262144 (inclusive).
                         format: int32
+                        maximum: 262144
+                        minimum: 65530
                         type: integer
                       vmSwappiness:
-                        allOf:
-                        - maximum: 100
-                          minimum: 0
-                        - maximum: 100
-                          minimum: 0
                         description: VMSwappiness specifies aggressiveness of the
                           kernel in swapping memory pages. Higher values will increase
                           aggressiveness, lower values decrease the amount of swap.
                           Valid values are 0-100 (inclusive). Maps to vm.swappiness.
                         format: int32
+                        maximum: 100
+                        minimum: 0
                         type: integer
                       vmVfsCachePressure:
-                        allOf:
-                        - maximum: 500
-                          minimum: 1
-                        - maximum: 500
-                          minimum: 1
                         description: VMVfsCachePressure specifies the percentage value
                           that controls tendency of the kernel to reclaim the memory,
                           which is used for caching of directory and inode objects.
                           Valid values are 1-500 (inclusive). Maps to vm.vfs_cache_pressure.
                         format: int32
+                        maximum: 500
+                        minimum: 1
                         type: integer
                     type: object
                   transparentHugePageDefrag:
-                    allOf:
-                    - enum:
-                      - always
-                      - defer
-                      - defer+madvise
-                      - madvise
-                      - never
-                    - enum:
-                      - always
-                      - defer
-                      - defer+madvise
-                      - madvise
-                      - never
                     description: "TransparentHugePageDefrag specifies whether the
                       kernel should make aggressive use of memory compaction to make
                       more hugepages available. See also [Linux doc]. \n [Linux doc]:
                       https://www.kernel.org/doc/html/latest/admin-guide/mm/transhuge.html#admin-guide-transhuge
                       for more details."
+                    enum:
+                    - always
+                    - defer
+                    - defer+madvise
+                    - madvise
+                    - never
                     type: string
                   transparentHugePageEnabled:
-                    allOf:
-                    - enum:
-                      - always
-                      - madvise
-                      - never
-                    - enum:
-                      - always
-                      - madvise
-                      - never
                     description: "TransparentHugePageEnabled specifies various modes
                       of Transparent Hugepages. See also [Linux doc]. \n [Linux doc]:
                       https://www.kernel.org/doc/html/latest/admin-guide/mm/transhuge.html#admin-guide-transhuge
                       for more details."
+                    enum:
+                    - always
+                    - madvise
+                    - never
                     type: string
                 type: object
               maxPods:
@@ -600,31 +481,22 @@ spec:
                 format: int32
                 type: integer
               osDiskType:
-                allOf:
-                - default: Managed
-                  enum:
-                  - Ephemeral
-                  - Managed
-                - default: Managed
-                  enum:
-                  - Ephemeral
-                  - Managed
+                default: Managed
                 description: "OsDiskType specifies the OS disk type for each node
                   in the pool. Allowed values are 'Ephemeral' and 'Managed' (default).
                   Immutable. See also [AKS doc]. \n [AKS doc]: https://learn.microsoft.com/azure/aks/cluster-configuration#ephemeral-os"
+                enum:
+                - Ephemeral
+                - Managed
                 type: string
               osType:
-                allOf:
-                - enum:
-                  - Linux
-                  - Windows
-                - enum:
-                  - Linux
-                  - Windows
                 description: "OSType specifies the virtual machine operating system.
                   Default to Linux. Possible values include: 'Linux', 'Windows'. 'Windows'
                   requires the AzureManagedControlPlane's `spec.networkPlugin` to
                   be `azure`. Immutable. See also [AKS doc]. \n [AKS doc]: https://learn.microsoft.com/rest/api/aks/agent-pools/create-or-update?tabs=HTTP#ostype"
+                enum:
+                - Linux
+                - Windows
                 type: string
               providerIDList:
                 description: ProviderIDList is the unique identifier as specified
@@ -633,29 +505,20 @@ spec:
                   type: string
                 type: array
               scaleDownMode:
-                allOf:
-                - default: Delete
-                  enum:
-                  - Deallocate
-                  - Delete
-                - default: Delete
-                  enum:
-                  - Deallocate
-                  - Delete
+                default: Delete
                 description: 'ScaleDownMode affects the cluster autoscaler behavior.
                   Default to Delete. Possible values include: ''Deallocate'', ''Delete'''
+                enum:
+                - Deallocate
+                - Delete
                 type: string
               scaleSetPriority:
-                allOf:
-                - enum:
-                  - Regular
-                  - Spot
-                - enum:
-                  - Regular
-                  - Spot
                 description: 'ScaleSetPriority specifies the ScaleSetPriority value.
                   Default to Regular. Possible values include: ''Regular'', ''Spot''
                   Immutable.'
+                enum:
+                - Regular
+                - Spot
                 type: string
               scaling:
                 description: Scaling specifies the autoscaling parameters for the
@@ -674,13 +537,9 @@ spec:
                 description: SKU is the size of the VMs in the node pool. Immutable.
                 type: string
               spotMaxPrice:
-                allOf:
-                - anyOf:
-                  - type: integer
-                  - type: string
-                - anyOf:
-                  - type: integer
-                  - type: string
+                anyOf:
+                - type: integer
+                - type: string
                 description: SpotMaxPrice defines max price to pay for spot instance.
                   Possible values are any decimal value greater than zero or -1. If
                   you set the max price to be -1, the VM won't be evicted based on

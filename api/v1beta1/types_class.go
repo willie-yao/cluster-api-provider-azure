@@ -290,6 +290,14 @@ type AzureManagedMachinePoolClassSpec struct {
 	// Immutable.
 	// +optional
 	EnableFIPS *bool `json:"enableFIPS,omitempty"`
+
+	// EnableEncryptionAtHost indicates whether host encryption is enabled on the node pool.
+	// Immutable.
+	// See also [AKS doc].
+	//
+	// [AKS doc]: https://learn.microsoft.com/en-us/azure/aks/enable-host-encryption
+	// +optional
+	EnableEncryptionAtHost *bool `json:"enableEncryptionAtHost,omitempty"`
 }
 
 type ManagedControlPlaneVirtualNetworkClassSpec struct {

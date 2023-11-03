@@ -88,10 +88,12 @@ func AKSPublicIPPrefixSpec(ctx context.Context, inputGetter func() AKSPublicIPPr
 			Namespace: input.Cluster.Namespace,
 		},
 		Spec: infrav1.AzureManagedMachinePoolSpec{
-			Mode:                 "User",
-			SKU:                  "Standard_D2s_v3",
-			EnableNodePublicIP:   ptr.To(true),
-			NodePublicIPPrefixID: ptr.To("/subscriptions/" + subscriptionID + "/resourceGroups/" + resourceGroupName + "/providers/Microsoft.Network/publicipprefixes/" + *publicIPPrefix.Name),
+			AzureManagedMachinePoolClassSpec: infrav1.AzureManagedMachinePoolClassSpec{
+				Mode:                 "User",
+				SKU:                  "Standard_D2s_v3",
+				EnableNodePublicIP:   ptr.To(true),
+				NodePublicIPPrefixID: ptr.To("/subscriptions/" + subscriptionID + "/resourceGroups/" + resourceGroupName + "/providers/Microsoft.Network/publicipprefixes/" + *publicIPPrefix.Name),
+			},
 		},
 	}
 	err = mgmtClient.Create(ctx, infraMachinePool)
