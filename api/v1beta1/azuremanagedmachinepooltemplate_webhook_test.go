@@ -253,7 +253,9 @@ func getAzureManagedMachinePoolTemplate(changes ...func(*AzureManagedMachinePool
 		Spec: AzureManagedMachinePoolTemplateSpec{
 			Template: AzureManagedMachinePoolTemplateResource{
 				Spec: AzureManagedMachinePoolTemplateResourceSpec{
-					Mode: "System",
+					AzureManagedMachinePoolClassSpec: AzureManagedMachinePoolClassSpec{
+						Mode: "System",
+					},
 				},
 			},
 		},

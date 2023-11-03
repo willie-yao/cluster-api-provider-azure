@@ -915,9 +915,11 @@ func getAzureMachinePool(name string, mode infrav1.NodePoolMode) *infrav1.AzureM
 			},
 		},
 		Spec: infrav1.AzureManagedMachinePoolSpec{
-			Mode: string(mode),
-			SKU:  "Standard_D2s_v3",
-			Name: ptr.To(name),
+			AzureManagedMachinePoolClassSpec: infrav1.AzureManagedMachinePoolClassSpec{
+				Mode: string(mode),
+				SKU:  "Standard_D2s_v3",
+				Name: ptr.To(name),
+			},
 		},
 	}
 }
