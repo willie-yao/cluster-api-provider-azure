@@ -300,6 +300,7 @@ type AzureManagedMachinePoolClassSpec struct {
 	EnableEncryptionAtHost *bool `json:"enableEncryptionAtHost,omitempty"`
 }
 
+// ManagedControlPlaneVirtualNetworkClassSpec defines the ManagedControlPlaneVirtualNetwork properties that may be shared across several managed control plane vnets.
 type ManagedControlPlaneVirtualNetworkClassSpec struct {
 	Name      string `json:"name"`
 	CIDRBlock string `json:"cidrBlock"`
@@ -307,6 +308,7 @@ type ManagedControlPlaneVirtualNetworkClassSpec struct {
 	Subnet ManagedControlPlaneSubnet `json:"subnet,omitempty"`
 }
 
+// APIServerAccessProfileClassSpec defines the APIServerAccessProfile properties that may be shared across several API server access profiles.
 type APIServerAccessProfileClassSpec struct {
 	// EnablePrivateCluster - Whether to create the cluster as a private cluster or not.
 	// +optional
@@ -399,13 +401,6 @@ type FrontendIPClass struct {
 func (acc *AzureClusterClassSpec) setDefaults() {
 	if acc.AzureEnvironment == "" {
 		acc.AzureEnvironment = DefaultAzureCloud
-	}
-}
-
-// setDefaults sets default values for AzureManagedControlPlaneSpec.
-func (amcp *AzureManagedControlPlaneSpec) setDefaults() {
-	if amcp.AzureEnvironment == "" {
-		amcp.AzureEnvironment = DefaultAzureCloud
 	}
 }
 
