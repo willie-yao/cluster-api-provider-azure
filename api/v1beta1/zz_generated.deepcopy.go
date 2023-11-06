@@ -1371,6 +1371,18 @@ func (in *AzureManagedControlPlaneSpec) DeepCopyInto(out *AzureManagedControlPla
 	*out = *in
 	in.AzureManagedControlPlaneClassSpec.DeepCopyInto(&out.AzureManagedControlPlaneClassSpec)
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
+	if in.AdditionalTags != nil {
+		in, out := &in.AdditionalTags, &out.AdditionalTags
+		*out = make(Tags, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.NetworkPlugin != nil {
+		in, out := &in.NetworkPlugin, &out.NetworkPlugin
+		*out = new(string)
+		**out = **in
+	}
 	if in.NetworkPluginMode != nil {
 		in, out := &in.NetworkPluginMode, &out.NetworkPluginMode
 		*out = new(NetworkPluginMode)

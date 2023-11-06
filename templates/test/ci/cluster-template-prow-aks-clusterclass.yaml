@@ -210,21 +210,7 @@ metadata:
 spec:
   template:
     spec:
-      files:
-      - contentFrom:
-          secret:
-            key: worker-node-azure.json
-            name: replace_me
-        owner: root:root
-        path: /etc/kubernetes/azure.json
-        permissions: "0644"
-      joinConfiguration:
-        nodeRegistration:
-          kubeletExtraArgs:
-            azure-container-registry-config: /etc/kubernetes/azure.json
-            cloud-provider: external
-          name: '{{ ds.meta_data["local_hostname"] }}'
-      preKubeadmCommands: []
+      files: {}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
@@ -233,22 +219,7 @@ metadata:
   namespace: default
 spec:
   template:
-    spec:
-      files:
-      - contentFrom:
-          secret:
-            key: worker-node-azure.json
-            name: replace_me
-        owner: root:root
-        path: /etc/kubernetes/azure.json
-        permissions: "0644"
-      joinConfiguration:
-        nodeRegistration:
-          kubeletExtraArgs:
-            azure-container-registry-config: /etc/kubernetes/azure.json
-            cloud-provider: external
-          name: '{{ ds.meta_data["local_hostname"] }}'
-      preKubeadmCommands: []
+    spec: {}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster

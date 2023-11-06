@@ -425,11 +425,15 @@ spec:
                     type: string
                 type: object
               networkPlugin:
+                allOf:
+                - enum:
+                  - azure
+                  - kubenet
+                - enum:
+                  - azure
+                  - kubenet
+                  - none
                 description: NetworkPlugin used for building Kubernetes network.
-                enum:
-                - azure
-                - kubenet
-                - none
                 type: string
               networkPluginMode:
                 description: NetworkPluginMode is the mode the network plugin should
