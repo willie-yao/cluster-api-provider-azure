@@ -1037,4 +1037,15 @@ func aksTestSuite(ctx context.Context, specName string, result *clusterctl.Apply
 			}
 		})
 	})
+
+	By("creating a byo nodepool", func() {
+		AKSBYONodeSpec(ctx, func() AKSBYONodeSpecInput {
+			return AKSBYONodeSpecInput{
+				Cluster:             result.Cluster,
+				KubernetesVersion:   kubernetesVersion,
+				WaitIntervals:       e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+				ExpectedWorkerNodes: result.ExpectedWorkerNodes(),
+			}
+		})
+	})
 }
