@@ -291,6 +291,10 @@ type AzureManagedControlPlaneStatus struct {
 	// OIDCIssuerProfile is the OIDC issuer profile of the Managed Cluster.
 	// +optional
 	OIDCIssuerProfile *OIDCIssuerProfileStatus `json:"oidcIssuerProfile,omitempty"`
+
+	// Version defines the Kubernetes version for the control plane instance.
+	// +optional
+	Version string `json:"version"`
 }
 
 // OIDCIssuerProfileStatus is the OIDC issuer profile of the Managed Cluster.
