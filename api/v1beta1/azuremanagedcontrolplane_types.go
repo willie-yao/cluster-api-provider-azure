@@ -93,18 +93,6 @@ type AzureManagedControlPlaneSpec struct {
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
 
-	// AdditionalTags is an optional set of tags to add to Azure resources managed by the Azure provider, in addition to the
-	// ones added by default.
-	// +optional
-	AdditionalTags Tags `json:"additionalTags,omitempty"`
-
-	// NetworkPlugin used for building Kubernetes network.
-	// Allowed values are "azure", "kubenet".
-	// Immutable.
-	// +kubebuilder:validation:Enum=azure;kubenet;none
-	// +optional
-	NetworkPlugin *string `json:"networkPlugin,omitempty"`
-
 	// NetworkPluginMode is the mode the network plugin should use.
 	// Allowed value is "overlay".
 	// +kubebuilder:validation:Enum=overlay

@@ -380,60 +380,12 @@ spec:
                   should be shaped when creating or updating a control plane. For
                   the AzureManagedControlPlaneTemplate, this field is used only to
                   fulfill the CAPI contract.
-                properties:
-                  metadata:
-                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
-                    properties:
-                      annotations:
-                        additionalProperties:
-                          type: string
-                        description: 'Annotations is an unstructured key value map
-                          stored with a resource that may be set by external tools
-                          to store and retrieve arbitrary metadata. They are not queryable
-                          and should be preserved when modifying objects. More info:
-                          http://kubernetes.io/docs/user-guide/annotations'
-                        type: object
-                      labels:
-                        additionalProperties:
-                          type: string
-                        description: 'Map of string keys and values that can be used
-                          to organize and categorize (scope and select) objects. May
-                          match selectors of replication controllers and services.
-                          More info: http://kubernetes.io/docs/user-guide/labels'
-                        type: object
-                    type: object
-                  nodeDeletionTimeout:
-                    description: NodeDeletionTimeout defines how long the machine
-                      controller will attempt to delete the Node that the Machine
-                      hosts after the Machine is marked for deletion. A duration of
-                      0 will retry deletion indefinitely. If no value is provided,
-                      the default value for this property of the Machine resource
-                      will be used.
-                    type: string
-                  nodeDrainTimeout:
-                    description: 'NodeDrainTimeout is the total amount of time that
-                      the controller will spend on draining a controlplane node The
-                      default value is 0, meaning that the node can be drained without
-                      any time limitations. NOTE: NodeDrainTimeout is different from
-                      `kubectl drain --timeout`'
-                    type: string
-                  nodeVolumeDetachTimeout:
-                    description: NodeVolumeDetachTimeout is the total amount of time
-                      that the controller will spend on waiting for all volumes to
-                      be detached. The default value is 0, meaning that the volumes
-                      can be detached without any time limitations.
-                    type: string
                 type: object
               networkPlugin:
-                allOf:
-                - enum:
-                  - azure
-                  - kubenet
-                - enum:
-                  - azure
-                  - kubenet
-                  - none
                 description: NetworkPlugin used for building Kubernetes network.
+                enum:
+                - azure
+                - kubenet
                 type: string
               networkPluginMode:
                 description: NetworkPluginMode is the mode the network plugin should
