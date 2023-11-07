@@ -31,6 +31,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/converters"
+	"sigs.k8s.io/cluster-api-provider-azure/util/generators"
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 )
 
@@ -345,6 +346,7 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existing interface{
 			},
 			WindowsProfile: &armcontainerservice.ManagedClusterWindowsProfile{
 				AdminUsername: ptr.To(azure.DefaultAKSUserName),
+				AdminPassword: ptr.To(generators.SudoRandomPassword(123)),
 			},
 		},
 	}
