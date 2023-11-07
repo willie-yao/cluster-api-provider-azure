@@ -10,4 +10,3 @@ patchesStrategicMerge:
   - patches/aks-clusterclass-pool1.yaml
   - patches/cluster.yaml
   - patches/addons.yaml
-  - patches.yaml
