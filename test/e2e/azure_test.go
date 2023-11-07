@@ -756,19 +756,18 @@ var _ = Describe("Workload cluster creation", func() {
 	})
 
 	Context("Creating an AKS cluster using ClusterClass [Managed Kubernetes]", func() {
-		It("with a single control plane node, one linux worker node, and one windows worker node", func() {
+		It("with a single control plane node and 1 node", func() {
 			// Use default as the clusterclass name so test infra can find the clusterclass template
 			os.Setenv("CLUSTER_CLASS_NAME", "default")
 
 			// Use "cc" as spec name because NAT gateway pip name exceeds limit.
 			clusterName = getClusterName(clusterNamePrefix, "cc")
 			kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
+			Byf("Upgrading from k8s version %s", kubernetesVersionUpgradeFrom)
 			Expect(err).To(BeNil())
 			kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
+			Byf("Upgrading to k8s version %s", kubernetesVersion)
 			Expect(err).To(BeNil())
-
-			// Opt into using windows with prow template
-			Expect(os.Setenv("WINDOWS_WORKER_MACHINE_COUNT", "1")).To(Succeed())
 
 			// Create a cluster using the cluster class created above
 			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
