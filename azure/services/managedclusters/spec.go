@@ -343,6 +343,9 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existing interface{
 				LoadBalancerSKU: azure.AliasOrNil[armcontainerservice.LoadBalancerSKU](&s.LoadBalancerSKU),
 				NetworkPolicy:   azure.AliasOrNil[armcontainerservice.NetworkPolicy](&s.NetworkPolicy),
 			},
+			WindowsProfile: &armcontainerservice.ManagedClusterWindowsProfile{
+				AdminUsername: ptr.To(azure.DefaultAKSUserName),
+			},
 		},
 	}
 
