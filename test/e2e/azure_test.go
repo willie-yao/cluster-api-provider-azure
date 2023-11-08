@@ -885,6 +885,16 @@ var _ = Describe("Workload cluster creation", func() {
 					WaitForControlPlaneMachinesReady: WaitForAKSControlPlaneReady,
 				}),
 			), result)
+
+			By("Performing ClusterClass operations on the cluster", func() {
+				AKSClusterClassSpec(ctx, func() AKSClusterClassInput {
+					return AKSClusterClassInput{
+						Cluster:       result.Cluster,
+						MachinePool:   result.MachinePools[0],
+						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+					}
+				})
+			})
 		})
 	})
 
