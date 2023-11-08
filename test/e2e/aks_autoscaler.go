@@ -58,10 +58,7 @@ func AKSAutoscaleSpec(ctx context.Context, inputGetter func() AKSAutoscaleSpecIn
 	Expect(err).NotTo(HaveOccurred())
 
 	ammp := &infrav1.AzureManagedMachinePool{}
-	err = bootstrapClusterProxy.GetClient().Get(ctx, types.NamespacedName{
-		Namespace: input.MachinePool.Spec.Template.Spec.InfrastructureRef.Namespace,
-		Name:      input.MachinePool.Spec.Template.Spec.InfrastructureRef.Name,
-	}, ammp)
+	err = mgmtClient.Get(ctx, client.ObjectKeyFromObject(input.MachinePool), ammp)
 	Expect(err).NotTo(HaveOccurred())
 
 	resourceGroupName := amcp.Spec.ResourceGroupName

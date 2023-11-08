@@ -93,7 +93,6 @@ func DiscoverAndWaitForAKSControlPlaneInitialized(ctx context.Context, input Dis
 		ClusterName:  input.Cluster.Name,
 		Namespace:    input.Cluster.Namespace,
 	}, intervals...)
-	Logf("Finished waiting for the first AKS machine in the %s/%s 'system' node pool to exist", controlPlane.Namespace, controlPlane.Name)
 }
 
 // DiscoverAndWaitForAKSControlPlaneReady gets the Azure managed control plane associated with the cluster
