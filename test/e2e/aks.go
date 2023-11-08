@@ -180,7 +180,9 @@ func (r controlPlaneReplicas) value(mp *expv1.MachinePool) int {
 // WaitForAKSSystemNodePoolMachinesToExist waits for a certain number of machines in the "system" node pool to exist.
 func WaitForAKSSystemNodePoolMachinesToExist(ctx context.Context, input WaitForControlPlaneAndMachinesReadyInput, minReplicas controlPlaneReplicas, intervals ...interface{}) {
 	Eventually(func() bool {
+		Logf("willie: opt1")
 		opt1 := client.InNamespace(input.Namespace)
+		Logf("willie: opt2")
 		opt2 := client.MatchingLabels(map[string]string{
 			infrav1.LabelAgentPoolMode: string(infrav1.NodePoolModeSystem),
 			clusterv1.ClusterNameLabel: input.ClusterName,
@@ -188,24 +190,30 @@ func WaitForAKSSystemNodePoolMachinesToExist(ctx context.Context, input WaitForC
 
 		ammpList := &infrav1.AzureManagedMachinePoolList{}
 
+		Logf("willie: list")
 		if err := input.Lister.List(ctx, ammpList, opt1, opt2); err != nil {
 			LogWarningf("Failed to get machinePool: %+v", err)
 			return false
 		}
 
+		Logf("willie: for ammptList")
 		for _, pool := range ammpList.Items {
 			// Fetch the owning MachinePool.
+			Logf("willie: for pool")
 			for _, ref := range pool.OwnerReferences {
+				Logf("willie: for ref")
 				if ref.Kind != "MachinePool" {
 					continue
 				}
 
 				ownerMachinePool := &expv1.MachinePool{}
+				Logf("willie: get")
 				if err := input.Getter.Get(ctx, types.NamespacedName{Namespace: input.Namespace, Name: ref.Name},
 					ownerMachinePool); err != nil {
 					LogWarningf("Failed to get machinePool: %+v", err)
 					return false
 				}
+				Logf("willie: len")
 				if len(ownerMachinePool.Status.NodeRefs) >= minReplicas.value(ownerMachinePool) {
 					return true
 				}
