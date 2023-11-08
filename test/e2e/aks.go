@@ -214,6 +214,8 @@ func WaitForAKSSystemNodePoolMachinesToExist(ctx context.Context, input WaitForC
 					return false
 				}
 				Logf("willie: len")
+				Logf("willie: OwnerMachinePool %s/%s has %d nodes", ownerMachinePool.Namespace, ownerMachinePool.Name, len(ownerMachinePool.Status.NodeRefs))
+				Logf("willie: replicas: %d", ownerMachinePool.Spec.Replicas)
 				if len(ownerMachinePool.Status.NodeRefs) >= minReplicas.value(ownerMachinePool) {
 					return true
 				}
