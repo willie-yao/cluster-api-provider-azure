@@ -865,7 +865,11 @@ var _ = Describe("Workload cluster creation", func() {
 
 			// Use "cc" as spec name because NAT gateway pip name exceeds limit.
 			clusterName = getClusterName(clusterNamePrefix, "cc")
+			kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
+			Byf("Upgrading from k8s version %s", kubernetesVersionUpgradeFrom)
+			Expect(err).To(BeNil())
 			kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
+			Byf("Upgrading to k8s version %s", kubernetesVersion)
 			Expect(err).To(BeNil())
 
 			// Create a cluster using the cluster class created above
@@ -875,7 +879,7 @@ var _ = Describe("Workload cluster creation", func() {
 				withAzureCNIv1Manifest(e2eConfig.GetVariable(AzureCNIv1Manifest)),
 				withNamespace(namespace.Name),
 				withClusterName(clusterName),
-				withKubernetesVersion(kubernetesVersion),
+				withKubernetesVersion(kubernetesVersionUpgradeFrom),
 				withControlPlaneMachineCount(1),
 				withWorkerMachineCount(1),
 				withMachineDeploymentInterval(specName, ""),
@@ -889,9 +893,10 @@ var _ = Describe("Workload cluster creation", func() {
 			By("Performing ClusterClass operations on the cluster", func() {
 				AKSClusterClassSpec(ctx, func() AKSClusterClassInput {
 					return AKSClusterClassInput{
-						Cluster:       result.Cluster,
-						MachinePool:   result.MachinePools[0],
-						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+						Cluster:                    result.Cluster,
+						MachinePool:                result.MachinePools[0],
+						WaitIntervals:              e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+						KubernetesVersionUpgradeTo: kubernetesVersion,
 					}
 				})
 			})
