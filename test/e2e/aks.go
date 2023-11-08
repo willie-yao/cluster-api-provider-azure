@@ -55,7 +55,9 @@ func WaitForAKSControlPlaneInitialized(ctx context.Context, input clusterctl.App
 		Getter:  client,
 		Cluster: result.Cluster,
 	}, input.WaitForControlPlaneIntervals...)
-	InstallCNIManifest(ctx, input, cluster.Spec.ClusterNetwork.Services.CIDRBlocks, true)
+	if cluster.Spec.ClusterNetwork != nil && cluster.Spec.ClusterNetwork.Services != nil {
+		InstallCNIManifest(ctx, input, cluster.Spec.ClusterNetwork.Services.CIDRBlocks, true)
+	}
 }
 
 // WaitForAKSControlPlaneReady waits for the azure managed control plane to be ready.
@@ -91,6 +93,7 @@ func DiscoverAndWaitForAKSControlPlaneInitialized(ctx context.Context, input Dis
 		ClusterName:  input.Cluster.Name,
 		Namespace:    input.Cluster.Namespace,
 	}, intervals...)
+	Logf("Finished waiting for the first AKS machine in the %s/%s 'system' node pool to exist", controlPlane.Namespace, controlPlane.Name)
 }
 
 // DiscoverAndWaitForAKSControlPlaneReady gets the Azure managed control plane associated with the cluster
