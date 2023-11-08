@@ -724,44 +724,9 @@ var _ = Describe("Workload cluster creation", func() {
 
 	// You can override the default SKU `Standard_D2s_v3` by setting the
 	// `AZURE_AKS_NODE_MACHINE_TYPE` environment variable.
-	// Context("Creating an AKS cluster [Managed Kubernetes]", func() {
-	// 	It("with a single control plane node and 1 node", func() {
-	// 		clusterName = getClusterName(clusterNamePrefix, aksClusterNameSuffix)
-	// 		kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
-	// 		Byf("Upgrading from k8s version %s", kubernetesVersionUpgradeFrom)
-	// 		Expect(err).To(BeNil())
-	// 		kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
-	// 		Byf("Upgrading to k8s version %s", kubernetesVersion)
-	// 		Expect(err).To(BeNil())
-
-	// 		clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
-	// 			specName,
-	// 			withFlavor("aks"),
-	// 			withAzureCNIv1Manifest(e2eConfig.GetVariable(AzureCNIv1Manifest)),
-	// 			withNamespace(namespace.Name),
-	// 			withClusterName(clusterName),
-	// 			withKubernetesVersion(kubernetesVersionUpgradeFrom),
-	// 			withControlPlaneMachineCount(1),
-	// 			withWorkerMachineCount(1),
-	// 			withMachineDeploymentInterval(specName, ""),
-	// 			withMachinePoolInterval(specName, "wait-worker-nodes"),
-	// 			withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
-	// 				WaitForControlPlaneInitialized:   WaitForAKSControlPlaneInitialized,
-	// 				WaitForControlPlaneMachinesReady: WaitForAKSControlPlaneReady,
-	// 			}),
-	// 		), result)
-
-	// 		aksTestSuite(ctx, specName, result, kubernetesVersion)
-	// 	})
-	// })
-
-	Context("Creating an AKS cluster using ClusterClass [Managed Kubernetes]", func() {
+	Context("Creating an AKS cluster [Managed Kubernetes]", func() {
 		It("with a single control plane node and 1 node", func() {
-			// Use default as the clusterclass name so test infra can find the clusterclass template
-			os.Setenv("CLUSTER_CLASS_NAME", "default")
-
-			// Use "cc" as spec name because NAT gateway pip name exceeds limit.
-			clusterName = getClusterName(clusterNamePrefix, "cc")
+			clusterName = getClusterName(clusterNamePrefix, aksClusterNameSuffix)
 			kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
 			Byf("Upgrading from k8s version %s", kubernetesVersionUpgradeFrom)
 			Expect(err).To(BeNil())
@@ -769,10 +734,9 @@ var _ = Describe("Workload cluster creation", func() {
 			Byf("Upgrading to k8s version %s", kubernetesVersion)
 			Expect(err).To(BeNil())
 
-			// Create a cluster using the cluster class created above
 			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
 				specName,
-				withFlavor("aks-clusterclass"),
+				withFlavor("aks"),
 				withAzureCNIv1Manifest(e2eConfig.GetVariable(AzureCNIv1Manifest)),
 				withNamespace(namespace.Name),
 				withClusterName(clusterName),
@@ -787,7 +751,140 @@ var _ = Describe("Workload cluster creation", func() {
 				}),
 			), result)
 
-			aksTestSuite(ctx, specName, result, kubernetesVersion)
+			By("Upgrading the Kubernetes version of the cluster", func() {
+				AKSUpgradeSpec(ctx, func() AKSUpgradeSpecInput {
+					return AKSUpgradeSpecInput{
+						Cluster:                    result.Cluster,
+						MachinePools:               result.MachinePools,
+						KubernetesVersionUpgradeTo: kubernetesVersion,
+						WaitForControlPlane:        e2eConfig.GetIntervals(specName, "wait-machine-upgrade"),
+						WaitForMachinePools:        e2eConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+					}
+				})
+			})
+
+			By("Exercising machine pools", func() {
+				AKSMachinePoolSpec(ctx, func() AKSMachinePoolSpecInput {
+					return AKSMachinePoolSpecInput{
+						Cluster:       result.Cluster,
+						MachinePools:  result.MachinePools,
+						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+					}
+				})
+			})
+
+			By("creating a machine pool with public IP addresses from a prefix", func() {
+				// This test is also currently serving as the canonical
+				// "create/delete node pool" test. Eventually, that should be
+				// made more distinct from this public IP prefix test.
+				AKSPublicIPPrefixSpec(ctx, func() AKSPublicIPPrefixSpecInput {
+					return AKSPublicIPPrefixSpecInput{
+						Cluster:           result.Cluster,
+						KubernetesVersion: kubernetesVersion,
+						WaitIntervals:     e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+					}
+				})
+			})
+
+			By("creating a machine pool with spot max price and scale down mode", func() {
+				AKSSpotSpec(ctx, func() AKSSpotSpecInput {
+					return AKSSpotSpecInput{
+						Cluster:           result.Cluster,
+						KubernetesVersion: kubernetesVersion,
+						WaitIntervals:     e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+					}
+				})
+			})
+
+			By("modifying nodepool autoscaling configuration", func() {
+				AKSAutoscaleSpec(ctx, func() AKSAutoscaleSpecInput {
+					return AKSAutoscaleSpecInput{
+						Cluster:       result.Cluster,
+						MachinePool:   result.MachinePools[0],
+						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+					}
+				})
+			})
+
+			By("modifying additionalTags configuration", func() {
+				AKSAdditionalTagsSpec(ctx, func() AKSAdditionalTagsSpecInput {
+					return AKSAdditionalTagsSpecInput{
+						Cluster:       result.Cluster,
+						MachinePools:  result.MachinePools,
+						WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+					}
+				})
+			})
+
+			By("modifying the azure cluster-autoscaler settings", func() {
+				AKSAzureClusterAutoscalerSettingsSpec(ctx, func() AKSAzureClusterAutoscalerSettingsSpecInput {
+					return AKSAzureClusterAutoscalerSettingsSpecInput{
+						Cluster:       result.Cluster,
+						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
+					}
+				})
+			})
+
+			By("modifying node labels configuration", func() {
+				AKSNodeLabelsSpec(ctx, func() AKSNodeLabelsSpecInput {
+					return AKSNodeLabelsSpecInput{
+						Cluster:       result.Cluster,
+						MachinePools:  result.MachinePools,
+						WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+					}
+				})
+			})
+
+			By("modifying taints configuration", func() {
+				AKSNodeTaintsSpec(ctx, func() AKSNodeTaintsSpecInput {
+					return AKSNodeTaintsSpecInput{
+						Cluster:       result.Cluster,
+						MachinePools:  result.MachinePools,
+						WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+					}
+				})
+			})
+
+			By("creating a byo nodepool", func() {
+				AKSBYONodeSpec(ctx, func() AKSBYONodeSpecInput {
+					return AKSBYONodeSpecInput{
+						Cluster:             result.Cluster,
+						KubernetesVersion:   kubernetesVersion,
+						WaitIntervals:       e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+						ExpectedWorkerNodes: result.ExpectedWorkerNodes(),
+					}
+				})
+			})
+		})
+	})
+
+	Context("Creating an AKS cluster using ClusterClass [Managed Kubernetes]", func() {
+		It("with a single control plane node and 1 node", func() {
+			// Use default as the clusterclass name so test infra can find the clusterclass template
+			os.Setenv("CLUSTER_CLASS_NAME", "default")
+
+			// Use "cc" as spec name because NAT gateway pip name exceeds limit.
+			clusterName = getClusterName(clusterNamePrefix, "cc")
+			kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
+			Expect(err).To(BeNil())
+
+			// Create a cluster using the cluster class created above
+			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
+				specName,
+				withFlavor("aks-clusterclass"),
+				withAzureCNIv1Manifest(e2eConfig.GetVariable(AzureCNIv1Manifest)),
+				withNamespace(namespace.Name),
+				withClusterName(clusterName),
+				withKubernetesVersion(kubernetesVersion),
+				withControlPlaneMachineCount(1),
+				withWorkerMachineCount(1),
+				withMachineDeploymentInterval(specName, ""),
+				withMachinePoolInterval(specName, "wait-worker-nodes"),
+				withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
+					WaitForControlPlaneInitialized:   WaitForAKSControlPlaneInitialized,
+					WaitForControlPlaneMachinesReady: WaitForAKSControlPlaneReady,
+				}),
+			), result)
 		})
 	})
 
