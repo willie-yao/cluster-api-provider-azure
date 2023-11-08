@@ -83,13 +83,20 @@ func AKSClusterClassSpec(ctx context.Context, inputGetter func() AKSClusterClass
 		g.Expect(amcp.Spec.Version).To(Equal(input.KubernetesVersionUpgradeTo))
 	}, input.WaitIntervals...).Should(Succeed())
 
+	clusterClass := &clusterv1.ClusterClass{}
+	err = mgmtClient.Get(ctx, types.NamespacedName{
+		Namespace: input.Cluster.Spec.Topology.Class,
+		Name:      input.Cluster.Spec.Topology.Class,
+	}, clusterClass)
+	Expect(err).NotTo(HaveOccurred())
+
 	By("Editing the AzureManagedMachinePoolTemplate to change the scale down mode")
 	ammpt := &infrav1.AzureManagedMachinePoolTemplate{}
 
 	Eventually(func(g Gomega) {
 		err = mgmtClient.Get(ctx, types.NamespacedName{
-			Namespace: input.MachinePool.Spec.Template.Spec.InfrastructureRef.Namespace,
-			Name:      input.MachinePool.Spec.Template.Spec.InfrastructureRef.Name,
+			Namespace: clusterClass.Spec.ControlPlane.Ref.Namespace,
+			Name:      clusterClass.Spec.ControlPlane.Ref.Name,
 		}, ammpt)
 		Expect(err).NotTo(HaveOccurred())
 		ammpt.Spec.Template.Spec.ScaleDownMode = ptr.To("Deallocate")
