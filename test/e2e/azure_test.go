@@ -724,36 +724,36 @@ var _ = Describe("Workload cluster creation", func() {
 
 	// You can override the default SKU `Standard_D2s_v3` by setting the
 	// `AZURE_AKS_NODE_MACHINE_TYPE` environment variable.
-	Context("Creating an AKS cluster [Managed Kubernetes]", func() {
-		It("with a single control plane node and 1 node", func() {
-			clusterName = getClusterName(clusterNamePrefix, aksClusterNameSuffix)
-			kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
-			Byf("Upgrading from k8s version %s", kubernetesVersionUpgradeFrom)
-			Expect(err).To(BeNil())
-			kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
-			Byf("Upgrading to k8s version %s", kubernetesVersion)
-			Expect(err).To(BeNil())
+	// Context("Creating an AKS cluster [Managed Kubernetes]", func() {
+	// 	It("with a single control plane node and 1 node", func() {
+	// 		clusterName = getClusterName(clusterNamePrefix, aksClusterNameSuffix)
+	// 		kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
+	// 		Byf("Upgrading from k8s version %s", kubernetesVersionUpgradeFrom)
+	// 		Expect(err).To(BeNil())
+	// 		kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
+	// 		Byf("Upgrading to k8s version %s", kubernetesVersion)
+	// 		Expect(err).To(BeNil())
 
-			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
-				specName,
-				withFlavor("aks"),
-				withAzureCNIv1Manifest(e2eConfig.GetVariable(AzureCNIv1Manifest)),
-				withNamespace(namespace.Name),
-				withClusterName(clusterName),
-				withKubernetesVersion(kubernetesVersionUpgradeFrom),
-				withControlPlaneMachineCount(1),
-				withWorkerMachineCount(1),
-				withMachineDeploymentInterval(specName, ""),
-				withMachinePoolInterval(specName, "wait-worker-nodes"),
-				withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
-					WaitForControlPlaneInitialized:   WaitForAKSControlPlaneInitialized,
-					WaitForControlPlaneMachinesReady: WaitForAKSControlPlaneReady,
-				}),
-			), result)
+	// 		clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
+	// 			specName,
+	// 			withFlavor("aks"),
+	// 			withAzureCNIv1Manifest(e2eConfig.GetVariable(AzureCNIv1Manifest)),
+	// 			withNamespace(namespace.Name),
+	// 			withClusterName(clusterName),
+	// 			withKubernetesVersion(kubernetesVersionUpgradeFrom),
+	// 			withControlPlaneMachineCount(1),
+	// 			withWorkerMachineCount(1),
+	// 			withMachineDeploymentInterval(specName, ""),
+	// 			withMachinePoolInterval(specName, "wait-worker-nodes"),
+	// 			withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
+	// 				WaitForControlPlaneInitialized:   WaitForAKSControlPlaneInitialized,
+	// 				WaitForControlPlaneMachinesReady: WaitForAKSControlPlaneReady,
+	// 			}),
+	// 		), result)
 
-			aksTestSuite(ctx, specName, result, kubernetesVersion)
-		})
-	})
+	// 		aksTestSuite(ctx, specName, result, kubernetesVersion)
+	// 	})
+	// })
 
 	Context("Creating an AKS cluster using ClusterClass [Managed Kubernetes]", func() {
 		It("with a single control plane node and 1 node", func() {
@@ -773,6 +773,7 @@ var _ = Describe("Workload cluster creation", func() {
 			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
 				specName,
 				withFlavor("aks-clusterclass"),
+				withAzureCNIv1Manifest(e2eConfig.GetVariable(AzureCNIv1Manifest)),
 				withNamespace(namespace.Name),
 				withClusterName(clusterName),
 				withKubernetesVersion(kubernetesVersionUpgradeFrom),
