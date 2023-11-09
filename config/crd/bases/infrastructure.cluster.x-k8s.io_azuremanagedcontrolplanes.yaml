@@ -97,16 +97,16 @@ spec:
                       type: string
                     type: array
                   enablePrivateCluster:
-                    description: EnablePrivateCluster - Whether to create the cluster
-                      as a private cluster or not.
+                    description: EnablePrivateCluster indicates whether to create
+                      the cluster as a private cluster or not.
                     type: boolean
                   enablePrivateClusterPublicFQDN:
-                    description: EnablePrivateClusterPublicFQDN - Whether to create
-                      additional public FQDN for private cluster or not.
+                    description: EnablePrivateClusterPublicFQDN indicates whether
+                      to create additional public FQDN for private cluster or not.
                     type: boolean
                   privateDNSZone:
-                    description: PrivateDNSZone - Private dns zone mode for private
-                      cluster.
+                    description: PrivateDNSZone enables private dns zone mode for
+                      private cluster.
                     enum:
                     - System
                     - None

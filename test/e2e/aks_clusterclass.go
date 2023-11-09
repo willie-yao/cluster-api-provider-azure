@@ -59,30 +59,6 @@ func AKSClusterClassSpec(ctx context.Context, inputGetter func() AKSClusterClass
 	}, amcp)
 	Expect(err).NotTo(HaveOccurred())
 
-	By("Upgrading the cluster topology version")
-	Eventually(func(g Gomega) {
-		input.Cluster.Spec.Topology.Version = input.KubernetesVersionUpgradeTo
-		g.Expect(mgmtClient.Update(ctx, input.Cluster)).To(Succeed())
-	}, inputGetter().WaitIntervals...).Should(Succeed())
-
-	Eventually(func(g Gomega) {
-		resp, err := managedClustersClient.Get(ctx, amcp.Spec.ResourceGroupName, amcp.Name, nil)
-		g.Expect(err).NotTo(HaveOccurred())
-		aksCluster := resp.ManagedCluster
-		g.Expect(aksCluster.Properties).NotTo(BeNil())
-		g.Expect(aksCluster.Properties.KubernetesVersion).NotTo(BeNil())
-		g.Expect("v" + *aksCluster.Properties.KubernetesVersion).To(Equal(input.KubernetesVersionUpgradeTo))
-	}, input.WaitIntervals...).Should(Succeed())
-
-	By("Ensuring the upgrade is reflected in the amcp")
-	Eventually(func(g Gomega) {
-		g.Expect(mgmtClient.Get(ctx, types.NamespacedName{
-			Namespace: input.Cluster.Spec.ControlPlaneRef.Namespace,
-			Name:      input.Cluster.Spec.ControlPlaneRef.Name,
-		}, amcp)).To(Succeed())
-		g.Expect(amcp.Spec.Version).To(Equal(input.KubernetesVersionUpgradeTo))
-	}, input.WaitIntervals...).Should(Succeed())
-
 	By("Editing the AzureManagedMachinePoolTemplate to change the scale down mode")
 	ammpt := &infrav1.AzureManagedMachinePoolTemplate{}
 
@@ -109,4 +85,28 @@ func AKSClusterClassSpec(ctx context.Context, inputGetter func() AKSClusterClass
 		Expect(err).NotTo(HaveOccurred())
 		g.Expect(ammp.Spec.ScaleDownMode).To(Equal(ptr.To("Deallocate")))
 	}, inputGetter().WaitIntervals...).Should(Succeed())
+
+	By("Upgrading the cluster topology version")
+	Eventually(func(g Gomega) {
+		input.Cluster.Spec.Topology.Version = input.KubernetesVersionUpgradeTo
+		g.Expect(mgmtClient.Update(ctx, input.Cluster)).To(Succeed())
+	}, inputGetter().WaitIntervals...).Should(Succeed())
+
+	Eventually(func(g Gomega) {
+		resp, err := managedClustersClient.Get(ctx, amcp.Spec.ResourceGroupName, amcp.Name, nil)
+		g.Expect(err).NotTo(HaveOccurred())
+		aksCluster := resp.ManagedCluster
+		g.Expect(aksCluster.Properties).NotTo(BeNil())
+		g.Expect(aksCluster.Properties.KubernetesVersion).NotTo(BeNil())
+		g.Expect("v" + *aksCluster.Properties.KubernetesVersion).To(Equal(input.KubernetesVersionUpgradeTo))
+	}, input.WaitIntervals...).Should(Succeed())
+
+	By("Ensuring the upgrade is reflected in the amcp")
+	Eventually(func(g Gomega) {
+		g.Expect(mgmtClient.Get(ctx, types.NamespacedName{
+			Namespace: input.Cluster.Spec.ControlPlaneRef.Namespace,
+			Name:      input.Cluster.Spec.ControlPlaneRef.Name,
+		}, amcp)).To(Succeed())
+		g.Expect(amcp.Spec.Version).To(Equal(input.KubernetesVersionUpgradeTo))
+	}, input.WaitIntervals...).Should(Succeed())
 }

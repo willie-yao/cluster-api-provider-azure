@@ -157,12 +157,12 @@ type AzureManagedMachinePoolClassSpec struct {
 	// +optional
 	AdditionalTags Tags `json:"additionalTags,omitempty"`
 
-	// Name - name of the agent pool. If not specified, CAPZ uses the name of the CR as the agent pool name.
+	// Name is the name of the agent pool. If not specified, CAPZ uses the name of the CR as the agent pool name.
 	// Immutable.
 	// +optional
 	Name *string `json:"name,omitempty"`
 
-	// Mode - represents mode of an agent pool. Possible values include: System, User.
+	// Mode represents the mode of an agent pool. Possible values include: System, User.
 	// +kubebuilder:validation:Enum=System;User
 	Mode string `json:"mode"`
 
@@ -181,7 +181,7 @@ type AzureManagedMachinePoolClassSpec struct {
 	// +optional
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
-	// Node labels - labels for all of the nodes present in node pool.
+	// Node labels represent the labels for all of the nodes present in node pool.
 	// See also [AKS doc].
 	//
 	// [AKS doc]: https://learn.microsoft.com/azure/aks/use-labels
@@ -310,14 +310,16 @@ type ManagedControlPlaneVirtualNetworkClassSpec struct {
 
 // APIServerAccessProfileClassSpec defines the APIServerAccessProfile properties that may be shared across several API server access profiles.
 type APIServerAccessProfileClassSpec struct {
-	// EnablePrivateCluster - Whether to create the cluster as a private cluster or not.
+	// EnablePrivateCluster indicates whether to create the cluster as a private cluster or not.
 	// +optional
 	EnablePrivateCluster *bool `json:"enablePrivateCluster,omitempty"`
-	// PrivateDNSZone - Private dns zone mode for private cluster.
+
+	// PrivateDNSZone enables private dns zone mode for private cluster.
 	// +kubebuilder:validation:Enum=System;None
 	// +optional
 	PrivateDNSZone *string `json:"privateDNSZone,omitempty"`
-	// EnablePrivateClusterPublicFQDN - Whether to create additional public FQDN for private cluster or not.
+
+	// EnablePrivateClusterPublicFQDN indicates whether to create additional public FQDN for private cluster or not.
 	// +optional
 	EnablePrivateClusterPublicFQDN *bool `json:"enablePrivateClusterPublicFQDN,omitempty"`
 }

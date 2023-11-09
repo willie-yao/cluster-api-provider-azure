@@ -480,21 +480,22 @@ spec:
                         format: int32
                         type: integer
                       mode:
-                        description: 'Mode - represents mode of an agent pool. Possible
+                        description: 'Mode represents the mode of an agent pool. Possible
                           values include: System, User.'
                         enum:
                         - System
                         - User
                         type: string
                       name:
-                        description: Name - name of the agent pool. If not specified,
+                        description: Name is the name of the agent pool. If not specified,
                           CAPZ uses the name of the CR as the agent pool name. Immutable.
                         type: string
                       nodeLabels:
                         additionalProperties:
                           type: string
-                        description: "Node labels - labels for all of the nodes present
-                          in node pool. See also [AKS doc]. \n [AKS doc]: https://learn.microsoft.com/azure/aks/use-labels"
+                        description: "Node labels represent the labels for all of
+                          the nodes present in node pool. See also [AKS doc]. \n [AKS
+                          doc]: https://learn.microsoft.com/azure/aks/use-labels"
                         type: object
                       nodePublicIPPrefixID:
                         description: NodePublicIPPrefixID specifies the public IP
