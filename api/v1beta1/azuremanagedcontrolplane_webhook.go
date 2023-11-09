@@ -71,6 +71,8 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 		return apierrors.NewBadRequest("expected an AzureManagedControlPlane")
 	}
 
+	setDefault[*string](&m.Spec.NetworkPlugin, ptr.To(AzureNetworkPluginName))
+	setDefault[*string](&m.Spec.LoadBalancerSKU, ptr.To("Standard"))
 	m.Spec.Version = setDefaultVersion(m.Spec.Version)
 	m.Spec.Identity = setDefaultIdentity(m.Spec.Identity)
 

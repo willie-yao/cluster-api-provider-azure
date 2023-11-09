@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -69,6 +70,7 @@ func AKSUpgradeSpec(ctx context.Context, inputGetter func() AKSUpgradeSpecInput)
 		g.Expect(aksCluster.Properties).NotTo(BeNil())
 		g.Expect(aksCluster.Properties.KubernetesVersion).NotTo(BeNil())
 		g.Expect("v" + *aksCluster.Properties.KubernetesVersion).To(Equal(input.KubernetesVersionUpgradeTo))
+		g.Expect(aksCluster.Properties.ProvisioningState).To(Equal(ptr.To("Succeeded")))
 	}, input.WaitForControlPlane...).Should(Succeed())
 
 	By("Upgrading the machinepool instances")
