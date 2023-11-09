@@ -103,8 +103,8 @@ func AKSClusterClassSpec(ctx context.Context, inputGetter func() AKSClusterClass
 
 	Eventually(func(g Gomega) {
 		err = mgmtClient.Get(ctx, types.NamespacedName{
-			Namespace: input.MachinePool.Namespace,
-			Name:      input.MachinePool.Name,
+			Namespace: input.MachinePool.Spec.Template.Spec.InfrastructureRef.Namespace,
+			Name:      input.MachinePool.Spec.Template.Spec.InfrastructureRef.Name,
 		}, ammp)
 		Expect(err).NotTo(HaveOccurred())
 		g.Expect(ammp.Spec.ScaleDownMode).To(Equal(ptr.To("Deallocate")))
