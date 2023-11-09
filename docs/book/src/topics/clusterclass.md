@@ -5,7 +5,7 @@
 
 [ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/index.html) is a collection of templates that define a topology (control plane and machine deployments) to be used to continuously reconcile one or more Clusters. It is a new Cluster API feature that is built on top of the existing Cluster API resources and provides a set of tools and operations to streamline cluster lifecycle management while maintaining the same underlying API.
 
-CAPZ currently supports ClusterClass for both managed (AKS) and self-managed clusters. CAPZ implements this with three custom resources:
+CAPZ currently supports ClusterClass for both managed (AKS) and self-managed clusters. CAPZ implements this with four custom resources:
 1. AzureClusterTemplate
 2. AzureManagedClusterTemplate
 3. AzureManagedControlPlaneTemplate
@@ -15,7 +15,7 @@ Each resource is a template for the corresponding CAPZ resource. For example, th
 
 ## Deploying a Self-Managed Cluster with ClusterClass
 
-To deploy a self-managed cluster with ClusterClass, you must first create a ClusterClass resource. The ClusterClass resource defines the cluster topology, including the control plane and machine deployment templates. The ClusterClass resource also defines the parameters that can be used to customize the cluster topology. 
+Users must first create a ClusterClass resource to deploy a self-managed cluster with ClusterClass. The ClusterClass resource defines the cluster topology, including the control plane and machine deployment templates. The ClusterClass resource also defines the parameters that can be used to customize the cluster topology. 
 
 Please refer to the Cluster API book for more information on how to write a ClusterClass topology: https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html
 
@@ -46,7 +46,7 @@ spec:
 
 **Feature gate:** `MachinePool=true`
 
-Deploying an AKS cluster with ClusterClass is similar to deploying a self-managed cluster. Instead of using the AzureClusterTemplate, you must use both an AzureManagedClusterTemplate and AzureManagedControlPlaneTemplate. Due to the nature of managed Kubernetes and the control plane implementation, the infrastructure provider (and therefore the AzureManagedClusterTemplate) for AKS cluster is basically a no-op. The AzureManagedControlPlaneTemplate is used to define the AKS cluster configuration, such as the Kubernetes version and the number of nodes. Finally, the AzureManagedMachinePoolTemplate defines the worker nodes (agentpools) for the AKS cluster.
+Deploying an AKS cluster with ClusterClass is similar to deploying a self-managed cluster. However, both an AzureManagedClusterTemplate and AzureManagedControlPlaneTemplate must be used instead of the AzureClusterTemplate. Due to the nature of managed Kubernetes and the control plane implementation, the infrastructure provider (and therefore the AzureManagedClusterTemplate) for AKS cluster is basically a no-op. The AzureManagedControlPlaneTemplate is used to define the AKS cluster configuration, such as the Kubernetes version and the number of nodes. Finally, the AzureManagedMachinePoolTemplate defines the worker nodes (agentpools) for the AKS cluster.
 
 The following example shows a basic AzureManagedClusterTemplate, AzureManagedControlPlaneTemplate, and AzureManagedMachinePoolTemplate resource:
 
