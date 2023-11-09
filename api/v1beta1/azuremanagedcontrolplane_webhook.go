@@ -71,8 +71,8 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 		return apierrors.NewBadRequest("expected an AzureManagedControlPlane")
 	}
 
-	setDefaultVersion(&m.Spec.Version)
-	setDefaultIdentity(&m.Spec.Identity)
+	m.Spec.Version = setDefaultVersion(m.Spec.Version)
+	m.Spec.Identity = setDefaultIdentity(m.Spec.Identity)
 
 	if err := m.setDefaultSSHPublicKey(); err != nil {
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Error(err, "setDefaultSSHPublicKey failed")
@@ -82,8 +82,8 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 	m.setDefaultNodeResourceGroupName()
 	m.setDefaultVirtualNetwork()
 	m.setDefaultSubnet()
-	setDefaultSku(&m.Spec.SKU)
-	setDefaultAutoScalerProfile(&m.Spec.AutoScalerProfile)
+	m.Spec.SKU = setDefaultSku(m.Spec.SKU)
+	m.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(m.Spec.AutoScalerProfile)
 	m.setDefaultOIDCIssuerProfile()
 	m.setDefaultDNSPrefix()
 

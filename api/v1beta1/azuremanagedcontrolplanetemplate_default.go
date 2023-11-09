@@ -27,13 +27,13 @@ func (mcp *AzureManagedControlPlaneTemplate) setDefaults() {
 	setDefault[*string](&mcp.Spec.Template.Spec.LoadBalancerSKU, ptr.To("Standard"))
 
 	if mcp.Spec.Template.Spec.Version != "" && !strings.HasPrefix(mcp.Spec.Template.Spec.Version, "v") {
-		setDefaultVersion(&mcp.Spec.Template.Spec.Version)
+		mcp.Spec.Template.Spec.Version = setDefaultVersion(mcp.Spec.Template.Spec.Version)
 	}
 
 	mcp.setDefaultVirtualNetwork()
 	mcp.setDefaultSubnet()
-	setDefaultSku(&mcp.Spec.Template.Spec.SKU)
-	setDefaultAutoScalerProfile(&mcp.Spec.Template.Spec.AutoScalerProfile)
+	mcp.Spec.Template.Spec.SKU = setDefaultSku(mcp.Spec.Template.Spec.SKU)
+	mcp.Spec.Template.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(mcp.Spec.Template.Spec.AutoScalerProfile)
 }
 
 // setDefaultVirtualNetwork sets the default VirtualNetwork for an AzureManagedControlPlaneTemplate.

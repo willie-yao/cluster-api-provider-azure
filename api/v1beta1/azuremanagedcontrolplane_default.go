@@ -98,88 +98,100 @@ func (m *AzureManagedControlPlane) setDefaultSubnet() {
 	}
 }
 
-func setDefaultSku(sku **AKSSku) {
-	if *sku == nil {
-		*sku = new(AKSSku)
-		(*sku).Tier = FreeManagedControlPlaneTier
-	} else if (*sku).Tier == PaidManagedControlPlaneTier {
-		(*sku).Tier = StandardManagedControlPlaneTier
+func setDefaultSku(sku *AKSSku) *AKSSku {
+	result := sku
+	if sku == nil {
+		result = new(AKSSku)
+		result.Tier = FreeManagedControlPlaneTier
+	} else if sku.Tier == PaidManagedControlPlaneTier {
+		result.Tier = StandardManagedControlPlaneTier
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Info("Paid SKU tier is deprecated and has been replaced by Standard")
 	}
+	return result
 }
 
-func setDefaultVersion(version *string) {
-	if version != nil && *version != "" && !strings.HasPrefix(*version, "v") {
-		*version = "v" + *version
+func setDefaultVersion(version string) string {
+	result := version
+	if version != "" && !strings.HasPrefix(version, "v") {
+		normalizedVersion := "v" + version
+		result = normalizedVersion
 	}
+	return result
 }
 
-func setDefaultIdentity(identity **Identity) {
-	if *identity == nil {
-		*identity = new(Identity)
-		(*identity).Type = ManagedControlPlaneIdentityTypeSystemAssigned
+func setDefaultIdentity(identity *Identity) *Identity {
+	result := identity
+	if identity == nil {
+		result = &Identity{
+			Type: ManagedControlPlaneIdentityTypeSystemAssigned,
+		}
 	}
+	return result
 }
 
-func setDefaultAutoScalerProfile(autoScalerProfile **AutoScalerProfile) {
-	if *autoScalerProfile == nil {
-		return
+func setDefaultAutoScalerProfile(autoScalerProfile *AutoScalerProfile) *AutoScalerProfile {
+	if autoScalerProfile == nil {
+		return nil
 	}
+
+	result := autoScalerProfile
 
 	// Default values are from https://learn.microsoft.com/en-us/azure/aks/cluster-autoscaler#using-the-autoscaler-profile
 	// If any values are set, they all need to be set.
-	if (*autoScalerProfile).BalanceSimilarNodeGroups == nil {
-		(*autoScalerProfile).BalanceSimilarNodeGroups = (*BalanceSimilarNodeGroups)(ptr.To(string(BalanceSimilarNodeGroupsFalse)))
+	if autoScalerProfile.BalanceSimilarNodeGroups == nil {
+		result.BalanceSimilarNodeGroups = (*BalanceSimilarNodeGroups)(ptr.To(string(BalanceSimilarNodeGroupsFalse)))
 	}
-	if (*autoScalerProfile).Expander == nil {
-		(*autoScalerProfile).Expander = (*Expander)(ptr.To(string(ExpanderRandom)))
+	if autoScalerProfile.Expander == nil {
+		result.Expander = (*Expander)(ptr.To(string(ExpanderRandom)))
 	}
-	if (*autoScalerProfile).MaxEmptyBulkDelete == nil {
-		(*autoScalerProfile).MaxEmptyBulkDelete = ptr.To("10")
+	if autoScalerProfile.MaxEmptyBulkDelete == nil {
+		result.MaxEmptyBulkDelete = ptr.To("10")
 	}
-	if (*autoScalerProfile).MaxGracefulTerminationSec == nil {
-		(*autoScalerProfile).MaxGracefulTerminationSec = ptr.To("600")
+	if autoScalerProfile.MaxGracefulTerminationSec == nil {
+		result.MaxGracefulTerminationSec = ptr.To("600")
 	}
-	if (*autoScalerProfile).MaxNodeProvisionTime == nil {
-		(*autoScalerProfile).MaxNodeProvisionTime = ptr.To("15m")
+	if autoScalerProfile.MaxNodeProvisionTime == nil {
+		result.MaxNodeProvisionTime = ptr.To("15m")
 	}
-	if (*autoScalerProfile).MaxTotalUnreadyPercentage == nil {
-		(*autoScalerProfile).MaxTotalUnreadyPercentage = ptr.To("45")
+	if autoScalerProfile.MaxTotalUnreadyPercentage == nil {
+		result.MaxTotalUnreadyPercentage = ptr.To("45")
 	}
-	if (*autoScalerProfile).NewPodScaleUpDelay == nil {
-		(*autoScalerProfile).NewPodScaleUpDelay = ptr.To("0s")
+	if autoScalerProfile.NewPodScaleUpDelay == nil {
+		result.NewPodScaleUpDelay = ptr.To("0s")
 	}
-	if (*autoScalerProfile).OkTotalUnreadyCount == nil {
-		(*autoScalerProfile).OkTotalUnreadyCount = ptr.To("3")
+	if autoScalerProfile.OkTotalUnreadyCount == nil {
+		result.OkTotalUnreadyCount = ptr.To("3")
 	}
-	if (*autoScalerProfile).ScanInterval == nil {
-		(*autoScalerProfile).ScanInterval = ptr.To("10s")
+	if autoScalerProfile.ScanInterval == nil {
+		result.ScanInterval = ptr.To("10s")
 	}
-	if (*autoScalerProfile).ScaleDownDelayAfterAdd == nil {
-		(*autoScalerProfile).ScaleDownDelayAfterAdd = ptr.To("10m")
+	if autoScalerProfile.ScaleDownDelayAfterAdd == nil {
+		result.ScaleDownDelayAfterAdd = ptr.To("10m")
 	}
-	if (*autoScalerProfile).ScaleDownDelayAfterDelete == nil {
+	if autoScalerProfile.ScaleDownDelayAfterDelete == nil {
 		// Default is the same as the ScanInterval so default to that same value if it isn't set
-		(*autoScalerProfile).ScaleDownDelayAfterDelete = (*autoScalerProfile).ScanInterval
+		result.ScaleDownDelayAfterDelete = autoScalerProfile.ScanInterval
 	}
-	if (*autoScalerProfile).ScaleDownDelayAfterFailure == nil {
-		(*autoScalerProfile).ScaleDownDelayAfterFailure = ptr.To("3m")
+	if autoScalerProfile.ScaleDownDelayAfterFailure == nil {
+		result.ScaleDownDelayAfterFailure = ptr.To("3m")
 	}
-	if (*autoScalerProfile).ScaleDownUnneededTime == nil {
-		(*autoScalerProfile).ScaleDownUnneededTime = ptr.To("10m")
+	if autoScalerProfile.ScaleDownUnneededTime == nil {
+		result.ScaleDownUnneededTime = ptr.To("10m")
 	}
-	if (*autoScalerProfile).ScaleDownUnreadyTime == nil {
-		(*autoScalerProfile).ScaleDownUnreadyTime = ptr.To("20m")
+	if autoScalerProfile.ScaleDownUnreadyTime == nil {
+		result.ScaleDownUnreadyTime = ptr.To("20m")
 	}
-	if (*autoScalerProfile).ScaleDownUtilizationThreshold == nil {
-		(*autoScalerProfile).ScaleDownUtilizationThreshold = ptr.To("0.5")
+	if autoScalerProfile.ScaleDownUtilizationThreshold == nil {
+		result.ScaleDownUtilizationThreshold = ptr.To("0.5")
 	}
-	if (*autoScalerProfile).SkipNodesWithLocalStorage == nil {
-		(*autoScalerProfile).SkipNodesWithLocalStorage = (*SkipNodesWithLocalStorage)(ptr.To(string(SkipNodesWithLocalStorageFalse)))
+	if autoScalerProfile.SkipNodesWithLocalStorage == nil {
+		result.SkipNodesWithLocalStorage = (*SkipNodesWithLocalStorage)(ptr.To(string(SkipNodesWithLocalStorageFalse)))
 	}
-	if (*autoScalerProfile).SkipNodesWithSystemPods == nil {
-		(*autoScalerProfile).SkipNodesWithSystemPods = (*SkipNodesWithSystemPods)(ptr.To(string(SkipNodesWithSystemPodsTrue)))
+	if autoScalerProfile.SkipNodesWithSystemPods == nil {
+		result.SkipNodesWithSystemPods = (*SkipNodesWithSystemPods)(ptr.To(string(SkipNodesWithSystemPodsTrue)))
 	}
+
+	return result
 }
 
 func (m *AzureManagedControlPlane) setDefaultOIDCIssuerProfile() {

@@ -96,7 +96,7 @@ func TestSetDefaultAutoScalerProfile(t *testing.T) {
 		},
 	}}
 
-	setDefaultAutoScalerProfile(&allFieldsAreNilTest.amcp.Spec.AutoScalerProfile)
+	allFieldsAreNilTest.amcp.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(allFieldsAreNilTest.amcp.Spec.AutoScalerProfile)
 
 	g.Expect(allFieldsAreNilTest.amcp.Spec.AutoScalerProfile).To(Equal(defaultAMP.Spec.AutoScalerProfile))
 
@@ -134,7 +134,7 @@ func TestSetDefaultAutoScalerProfile(t *testing.T) {
 		},
 	}}
 
-	setDefaultAutoScalerProfile(&allFieldsAreNotNilTest.amcp.Spec.AutoScalerProfile)
+	allFieldsAreNotNilTest.amcp.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(allFieldsAreNotNilTest.amcp.Spec.AutoScalerProfile)
 
 	g.Expect(allFieldsAreNotNilTest.amcp.Spec.AutoScalerProfile).To(Equal(expectedNotNil.Spec.AutoScalerProfile))
 }
