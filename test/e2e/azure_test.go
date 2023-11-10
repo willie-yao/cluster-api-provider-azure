@@ -884,7 +884,7 @@ var _ = Describe("Workload cluster creation", func() {
 					return AKSClusterClassInput{
 						Cluster:                    result.Cluster,
 						MachinePool:                result.MachinePools[0],
-						WaitIntervals:              e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+						WaitIntervals:              e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 						KubernetesVersionUpgradeTo: kubernetesVersion,
 					}
 				})
