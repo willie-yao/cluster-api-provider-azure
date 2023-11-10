@@ -108,16 +108,6 @@ func setDefaultVersion(version string) string {
 	return version
 }
 
-func setDefaultIdentity(identity *Identity) *Identity {
-	result := identity.DeepCopy()
-	if identity == nil {
-		result = &Identity{
-			Type: ManagedControlPlaneIdentityTypeSystemAssigned,
-		}
-	}
-	return result
-}
-
 func setDefaultAutoScalerProfile(autoScalerProfile *AutoScalerProfile) *AutoScalerProfile {
 	if autoScalerProfile == nil {
 		return nil
