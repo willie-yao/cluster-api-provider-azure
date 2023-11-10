@@ -93,50 +93,16 @@ type AzureManagedControlPlaneSpec struct {
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
 
-	// NetworkPluginMode is the mode the network plugin should use.
-	// Allowed value is "overlay".
-	// +kubebuilder:validation:Enum=overlay
-	// +optional
-	NetworkPluginMode *NetworkPluginMode `json:"networkPluginMode,omitempty"`
-
 	// SSHPublicKey is a string literal containing an ssh public key base64 encoded.
 	// Use empty string to autogenerate new key. Use null value to not set key.
 	// Immutable.
 	// +optional
 	SSHPublicKey *string `json:"sshPublicKey,omitempty"`
-	// AzureEnvironment is the name of the AzureCloud to be used.
-	// The default value that would be used by most users is "AzurePublicCloud", other values are:
-	// - ChinaCloud: "AzureChinaCloud"
-	// - PublicCloud: "AzurePublicCloud"
-	// - USGovernmentCloud: "AzureUSGovernmentCloud"
-	// +optional
-	AzureEnvironment string `json:"azureEnvironment,omitempty"`
-
-	// Identity configuration used by the AKS control plane.
-	// +optional
-	Identity *Identity `json:"identity,omitempty"`
-
-	// KubeletUserAssignedIdentity is the user-assigned identity for kubelet.
-	// For authentication with Azure Container Registry.
-	// +optional
-	KubeletUserAssignedIdentity string `json:"kubeletUserAssignedIdentity,omitempty"`
-
-	// HTTPProxyConfig is the HTTP proxy configuration for the cluster.
-	// Immutable.
-	// +optional
-	HTTPProxyConfig *HTTPProxyConfig `json:"httpProxyConfig,omitempty"`
-
-	// OIDCIssuerProfile is the OIDC issuer profile of the Managed Cluster.
-	// +optional
-	OIDCIssuerProfile *OIDCIssuerProfile `json:"oidcIssuerProfile,omitempty"`
 
 	// DNSPrefix allows the user to customize dns prefix.
 	// Immutable.
 	// +optional
 	DNSPrefix *string `json:"dnsPrefix,omitempty"`
-	// DisableLocalAccounts disables getting static credentials for this cluster when set. Expected to only be used for AAD clusters.
-	// +optional
-	DisableLocalAccounts *bool `json:"disableLocalAccounts,omitempty"`
 }
 
 // HTTPProxyConfig is the HTTP proxy configuration for the cluster.

@@ -24,7 +24,6 @@ import (
 	"golang.org/x/crypto/ssh"
 	"k8s.io/utils/ptr"
 	utilSSH "sigs.k8s.io/cluster-api-provider-azure/util/ssh"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -51,15 +50,6 @@ func (m *AzureManagedControlPlane) setDefaultSSHPublicKey() error {
 	}
 
 	return nil
-}
-
-// setDefaultResourceGroupName sets the default ResourceGroupName for an AzureManagedControlPlane.
-func (m *AzureManagedControlPlane) setDefaultResourceGroupName() {
-	if m.Spec.ResourceGroupName == "" {
-		if clusterName, ok := m.Labels[clusterv1.ClusterNameLabel]; ok {
-			m.Spec.ResourceGroupName = clusterName
-		}
-	}
 }
 
 // setDefaultNodeResourceGroupName sets the default NodeResourceGroup for an AzureManagedControlPlane.

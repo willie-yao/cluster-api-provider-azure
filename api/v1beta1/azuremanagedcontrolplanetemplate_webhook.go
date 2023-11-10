@@ -183,10 +183,6 @@ func (mcpw *azureManagedControlPlaneTemplateWebhook) ValidateUpdate(ctx context.
 func (mcp *AzureManagedControlPlaneTemplate) validateManagedControlPlaneTemplate(cli client.Client) error {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, validateDNSServiceIP(
-		mcp.Spec.Template.Spec.DNSServiceIP,
-		field.NewPath("spec").Child("template").Child("spec").Child("DNSServiceIP"))...)
-
 	allErrs = append(allErrs, validateVersion(
 		mcp.Spec.Template.Spec.Version,
 		field.NewPath("spec").Child("template").Child("spec").Child("Version"))...)

@@ -73,19 +73,20 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 
 	setDefault[*string](&m.Spec.NetworkPlugin, ptr.To(AzureNetworkPluginName))
 	setDefault[*string](&m.Spec.LoadBalancerSKU, ptr.To("Standard"))
+	setDefault[*Identity](&m.Spec.Identity, &Identity{
+		Type: ManagedControlPlaneIdentityTypeSystemAssigned,
+	})
 	m.Spec.Version = setDefaultVersion(m.Spec.Version)
-	m.Spec.Identity = setDefaultIdentity(m.Spec.Identity)
+	m.Spec.SKU = setDefaultSku(m.Spec.SKU)
+	m.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(m.Spec.AutoScalerProfile)
 
 	if err := m.setDefaultSSHPublicKey(); err != nil {
 		ctrl.Log.WithName("AzureManagedControlPlaneWebHookLogger").Error(err, "setDefaultSSHPublicKey failed")
 	}
 
-	m.setDefaultResourceGroupName()
 	m.setDefaultNodeResourceGroupName()
 	m.setDefaultVirtualNetwork()
 	m.setDefaultSubnet()
-	m.Spec.SKU = setDefaultSku(m.Spec.SKU)
-	m.Spec.AutoScalerProfile = setDefaultAutoScalerProfile(m.Spec.AutoScalerProfile)
 	m.setDefaultOIDCIssuerProfile()
 	m.setDefaultDNSPrefix()
 
@@ -272,10 +273,6 @@ func (m *AzureManagedControlPlane) Validate(cli client.Client) error {
 		}
 	}
 
-	allErrs = append(allErrs, validateDNSServiceIP(
-		m.Spec.DNSServiceIP,
-		field.NewPath("Spec").Child("DNSServiceIP"))...)
-
 	allErrs = append(allErrs, validateVersion(
 		m.Spec.Version,
 		field.NewPath("Spec").Child("Version"))...)
@@ -297,18 +294,6 @@ func (m *AzureManagedControlPlane) Validate(cli client.Client) error {
 	allErrs = append(allErrs, validateAutoScalerProfile(m.Spec.AutoScalerProfile, field.NewPath("spec").Child("AutoScalerProfile"))...)
 
 	return allErrs.ToAggregate()
-}
-
-// validateDNSServiceIP validates the DNSServiceIP.
-func validateDNSServiceIP(dnsServiceIP *string, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-	if dnsServiceIP != nil {
-		if net.ParseIP(*dnsServiceIP) == nil {
-			allErrs = append(allErrs, field.Invalid(fldPath, dnsServiceIP, "DNSServiceIP must be a valid IP"))
-		}
-	}
-
-	return allErrs
 }
 
 func (m *AzureManagedControlPlane) validateDNSPrefix(_ client.Client) field.ErrorList {

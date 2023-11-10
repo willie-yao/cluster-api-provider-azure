@@ -236,11 +236,61 @@ spec:
                             - "false"
                             type: string
                         type: object
+                      azureEnvironment:
+                        description: 'AzureEnvironment is the name of the AzureCloud
+                          to be used. The default value that would be used by most
+                          users is "AzurePublicCloud", other values are: - ChinaCloud:
+                          "AzureChinaCloud" - PublicCloud: "AzurePublicCloud" - USGovernmentCloud:
+                          "AzureUSGovernmentCloud"'
+                        type: string
+                      disableLocalAccounts:
+                        description: DisableLocalAccounts disables getting static
+                          credentials for this cluster when set. Expected to only
+                          be used for AAD clusters.
+                        type: boolean
                       dnsServiceIP:
                         description: DNSServiceIP is an IP address assigned to the
                           Kubernetes DNS service. It must be within the Kubernetes
                           service address range specified in serviceCidr.
                         type: string
+                      httpProxyConfig:
+                        description: HTTPProxyConfig is the HTTP proxy configuration
+                          for the cluster. Immutable.
+                        properties:
+                          httpProxy:
+                            description: HTTPProxy is the HTTP proxy server endpoint
+                              to use.
+                            type: string
+                          httpsProxy:
+                            description: HTTPSProxy is the HTTPS proxy server endpoint
+                              to use.
+                            type: string
+                          noProxy:
+                            description: NoProxy indicates the endpoints that should
+                              not go through proxy.
+                            items:
+                              type: string
+                            type: array
+                          trustedCa:
+                            description: TrustedCA is the alternative CA cert to use
+                              for connecting to proxy servers.
+                            type: string
+                        type: object
+                      identity:
+                        description: Identity configuration used by the AKS control
+                          plane.
+                        properties:
+                          type:
+                            description: Type - The Identity type to use.
+                            enum:
+                            - SystemAssigned
+                            - UserAssigned
+                            type: string
+                          userAssignedIdentityResourceID:
+                            description: UserAssignedIdentityResourceID - Identity
+                              ARM resource ID when using user-assigned identity.
+                            type: string
+                        type: object
                       identityRef:
                         description: IdentityRef is a reference to a AzureClusterIdentity
                           to be used when reconciling this cluster
@@ -280,6 +330,11 @@ spec:
                             type: string
                         type: object
                         x-kubernetes-map-type: atomic
+                      kubeletUserAssignedIdentity:
+                        description: KubeletUserAssignedIdentity is the user-assigned
+                          identity for kubelet. For authentication with Azure Container
+                          Registry.
+                        type: string
                       loadBalancerProfile:
                         description: LoadBalancerProfile is the profile of the cluster
                           load balancer.
@@ -340,12 +395,26 @@ spec:
                         - azure
                         - kubenet
                         type: string
+                      networkPluginMode:
+                        description: NetworkPluginMode is the mode the network plugin
+                          should use. Allowed value is "overlay".
+                        enum:
+                        - overlay
+                        type: string
                       networkPolicy:
                         description: NetworkPolicy used for building Kubernetes network.
                         enum:
                         - azure
                         - calico
                         type: string
+                      oidcIssuerProfile:
+                        description: OIDCIssuerProfile is the OIDC issuer profile
+                          of the Managed Cluster.
+                        properties:
+                          enabled:
+                            description: Enabled is whether the OIDC issuer is enabled.
+                            type: boolean
+                        type: object
                       outboundType:
                         description: Outbound configuration used by Nodes.
                         enum:

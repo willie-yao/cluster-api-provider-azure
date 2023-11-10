@@ -750,9 +750,9 @@ func TestManagedControlPlaneScope_DisableLocalAccounts(t *testing.T) {
 					},
 					Spec: infrav1.AzureManagedControlPlaneSpec{
 						AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
-							SubscriptionID: "00000000-0000-0000-0000-000000000000",
+							SubscriptionID:       "00000000-0000-0000-0000-000000000000",
+							DisableLocalAccounts: ptr.To[bool](true),
 						},
-						DisableLocalAccounts: ptr.To[bool](true),
 					},
 				},
 				ManagedMachinePools: []ManagedMachinePool{
@@ -785,8 +785,8 @@ func TestManagedControlPlaneScope_DisableLocalAccounts(t *testing.T) {
 								Managed:             true,
 								AdminGroupObjectIDs: []string{"00000000-0000-0000-0000-000000000000"},
 							},
+							DisableLocalAccounts: ptr.To[bool](true),
 						},
-						DisableLocalAccounts: ptr.To[bool](true),
 					},
 				},
 				ManagedMachinePools: []ManagedMachinePool{
@@ -874,8 +874,8 @@ func TestIsAADEnabled(t *testing.T) {
 								Managed:             true,
 								AdminGroupObjectIDs: []string{"00000000-0000-0000-0000-000000000000"},
 							},
+							DisableLocalAccounts: ptr.To[bool](true),
 						},
-						DisableLocalAccounts: ptr.To[bool](true),
 					},
 				},
 				ManagedMachinePools: []ManagedMachinePool{
@@ -994,8 +994,8 @@ func TestAreLocalAccountsDisabled(t *testing.T) {
 								Managed:             true,
 								AdminGroupObjectIDs: []string{"00000000-0000-0000-0000-000000000000"},
 							},
+							DisableLocalAccounts: ptr.To[bool](true),
 						},
-						DisableLocalAccounts: ptr.To[bool](true),
 					},
 				},
 				ManagedMachinePools: []ManagedMachinePool{
