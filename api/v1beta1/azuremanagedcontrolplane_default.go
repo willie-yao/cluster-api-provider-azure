@@ -99,7 +99,7 @@ func (m *AzureManagedControlPlane) setDefaultSubnet() {
 }
 
 func setDefaultSku(sku *AKSSku) *AKSSku {
-	result := sku
+	result := sku.DeepCopy()
 	if sku == nil {
 		result = new(AKSSku)
 		result.Tier = FreeManagedControlPlaneTier
@@ -111,16 +111,15 @@ func setDefaultSku(sku *AKSSku) *AKSSku {
 }
 
 func setDefaultVersion(version string) string {
-	result := version
 	if version != "" && !strings.HasPrefix(version, "v") {
 		normalizedVersion := "v" + version
-		result = normalizedVersion
+		version = normalizedVersion
 	}
-	return result
+	return version
 }
 
 func setDefaultIdentity(identity *Identity) *Identity {
-	result := identity
+	result := identity.DeepCopy()
 	if identity == nil {
 		result = &Identity{
 			Type: ManagedControlPlaneIdentityTypeSystemAssigned,
@@ -134,7 +133,7 @@ func setDefaultAutoScalerProfile(autoScalerProfile *AutoScalerProfile) *AutoScal
 		return nil
 	}
 
-	result := autoScalerProfile
+	result := autoScalerProfile.DeepCopy()
 
 	// Default values are from https://learn.microsoft.com/en-us/azure/aks/cluster-autoscaler#using-the-autoscaler-profile
 	// If any values are set, they all need to be set.
@@ -170,7 +169,7 @@ func setDefaultAutoScalerProfile(autoScalerProfile *AutoScalerProfile) *AutoScal
 	}
 	if autoScalerProfile.ScaleDownDelayAfterDelete == nil {
 		// Default is the same as the ScanInterval so default to that same value if it isn't set
-		result.ScaleDownDelayAfterDelete = autoScalerProfile.ScanInterval
+		result.ScaleDownDelayAfterDelete = result.ScanInterval
 	}
 	if autoScalerProfile.ScaleDownDelayAfterFailure == nil {
 		result.ScaleDownDelayAfterFailure = ptr.To("3m")
