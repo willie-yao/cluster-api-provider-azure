@@ -1011,17 +1011,7 @@ type FleetsMember struct {
 	// +optional
 	Name string `json:"name,omitempty"`
 
-	// Group is the group this member belongs to for multi-cluster update management.
-	// +optional
-	Group string `json:"group,omitempty"`
-
-	// ManagerName is the name of the fleet manager.
-	// +kubebuilder:validation:Required
-	ManagerName string `json:"managerName,omitempty"`
-
-	// ManagerResourceGroup is the resource group of the fleet manager.
-	// +kubebuilder:validation:Required
-	ManagerResourceGroup string `json:"managerResourceGroup,omitempty"`
+	FleetsMemberClassSpec `json:",inline"`
 }
 
 // BackendPool describes the backend pool of the load balancer.

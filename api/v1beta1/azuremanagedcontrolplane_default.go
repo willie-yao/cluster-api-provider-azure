@@ -99,10 +99,12 @@ func (m *AzureManagedControlPlane) setDefaultSubnet() {
 }
 
 // setDefaultFleetsMenber sets the default FleetsMember for an AzureManagedControlPlane.
-func (m *AzureManagedControlPlane) setDefaultFleetsMember() {
-	if clusterName, ok := m.Labels[clusterv1.ClusterNameLabel]; ok && m.Spec.FleetsMember != nil && m.Spec.FleetsMember.Name == "" {
-		m.Spec.FleetsMember.Name = clusterName
+func setDefaultFleetsMember(fleetsMember *FleetsMember, labels map[string]string) *FleetsMember {
+	result := fleetsMember.DeepCopy()
+	if clusterName, ok := labels[clusterv1.ClusterNameLabel]; ok && fleetsMember != nil && fleetsMember.Name == "" {
+		result.Name = clusterName
 	}
+	return result
 }
 
 func setDefaultSku(sku *AKSSku) *AKSSku {

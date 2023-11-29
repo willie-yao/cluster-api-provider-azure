@@ -152,11 +152,11 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 		Spec: infrav1.AzureManagedControlPlaneSpec{
 			AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
 				SubscriptionID: "something",
+				FleetsMember: &infrav1.FleetsMember{
+					Name: name,
+				},
 			},
 			ResourceGroupName: name,
-			FleetsMember: &infrav1.FleetsMember{
-				Name: name,
-			},
 		},
 	}
 	g.Expect(c.Create(ctx, instance)).To(Succeed())
