@@ -21,11 +21,13 @@ import (
 	"testing"
 	"time"
 
+	aadpodv1 "github.com/Azure/aad-pod-identity/pkg/apis/aadpodidentity/v1"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -246,11 +248,26 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 		clusterv1.AddToScheme,
 		infrav1.AddToScheme,
 		asoresourcesv1.AddToScheme,
+		corev1.AddToScheme,
+		aadpodv1.AddToScheme,
 	)
 	s := runtime.NewScheme()
 	g.Expect(sb.AddToScheme(s)).To(Succeed())
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: "default",
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type: infrav1.ServicePrincipal,
+		},
+	}
+	fakeSecret := &corev1.Secret{}
+
+	initObjects := []runtime.Object{fakeIdentity, fakeSecret}
 	c := fake.NewClientBuilder().
 		WithScheme(s).
+		WithRuntimeObjects(initObjects...).
 		Build()
 
 	recorder := record.NewFakeRecorder(1)
@@ -286,6 +303,11 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 		Spec: infrav1.AzureClusterSpec{
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				SubscriptionID: "something",
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "fake-identity",
+					Namespace: "default",
+					Kind:      "AzureClusterIdentity",
+				},
 			},
 			ResourceGroup: name,
 		},
@@ -426,9 +448,22 @@ func getClusterReconcileInputs(tc TestClusterReconcileInput) (*AzureClusterRecon
 		})
 	}
 
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: "default",
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type: infrav1.ServicePrincipal,
+		},
+	}
+	fakeSecret := &corev1.Secret{}
+
 	objects := []runtime.Object{
 		cluster,
 		azureCluster,
+		fakeIdentity,
+		fakeSecret,
 	}
 
 	client := fake.NewClientBuilder().
