@@ -37,8 +37,9 @@ import (
 )
 
 type AKSFleetsMemberInput struct {
-	Cluster       *clusterv1.Cluster
-	WaitIntervals []interface{}
+	Cluster            *clusterv1.Cluster
+	WaitIntervals      []interface{}
+	WaitFleetIntervals []interface{}
 }
 
 const (
@@ -101,7 +102,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 			},
 		}
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
-	}, input.WaitIntervals...).Should(Succeed())
+	}, input.WaitFleetIntervals...).Should(Succeed())
 
 	By("Ensuring the fleet member is created and attached to the managed cluster")
 	Eventually(func(g Gomega) {
@@ -112,6 +113,6 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		g.Expect(fleetsMember.Properties).NotTo(BeNil())
 		expectedID := azure.ManagedClusterID(getSubscriptionID(Default), infraControlPlane.Spec.ResourceGroupName, input.Cluster.Name)
 		g.Expect(fleetsMember.Properties.ClusterResourceID).To(Equal(expectedID))
-	}, input.WaitIntervals...).Should(Succeed())
+	}, input.WaitFleetIntervals...).Should(Succeed())
 
 }
