@@ -198,3 +198,14 @@ func (m *AzureManagedControlPlane) setDefaultDNSPrefix() {
 		m.Spec.DNSPrefix = ptr.To(m.Name)
 	}
 }
+
+func (m *AzureManagedControlPlane) setDefaultMarketplaceExtensions() {
+	for _, extension := range m.Spec.MarketplaceExtensions {
+		if extension.Plan.Name == "" {
+			extension.Plan.Name = fmt.Sprintf("%s-%s", m.Name, extension.Plan.Product)
+		}
+		if extension.AutoUpgradeMinorVersion == nil {
+			extension.AutoUpgradeMinorVersion = ptr.To(true)
+		}
+	}
+}
