@@ -216,6 +216,14 @@ func (mw *azureManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, o
 		allErrs = append(allErrs, err)
 	}
 
+	if err := webhookutils.ValidateImmutable(
+		field.NewPath("Spec", "FleetsMember.Name"),
+		m.Spec.FleetsMember.Name,
+		old.Spec.FleetsMember.Name,
+	); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	// Consider removing this once moves out of preview
 	// Updating outboundType after cluster creation (PREVIEW)
 	// https://learn.microsoft.com/en-us/azure/aks/egress-outboundtype#updating-outboundtype-after-cluster-creation-preview
