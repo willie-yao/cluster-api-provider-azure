@@ -216,14 +216,6 @@ func (mw *azureManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, o
 		allErrs = append(allErrs, err)
 	}
 
-	if err := webhookutils.ValidateImmutable(
-		field.NewPath("Spec", "FleetsMember.Name"),
-		m.Spec.FleetsMember.Name,
-		old.Spec.FleetsMember.Name,
-	); err != nil {
-		allErrs = append(allErrs, err)
-	}
-
 	// Consider removing this once moves out of preview
 	// Updating outboundType after cluster creation (PREVIEW)
 	// https://learn.microsoft.com/en-us/azure/aks/egress-outboundtype#updating-outboundtype-after-cluster-creation-preview
@@ -255,6 +247,10 @@ func (mw *azureManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, o
 	}
 
 	if errs := m.validateOIDCIssuerProfileUpdate(old); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+
+	if errs := m.validateFleetsMember(old); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
@@ -677,6 +673,24 @@ func (m *AzureManagedControlPlane) validateOIDCIssuerProfileUpdate(old *AzureMan
 				field.Forbidden(
 					field.NewPath("Spec", "OIDCIssuerProfile", "Enabled"),
 					"cannot be disabled",
+				),
+			)
+		}
+	}
+
+	return allErrs
+}
+
+// validateFleetsMember validates a FleetsMember.
+func (m *AzureManagedControlPlane) validateFleetsMember(old *AzureManagedControlPlane) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if old.Spec.FleetsMember != nil && m.Spec.FleetsMember != nil {
+		if old.Spec.FleetsMember.Name != m.Spec.FleetsMember.Name {
+			allErrs = append(allErrs,
+				field.Forbidden(
+					field.NewPath("Spec", "FleetsMember", "Name"),
+					"Name is immutable",
 				),
 			)
 		}

@@ -83,11 +83,10 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		Location: ptr.To(os.Getenv(AzureLocation)),
 	}, nil)
 	Expect(err).To(BeNil())
-
-	Eventually(func(g Gomega) {
-		_, err := poller.PollUntilDone(ctx, nil)
-		Expect(err).NotTo(HaveOccurred())
-	}, input.WaitIntervals...).Should(Succeed(), "failed to create fleet manager")
+	res, err := poller.PollUntilDone(ctx, nil)
+	Expect(err).To(BeNil())
+	Logf("Fleet manager created: %v", res.Fleet.Name)
+	Logf("Fleet manager arm id: %v", *res.Fleet.ID)
 
 	By("Joining the cluster to the fleet hub")
 	var infraControlPlane = &infrav1.AzureManagedControlPlane{}
