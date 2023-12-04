@@ -24,6 +24,7 @@ import (
 	"time"
 
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230201"
+	asokubernetesconfigurationv1 "github.com/Azure/azure-service-operator/v2/api/kubernetesconfiguration/v1api20230501"
 	asonetworkv1 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	"github.com/pkg/errors"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
+	"sigs.k8s.io/cluster-api-provider-azure/azure/services/aksextensions"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/groups"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/managedclusters"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/privateendpoints"
@@ -902,4 +904,36 @@ func (s *ManagedControlPlaneScope) PrivateEndpointSpecs() []azure.ASOResourceSpe
 // SetOIDCIssuerProfileStatus sets the status for the OIDC issuer profile config.
 func (s *ManagedControlPlaneScope) SetOIDCIssuerProfileStatus(oidc *infrav1.OIDCIssuerProfileStatus) {
 	s.ControlPlane.Status.OIDCIssuerProfile = oidc
+}
+
+// AKSExtension returns the cluster AKS extensions.
+func (s *ManagedControlPlaneScope) AKSExtension() []infrav1.MarketplaceExtension {
+	return s.ControlPlane.Spec.MarketplaceExtensions
+}
+
+// AKSExtensionSpecs returns the AKS extension specs.
+func (s *ManagedControlPlaneScope) AKSExtensionSpecs() []azure.ASOResourceSpecGetter[*asokubernetesconfigurationv1.Extension] {
+	if s.AKSExtension() == nil {
+		return nil
+	}
+	extensionSpecs := make([]azure.ASOResourceSpecGetter[*asokubernetesconfigurationv1.Extension], 0, len(s.ControlPlane.Spec.MarketplaceExtensions))
+	for _, extension := range s.ControlPlane.Spec.MarketplaceExtensions {
+		extensionSpec := &aksextensions.AKSExtensionSpec{
+			Name:                    extension.Name,
+			Namespace:               s.Cluster.Namespace,
+			AutoUpgradeMinorVersion: extension.AutoUpgradeMinorVersion,
+			ConfigurationSettings:   extension.ConfigurationSettings,
+			ExtensionType:           extension.ExtensionType,
+			ReleaseTrain:            extension.ReleaseTrain,
+			Version:                 extension.Version,
+			Owner:                   azure.ManagedClusterID(s.SubscriptionID(), s.ResourceGroup(), s.ControlPlane.Name),
+			OwnerRef:                *metav1.NewControllerRef(s.ControlPlane, infrav1.GroupVersion.WithKind(infrav1.AzureManagedControlPlaneKind)),
+			Plan:                    extension.Plan,
+			// AKSAssignedIdentityType: extension.AKSAssignedIdentityType,
+		}
+
+		extensionSpecs = append(extensionSpecs, extensionSpec)
+	}
+
+	return extensionSpecs
 }

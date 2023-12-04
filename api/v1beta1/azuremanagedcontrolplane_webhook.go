@@ -94,6 +94,7 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 	m.setDefaultSubnet()
 	m.setDefaultOIDCIssuerProfile()
 	m.setDefaultDNSPrefix()
+	m.setDefaultMarketplaceExtensions()
 
 	return nil
 }
@@ -249,6 +250,10 @@ func (mw *azureManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, o
 		allErrs = append(allErrs, errs...)
 	}
 
+	if errs := m.validateMarketplaceExtensionsUpdate(old); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+
 	if len(allErrs) == 0 {
 		return nil, m.Validate(mw.Client)
 	}
@@ -297,6 +302,8 @@ func (m *AzureManagedControlPlane) Validate(cli client.Client) error {
 	allErrs = append(allErrs, validateName(m.Name, field.NewPath("Name"))...)
 
 	allErrs = append(allErrs, validateAutoScalerProfile(m.Spec.AutoScalerProfile, field.NewPath("spec").Child("AutoScalerProfile"))...)
+
+	allErrs = append(allErrs, validateMarketplaceExtensions(m.Spec.MarketplaceExtensions, field.NewPath("spec").Child("MarketplaceExtensions"))...)
 
 	return allErrs.ToAggregate()
 }
@@ -676,12 +683,63 @@ func (m *AzureManagedControlPlane) validateOIDCIssuerProfileUpdate(old *AzureMan
 	return allErrs
 }
 
+// validateMarketplaceExtensionsUpdate validates update to Marketplace extensions.
+func (m *AzureManagedControlPlane) validateMarketplaceExtensionsUpdate(old *AzureManagedControlPlane) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if m.Spec.MarketplaceExtensions != nil && old.Spec.MarketplaceExtensions != nil {
+		for i, extension := range m.Spec.MarketplaceExtensions {
+			if extension.Name != old.Spec.MarketplaceExtensions[i].Name {
+				allErrs = append(allErrs,
+					field.Invalid(
+						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Name"),
+						extension.Name,
+						"field is immutable",
+					),
+				)
+			}
+			if extension.Plan.Publisher != old.Spec.MarketplaceExtensions[i].Plan.Publisher {
+				allErrs = append(allErrs,
+					field.Invalid(
+						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Publisher"),
+						extension.Plan.Publisher,
+						"field is immutable",
+					),
+				)
+			}
+			if extension.Plan.Product != old.Spec.MarketplaceExtensions[i].Plan.Product {
+				allErrs = append(allErrs,
+					field.Invalid(
+						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Product"),
+						extension.Plan.Product,
+						"field is immutable",
+					),
+				)
+			}
+		}
+	}
+
+	return allErrs
+}
+
 func validateName(name string, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	if lName := strings.ToLower(name); strings.Contains(lName, "microsoft") ||
 		strings.Contains(lName, "windows") {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("Name"), name,
 			"cluster name is invalid because 'MICROSOFT' and 'WINDOWS' can't be used as either a whole word or a substring in the name"))
+	}
+
+	return allErrs
+}
+
+// validateMarketplaceExtensions validates the Marketplace extensions.
+func validateMarketplaceExtensions(extensions []MarketplaceExtension, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	for _, extension := range extensions {
+		if extension.Version != nil && (extension.AutoUpgradeMinorVersion == nil || (extension.AutoUpgradeMinorVersion != nil && *extension.AutoUpgradeMinorVersion)) {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("Version"), "Version must not be given if AutoUpgradeMinorVersion is true (or not provided, as it is true by default)"))
+		}
 	}
 
 	return allErrs

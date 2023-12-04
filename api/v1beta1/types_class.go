@@ -187,6 +187,10 @@ type AzureManagedControlPlaneClassSpec struct {
 	// DisableLocalAccounts disables getting static credentials for this cluster when set. Expected to only be used for AAD clusters.
 	// +optional
 	DisableLocalAccounts *bool `json:"disableLocalAccounts,omitempty"`
+
+	// MarketplaceExtensions is a list of marketplace extensions to be installed on the cluster.
+	// +optional
+	MarketplaceExtensions []MarketplaceExtension `json:"marketplaceExtensions,omitempty"`
 }
 
 // AzureManagedMachinePoolClassSpec defines the AzureManagedMachinePool properties that may be shared across several Azure managed machinepools.

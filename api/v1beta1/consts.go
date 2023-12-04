@@ -130,6 +130,8 @@ const (
 	NetworkInterfaceReadyCondition clusterv1.ConditionType = "NetworkInterfacesReady"
 	// PrivateEndpointsReadyCondition means the private endpoints exist and are ready to be used.
 	PrivateEndpointsReadyCondition clusterv1.ConditionType = "PrivateEndpointsReady"
+	// AKSExtensionsReadyCondition means the AKS Extensions exist and are ready to be used.
+	AKSExtensionsReadyCondition clusterv1.ConditionType = "AKSExtensionsReady"
 
 	// CreatingReason means the resource is being created.
 	CreatingReason = "Creating"

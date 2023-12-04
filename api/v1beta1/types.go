@@ -1088,3 +1088,23 @@ const (
 	// UniformOrchestrationMode treats VMs as identical instances accessible by the VMSS VM API.
 	UniformOrchestrationMode OrchestrationModeType = "Uniform"
 )
+
+type MarketplacePlan struct {
+	// Name is the user defined name of the 3rd Party Artifact that is being procured.
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// Product is the name of the 3rd Party artifact that is being procured.
+	Product string `json:"product"`
+
+	// PromotionCode is a publisher provided promotion code as provisioned in Data Market for the said product/artifact.
+	// +optional
+	PromotionCode string `json:"promotionCode,omitempty"`
+
+	// Publisher is the name of the publisher of the 3rd Party Artifact that is being bought
+	Publisher string `json:"publisher"`
+
+	// Version is the version of the plan.
+	// +optional
+	Version string `json:"version,omitempty"`
+}

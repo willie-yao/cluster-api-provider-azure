@@ -387,6 +387,73 @@ spec:
                           plane. For the AzureManagedControlPlaneTemplate, this field
                           is used only to fulfill the CAPI contract.
                         type: object
+                      marketplaceExtensions:
+                        description: MarketplaceExtensions is a list of marketplace
+                          extensions to be installed on the cluster.
+                        items:
+                          properties:
+                            autoUpgradeMinorVersion:
+                              default: true
+                              description: AutoUpgradeMinorVersion is a flag to note
+                                if this extension participates in auto upgrade of
+                                minor version, or not.
+                              type: boolean
+                            configurationSettings:
+                              additionalProperties:
+                                type: string
+                              description: ConfigurationSettings are the name-value
+                                pairs for configuring this extension.
+                              type: object
+                            extensionType:
+                              description: ExtensionType is the of the Extension,
+                                of which this resource is an instance of. It must
+                                be one of the Extension Types registered with Microsoft.KubernetesConfiguration
+                                by the Extension publisher.
+                              type: string
+                            name:
+                              description: Name is the name of the extension.
+                              type: string
+                            plan:
+                              description: Plan is the plan of the extension.
+                              properties:
+                                name:
+                                  description: Name is the user defined name of the
+                                    3rd Party Artifact that is being procured.
+                                  type: string
+                                product:
+                                  description: Product is the name of the 3rd Party
+                                    artifact that is being procured.
+                                  type: string
+                                promotionCode:
+                                  description: PromotionCode is a publisher provided
+                                    promotion code as provisioned in Data Market for
+                                    the said product/artifact.
+                                  type: string
+                                publisher:
+                                  description: Publisher is the name of the publisher
+                                    of the 3rd Party Artifact that is being bought
+                                  type: string
+                                version:
+                                  description: Version is the version of the plan.
+                                  type: string
+                              type: object
+                            releaseTrain:
+                              description: ReleaseTrain is the release train this
+                                extension participates in for auto-upgrade (e.g. Stable,
+                                Preview, etc.) only if autoUpgradeMinorVersion is
+                                ‘true’.
+                              type: string
+                            scope:
+                              description: Scope is the scope at which this extension
+                                is enabled.
+                              type: string
+                            version:
+                              description: Version is the version of the extension.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
                       networkPlugin:
                         description: NetworkPlugin used for building Kubernetes network.
                         enum:
