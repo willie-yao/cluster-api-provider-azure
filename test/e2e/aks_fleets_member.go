@@ -105,7 +105,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 
 	By("Ensuring the fleet member is created and attached to the managed cluster")
 	Eventually(func(g Gomega) {
-		resp, err := fleetsMemberClient.Get(ctx, infraControlPlane.Spec.ResourceGroupName, fleetName, input.Cluster.Name, nil)
+		resp, err := fleetsMemberClient.Get(ctx, groupName, fleetName, input.Cluster.Name, nil)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(resp.Properties.ProvisioningState).To(Equal(ptr.To("Succeeded")))
 		fleetsMember := resp.FleetMember
