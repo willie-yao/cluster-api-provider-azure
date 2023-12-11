@@ -391,6 +391,9 @@ spec:
                         description: MarketplaceExtensions is a list of marketplace
                           extensions to be installed on the cluster.
                         items:
+                          description: "MarketplaceExtension represents the configuration
+                            for a marketplace extension. See also [AKS doc]. \n [AKS
+                            doc]: https://learn.microsoft.com/en-us/azure/aks/cluster-extensions"
                           properties:
                             autoUpgradeMinorVersion:
                               default: true
@@ -436,6 +439,9 @@ spec:
                                 version:
                                   description: Version is the version of the plan.
                                   type: string
+                              required:
+                              - product
+                              - publisher
                               type: object
                             releaseTrain:
                               description: ReleaseTrain is the release train this
@@ -451,7 +457,9 @@ spec:
                               description: Version is the version of the extension.
                               type: string
                           required:
+                          - extensionType
                           - name
+                          - plan
                           type: object
                         type: array
                       networkPlugin:

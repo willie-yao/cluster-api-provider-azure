@@ -421,6 +421,10 @@ type OIDCIssuerProfile struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// MarketplaceExtension represents the configuration for a marketplace extension.
+// See also [AKS doc].
+//
+// [AKS doc]: https://learn.microsoft.com/en-us/azure/aks/cluster-extensions
 type MarketplaceExtension struct {
 	// Name is the name of the extension.
 	Name string `json:"name"`
