@@ -69,6 +69,10 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 	By("creating a resource group")
 	_, err = groupClient.CreateOrUpdate(ctx, groupName, armresources.ResourceGroup{
 		Location: ptr.To(os.Getenv(AzureLocation)),
+		Tags: map[string]*string{
+			"jobName":           ptr.To(os.Getenv(JobName)),
+			"creationTimestamp": ptr.To(os.Getenv(Timestamp)),
+		},
 	}, nil)
 	Expect(err).To(BeNil())
 
