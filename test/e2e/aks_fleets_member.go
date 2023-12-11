@@ -43,8 +43,9 @@ type AKSFleetsMemberInput struct {
 }
 
 const (
-	groupName = "capz-aks-fleets-member"
-	fleetName = "capz-aks-fleets-manager"
+	groupName       = "capz-aks-fleets-member"
+	fleetName       = "capz-aks-fleets-manager"
+	updateGroupName = "capz-aks-fleets-member-update"
 )
 
 func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMemberInput) {
@@ -102,6 +103,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 			FleetsMemberClassSpec: infrav1.FleetsMemberClassSpec{
 				ManagerName:          fleetName,
 				ManagerResourceGroup: groupName,
+				Group:                updateGroupName,
 			},
 		}
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
