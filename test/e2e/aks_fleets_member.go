@@ -43,7 +43,6 @@ type AKSFleetsMemberInput struct {
 }
 
 const (
-	groupName       = "capz-aks-fleets-member"
 	fleetName       = "capz-aks-fleets-manager"
 	updateGroupName = "capz-aks-fleets-member-update"
 )
@@ -68,6 +67,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 	Expect(err).NotTo(HaveOccurred())
 
 	By("creating a resource group")
+	groupName := "capz-aks-fleets-member-" + amcp.Spec.ResourceGroupName
 	_, err = groupClient.CreateOrUpdate(ctx, groupName, armresources.ResourceGroup{
 		Location: ptr.To(os.Getenv(AzureLocation)),
 		Tags: map[string]*string{
