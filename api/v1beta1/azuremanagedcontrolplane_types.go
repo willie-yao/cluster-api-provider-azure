@@ -457,6 +457,10 @@ type MarketplaceExtension struct {
 	// Version is the version of the extension.
 	// +optional
 	Version *string `json:"version,omitempty"`
+
+	// Identity is the identity type of the Extension resource in an AKS cluster.
+	// +optional
+	Identity ExtensionIdentity `json:"identity,omitempty"`
 }
 
 // +kubebuilder:object:root=true

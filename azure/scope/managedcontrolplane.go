@@ -917,7 +917,7 @@ func (s *ManagedControlPlaneScope) AKSExtensionSpecs() []azure.ASOResourceSpecGe
 		return nil
 	}
 	extensionSpecs := make([]azure.ASOResourceSpecGetter[*asokubernetesconfigurationv1.Extension], 0, len(s.ControlPlane.Spec.MarketplaceExtensions))
-	for _, extension := range s.ControlPlane.Spec.MarketplaceExtensions {
+	for _, extension := range s.AKSExtension() {
 		extensionSpec := &aksextensions.AKSExtensionSpec{
 			Name:                    extension.Name,
 			Namespace:               s.Cluster.Namespace,
@@ -929,7 +929,7 @@ func (s *ManagedControlPlaneScope) AKSExtensionSpecs() []azure.ASOResourceSpecGe
 			Owner:                   azure.ManagedClusterID(s.SubscriptionID(), s.ResourceGroup(), s.ControlPlane.Name),
 			OwnerRef:                *metav1.NewControllerRef(s.ControlPlane, infrav1.GroupVersion.WithKind(infrav1.AzureManagedControlPlaneKind)),
 			Plan:                    *extension.Plan,
-			// AKSAssignedIdentityType: extension.AKSAssignedIdentityType,
+			AKSAssignedIdentityType: extension.Identity,
 		}
 
 		extensionSpecs = append(extensionSpecs, extensionSpec)

@@ -1109,3 +1109,12 @@ type MarketplacePlan struct {
 	// +optional
 	Version string `json:"version,omitempty"`
 }
+
+// ExtensionIdentity defines the identity of the aks marketplace extension, if configured.
+// +kubebuilder:validation:Enum=SystemAssigned
+type ExtensionIdentity string
+
+const (
+	// ExtensionIdentitySystemAssigned ...
+	ExtensionIdentitySystemAssigned ExtensionIdentity = "SystemAssigned"
+)

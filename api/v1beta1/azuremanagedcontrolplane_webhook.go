@@ -687,9 +687,15 @@ func (m *AzureManagedControlPlane) validateOIDCIssuerProfileUpdate(old *AzureMan
 func (m *AzureManagedControlPlane) validateMarketplaceExtensionsUpdate(old *AzureManagedControlPlane) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if m.Spec.MarketplaceExtensions != nil && old.Spec.MarketplaceExtensions != nil {
-		for i, extension := range m.Spec.MarketplaceExtensions {
-			if extension.Name != old.Spec.MarketplaceExtensions[i].Name {
+	oldMarketplaceExtensionsMap := make(map[string]MarketplaceExtension, len(old.Spec.MarketplaceExtensions))
+	oldMarketplaceExtensionsIndex := make(map[string]int, len(old.Spec.MarketplaceExtensions))
+	for i, extension := range old.Spec.MarketplaceExtensions {
+		oldMarketplaceExtensionsMap[extension.Name] = extension
+		oldMarketplaceExtensionsIndex[extension.Name] = i
+	}
+	for i, extension := range m.Spec.MarketplaceExtensions {
+		if oldExtension, ok := oldMarketplaceExtensionsMap[extension.Name]; ok {
+			if extension.Name != oldExtension.Name {
 				allErrs = append(allErrs,
 					field.Invalid(
 						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Name"),
@@ -698,7 +704,16 @@ func (m *AzureManagedControlPlane) validateMarketplaceExtensionsUpdate(old *Azur
 					),
 				)
 			}
-			if extension.Plan.Publisher != old.Spec.MarketplaceExtensions[i].Plan.Publisher {
+			if extension.ExtensionType != oldExtension.ExtensionType {
+				allErrs = append(allErrs,
+					field.Invalid(
+						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "ExtensionType"),
+						extension.ExtensionType,
+						"field is immutable",
+					),
+				)
+			}
+			if extension.Plan.Publisher != oldExtension.Plan.Publisher {
 				allErrs = append(allErrs,
 					field.Invalid(
 						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Publisher"),
@@ -707,7 +722,7 @@ func (m *AzureManagedControlPlane) validateMarketplaceExtensionsUpdate(old *Azur
 					),
 				)
 			}
-			if extension.Plan.Product != old.Spec.MarketplaceExtensions[i].Plan.Product {
+			if extension.Plan.Product != oldExtension.Plan.Product {
 				allErrs = append(allErrs,
 					field.Invalid(
 						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Product"),
@@ -745,6 +760,9 @@ func validateMarketplaceExtensions(extensions []MarketplaceExtension, fldPath *f
 		}
 		if extension.Plan.Publisher == "" {
 			allErrs = append(allErrs, field.Required(fldPath.Child("Plan", "Publisher"), "Publisher must be provided"))
+		}
+		if extension.AutoUpgradeMinorVersion == ptr.To(false) && extension.ReleaseTrain != nil {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("ReleaseTrain"), "ReleaseTrain must not be given if AutoUpgradeMinorVersion is false"))
 		}
 	}
 

@@ -30,7 +30,7 @@ import (
 type AKSExtensionSpec struct {
 	Name                    string
 	Namespace               string
-	AKSAssignedIdentityType string
+	AKSAssignedIdentityType infrav1.ExtensionIdentity
 	AutoUpgradeMinorVersion *bool
 	ConfigurationSettings   map[string]string
 	ExtensionType           *string
@@ -76,6 +76,11 @@ func (s *AKSExtensionSpec) Parameters(ctx context.Context, existingAKSExtension 
 		Product:   ptr.To(s.Plan.Product),
 		Publisher: ptr.To(s.Plan.Publisher),
 		Version:   ptr.To(s.Plan.Version),
+	}
+	if s.AKSAssignedIdentityType != "" {
+		aksExtension.Spec.Identity = &asokubernetesconfigurationv1.Identity{
+			Type: (*asokubernetesconfigurationv1.Identity_Type)(&s.AKSAssignedIdentityType),
+		}
 	}
 
 	return aksExtension, nil

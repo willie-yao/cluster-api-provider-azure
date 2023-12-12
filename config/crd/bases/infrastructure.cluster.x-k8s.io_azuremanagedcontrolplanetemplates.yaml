@@ -413,6 +413,12 @@ spec:
                                 be one of the Extension Types registered with Microsoft.KubernetesConfiguration
                                 by the Extension publisher.
                               type: string
+                            identity:
+                              description: Identity is the identity type of the Extension
+                                resource in an AKS cluster.
+                              enum:
+                              - SystemAssigned
+                              type: string
                             name:
                               description: Name is the name of the extension.
                               type: string
