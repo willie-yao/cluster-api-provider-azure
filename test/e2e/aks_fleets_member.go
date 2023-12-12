@@ -99,7 +99,6 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		err = mgmtClient.Get(ctx, client.ObjectKey{Namespace: input.Cluster.Spec.ControlPlaneRef.Namespace, Name: input.Cluster.Spec.ControlPlaneRef.Name}, infraControlPlane)
 		g.Expect(err).NotTo(HaveOccurred())
 		infraControlPlane.Spec.FleetsMember = &infrav1.FleetsMember{
-			Name: fleetName,
 			FleetsMemberClassSpec: infrav1.FleetsMemberClassSpec{
 				ManagerName:          fleetName,
 				ManagerResourceGroup: groupName,
@@ -113,11 +112,11 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 	Eventually(func(g Gomega) {
 		resp, err := fleetsMemberClient.Get(ctx, groupName, fleetName, input.Cluster.Name, nil)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(resp.Properties.ProvisioningState).To(Equal(ptr.To("Succeeded")))
+		g.Expect(resp.Properties.ProvisioningState).To(Equal(ptr.To(armcontainerservicefleet.FleetMemberProvisioningStateSucceeded)))
 		fleetsMember := resp.FleetMember
 		g.Expect(fleetsMember.Properties).NotTo(BeNil())
 		expectedID := azure.ManagedClusterID(getSubscriptionID(Default), infraControlPlane.Spec.ResourceGroupName, input.Cluster.Name)
-		g.Expect(fleetsMember.Properties.ClusterResourceID).To(Equal(expectedID))
+		g.Expect(fleetsMember.Properties.ClusterResourceID).To(Equal(ptr.To(expectedID)))
 	}, input.WaitFleetIntervals...).Should(Succeed())
 
 }
