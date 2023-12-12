@@ -1089,7 +1089,7 @@ const (
 	UniformOrchestrationMode OrchestrationModeType = "Uniform"
 )
 
-// MarketplacePlan represents the plan for an AKS marketplace extension
+// MarketplacePlan represents the plan for an AKS marketplace extension.
 type MarketplacePlan struct {
 	// Name is the user defined name of the 3rd Party Artifact that is being procured.
 	// +optional

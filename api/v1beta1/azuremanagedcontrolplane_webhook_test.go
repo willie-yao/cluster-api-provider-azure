@@ -42,6 +42,15 @@ func TestDefaultingWebhook(t *testing.T) {
 			AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
 				Location: "fooLocation",
 				Version:  "1.17.5",
+				MarketplaceExtensions: []MarketplaceExtension{
+					{
+						Name: "test-extension",
+						Plan: &MarketplacePlan{
+							Product:   "test-product",
+							Publisher: "test-publisher",
+						},
+					},
+				},
 			},
 			ResourceGroupName: "fooRg",
 			SSHPublicKey:      ptr.To(""),
@@ -64,6 +73,7 @@ func TestDefaultingWebhook(t *testing.T) {
 	g.Expect(*amcp.Spec.OIDCIssuerProfile.Enabled).To(BeFalse())
 	g.Expect(amcp.Spec.DNSPrefix).ToNot(BeNil())
 	g.Expect(*amcp.Spec.DNSPrefix).To(Equal(amcp.Name))
+	g.Expect(amcp.Spec.MarketplaceExtensions[0].Plan.Name).To(Equal("fooName-test-product"))
 
 	t.Logf("Testing amcp defaulting webhook with baseline")
 	netPlug := "kubenet"
@@ -1107,6 +1117,77 @@ func TestValidatingWebhook(t *testing.T) {
 				},
 			},
 			expectErr: false,
+		},
+		{
+			name: "Testing valid Marketplace Extension",
+			amcp: AzureManagedControlPlane{
+				ObjectMeta: getAMCPMetaData(),
+				Spec: AzureManagedControlPlaneSpec{
+					AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+						Version: "v1.17.8",
+						MarketplaceExtensions: []MarketplaceExtension{
+							{
+								Name:          "extension1",
+								ExtensionType: ptr.To("test-type"),
+								Plan: &MarketplacePlan{
+									Name:      "test-plan",
+									Product:   "test-product",
+									Publisher: "test-publisher",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "Testing invalid Marketplace Extension: version given when AutoUpgradeMinorVersion is true",
+			amcp: AzureManagedControlPlane{
+				ObjectMeta: getAMCPMetaData(),
+				Spec: AzureManagedControlPlaneSpec{
+					AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+						Version: "v1.17.8",
+						MarketplaceExtensions: []MarketplaceExtension{
+							{
+								Name:                    "extension1",
+								ExtensionType:           ptr.To("test-type"),
+								Version:                 ptr.To("1.0.0"),
+								AutoUpgradeMinorVersion: ptr.To(true),
+								Plan: &MarketplacePlan{
+									Name:      "test-plan",
+									Product:   "test-product",
+									Publisher: "test-publisher",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "Testing invalid Marketplace Extension: missing plan.product and plan.publisher",
+			amcp: AzureManagedControlPlane{
+				ObjectMeta: getAMCPMetaData(),
+				Spec: AzureManagedControlPlaneSpec{
+					AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+						Version: "v1.17.8",
+						MarketplaceExtensions: []MarketplaceExtension{
+							{
+								Name:                    "extension1",
+								ExtensionType:           ptr.To("test-type"),
+								Version:                 ptr.To("1.0.0"),
+								AutoUpgradeMinorVersion: ptr.To(true),
+								Plan: &MarketplacePlan{
+									Name: "test-plan",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: true,
 		},
 	}
 

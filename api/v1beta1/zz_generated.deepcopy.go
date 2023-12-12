@@ -2731,7 +2731,11 @@ func (in *MarketplaceExtension) DeepCopyInto(out *MarketplaceExtension) {
 		*out = new(string)
 		**out = **in
 	}
-	out.Plan = in.Plan
+	if in.Plan != nil {
+		in, out := &in.Plan, &out.Plan
+		*out = new(MarketplacePlan)
+		**out = **in
+	}
 	if in.ReleaseTrain != nil {
 		in, out := &in.ReleaseTrain, &out.ReleaseTrain
 		*out = new(string)

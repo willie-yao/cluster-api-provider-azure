@@ -443,7 +443,7 @@ type MarketplaceExtension struct {
 	ExtensionType *string `json:"extensionType"`
 
 	// Plan is the plan of the extension.
-	Plan MarketplacePlan `json:"plan"`
+	Plan *MarketplacePlan `json:"plan"`
 
 	// ReleaseTrain is the release train this extension participates in for auto-upgrade (e.g. Stable, Preview, etc.)
 	// only if autoUpgradeMinorVersion is ‘true’.
