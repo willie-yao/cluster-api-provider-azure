@@ -204,5 +204,8 @@ func (m *AzureManagedControlPlane) setDefaultMarketplaceExtensions() {
 		if extension.Plan.Name == "" {
 			extension.Plan.Name = fmt.Sprintf("%s-%s", m.Name, extension.Plan.Product)
 		}
+		if extension.AutoUpgradeMinorVersion == nil {
+			extension.AutoUpgradeMinorVersion = ptr.To(true)
+		}
 	}
 }
