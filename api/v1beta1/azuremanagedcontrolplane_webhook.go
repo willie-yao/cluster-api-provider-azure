@@ -704,70 +704,72 @@ func (m *AzureManagedControlPlane) validateMarketplaceExtensionsUpdate(old *Azur
 		oldMarketplaceExtensionsIndex[extension.Name] = i
 	}
 	for i, extension := range m.Spec.MarketplaceExtensions {
-		if oldExtension, ok := oldMarketplaceExtensionsMap[extension.Name]; ok {
-			if extension.Name != oldExtension.Name {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Name"),
-						extension.Name,
-						"field is immutable",
-					),
-				)
-			}
-			if (oldExtension.ExtensionType != nil && extension.ExtensionType != nil) && *extension.ExtensionType != *oldExtension.ExtensionType {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "ExtensionType"),
-						extension.ExtensionType,
-						"field is immutable",
-					),
-				)
-			}
-			if extension.Plan != oldExtension.Plan {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Plan"),
-						extension.Plan,
-						"field is immutable",
-					),
-				)
-			}
-			if extension.Scope != oldExtension.Scope {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Scope"),
-						extension.Scope,
-						"field is immutable",
-					),
-				)
-			}
-			if extension.ReleaseTrain != nil && oldExtension.ReleaseTrain != nil && *extension.ReleaseTrain != *oldExtension.ReleaseTrain {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "ReleaseTrain"),
-						extension.ReleaseTrain,
-						"field is immutable",
-					),
-				)
-			}
-			if extension.Version != nil && oldExtension.Version != nil && *extension.Version != *oldExtension.Version {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Version"),
-						extension.Version,
-						"field is immutable",
-					),
-				)
-			}
-			if extension.Identity != oldExtension.Identity {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Identity"),
-						extension.Identity,
-						"field is immutable",
-					),
-				)
-			}
+		oldExtension, ok := oldMarketplaceExtensionsMap[extension.Name]
+		if !ok {
+			continue
+		}
+		if extension.Name != oldExtension.Name {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Name"),
+					extension.Name,
+					"field is immutable",
+				),
+			)
+		}
+		if (oldExtension.ExtensionType != nil && extension.ExtensionType != nil) && *extension.ExtensionType != *oldExtension.ExtensionType {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "ExtensionType"),
+					extension.ExtensionType,
+					"field is immutable",
+				),
+			)
+		}
+		if extension.Plan != oldExtension.Plan {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Plan"),
+					extension.Plan,
+					"field is immutable",
+				),
+			)
+		}
+		if extension.Scope != oldExtension.Scope {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Scope"),
+					extension.Scope,
+					"field is immutable",
+				),
+			)
+		}
+		if extension.ReleaseTrain != nil && oldExtension.ReleaseTrain != nil && *extension.ReleaseTrain != *oldExtension.ReleaseTrain {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "ReleaseTrain"),
+					extension.ReleaseTrain,
+					"field is immutable",
+				),
+			)
+		}
+		if extension.Version != nil && oldExtension.Version != nil && *extension.Version != *oldExtension.Version {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Version"),
+					extension.Version,
+					"field is immutable",
+				),
+			)
+		}
+		if extension.Identity != oldExtension.Identity {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Identity"),
+					extension.Identity,
+					"field is immutable",
+				),
+			)
 		}
 	}
 
