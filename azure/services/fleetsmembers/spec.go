@@ -50,12 +50,11 @@ func (s *AzureFleetsMemberSpec) ResourceRef() *asocontainerservicev1.FleetsMembe
 
 // Parameters implements azure.ASOResourceSpecGetter.
 func (s *AzureFleetsMemberSpec) Parameters(ctx context.Context, existingFleetsMember *asocontainerservicev1.FleetsMember) (parameters *asocontainerservicev1.FleetsMember, err error) {
+	fleetsMember := &asocontainerservicev1.FleetsMember{}
 	if existingFleetsMember != nil {
-		return existingFleetsMember, nil
+		fleetsMember = existingFleetsMember
 	}
 
-	fleetsMember := &asocontainerservicev1.FleetsMember{}
-	fleetsMember.Spec = asocontainerservicev1.Fleets_Member_Spec{}
 	fleetsMember.Spec.AzureName = s.Name
 	fleetsMember.Spec.Owner = &genruntime.KnownResourceReference{
 		ARMID: azure.FleetID(s.SubscriptionID, s.ManagerResourceGroup, s.ManagerName),
