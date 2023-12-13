@@ -38,7 +38,7 @@ import (
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
-	"sigs.k8s.io/cluster-api-provider-azure/azure/services/fleetsmember"
+	"sigs.k8s.io/cluster-api-provider-azure/azure/services/fleetsmembers"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/groups"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/managedclusters"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/privateendpoints"
@@ -302,7 +302,7 @@ func (s *ManagedControlPlaneScope) AzureFleetsMemberSpec() azure.ASOResourceSpec
 	if s.AzureFleetMembership() == nil {
 		return nil
 	}
-	return &fleetsmember.AzureFleetsMemberSpec{
+	return &fleetsmembers.AzureFleetsMemberSpec{
 		Name:                 s.AzureFleetMembership().Name,
 		Namespace:            s.Cluster.Namespace,
 		ClusterName:          s.ClusterName(),

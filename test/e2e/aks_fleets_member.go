@@ -37,9 +37,8 @@ import (
 )
 
 type AKSFleetsMemberInput struct {
-	Cluster            *clusterv1.Cluster
-	WaitIntervals      []interface{}
-	WaitFleetIntervals []interface{}
+	Cluster       *clusterv1.Cluster
+	WaitIntervals []interface{}
 }
 
 const (
@@ -88,10 +87,8 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		Location: ptr.To(os.Getenv(AzureLocation)),
 	}, nil)
 	Expect(err).To(BeNil())
-	res, err := poller.PollUntilDone(ctx, nil)
+	_, err = poller.PollUntilDone(ctx, nil)
 	Expect(err).To(BeNil())
-	Logf("Fleet manager created: %v", res.Fleet.Name)
-	Logf("Fleet manager arm id: %v", *res.Fleet.ID)
 
 	By("Joining the cluster to the fleet hub")
 	var infraControlPlane = &infrav1.AzureManagedControlPlane{}
@@ -106,7 +103,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 			},
 		}
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
-	}, input.WaitFleetIntervals...).Should(Succeed())
+	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Ensuring the fleet member is created and attached to the managed cluster")
 	Eventually(func(g Gomega) {
@@ -117,5 +114,11 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		g.Expect(fleetsMember.Properties).NotTo(BeNil())
 		expectedID := azure.ManagedClusterID(getSubscriptionID(Default), infraControlPlane.Spec.ResourceGroupName, input.Cluster.Name)
 		g.Expect(fleetsMember.Properties.ClusterResourceID).To(Equal(ptr.To(expectedID)))
-	}, input.WaitFleetIntervals...).Should(Succeed())
+	}, input.WaitIntervals...).Should(Succeed())
+
+	Logf("deleting the test resource group %q", groupName)
+	grpPoller, err := groupClient.BeginDelete(ctx, groupName, nil)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = grpPoller.PollUntilDone(ctx, nil)
+	Expect(err).NotTo(HaveOccurred())
 }

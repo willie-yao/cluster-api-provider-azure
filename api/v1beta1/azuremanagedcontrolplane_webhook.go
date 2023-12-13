@@ -695,15 +695,16 @@ func (m *AzureManagedControlPlane) validateOIDCIssuerProfileUpdate(old *AzureMan
 func (m *AzureManagedControlPlane) validateFleetsMember(old *AzureManagedControlPlane) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if old.Spec.FleetsMember != nil && m.Spec.FleetsMember != nil {
-		if old.Spec.FleetsMember.Name != m.Spec.FleetsMember.Name {
-			allErrs = append(allErrs,
-				field.Forbidden(
-					field.NewPath("Spec", "FleetsMember", "Name"),
-					"Name is immutable",
-				),
-			)
-		}
+	if old.Spec.FleetsMember == nil || m.Spec.FleetsMember == nil {
+		return allErrs
+	}
+	if old.Spec.FleetsMember.Name != m.Spec.FleetsMember.Name {
+		allErrs = append(allErrs,
+			field.Forbidden(
+				field.NewPath("Spec", "FleetsMember", "Name"),
+				"Name is immutable",
+			),
+		)
 	}
 
 	return allErrs

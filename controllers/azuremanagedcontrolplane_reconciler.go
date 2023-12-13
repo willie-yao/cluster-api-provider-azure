@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/scope"
-	"sigs.k8s.io/cluster-api-provider-azure/azure/services/fleetsmember"
+	"sigs.k8s.io/cluster-api-provider-azure/azure/services/fleetsmembers"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/groups"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/managedclusters"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/privateendpoints"
@@ -67,8 +67,8 @@ func newAzureManagedControlPlaneReconciler(scope *scope.ManagedControlPlaneScope
 			subnetsSvc,
 			managedclusters.New(scope),
 			privateendpoints.New(scope),
+			fleetsmembers.New(scope),
 			resourceHealthSvc,
-			fleetsmember.New(scope),
 		},
 	}, nil
 }

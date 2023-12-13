@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package fleetsmember
+package fleetsmembers
 
 import (
 	"context"
@@ -70,6 +70,6 @@ func (s *AzureFleetsMemberSpec) Parameters(ctx context.Context, existingFleetsMe
 
 // WasManaged implements azure.ASOResourceSpecGetter.
 func (s *AzureFleetsMemberSpec) WasManaged(resource *asocontainerservicev1.FleetsMember) bool {
-	// returns always returns true as CAPZ does not support BYO fleet.
-	return true
+	// returns false because previous versions of CAPZ did not support Fleets.
+	return false
 }
