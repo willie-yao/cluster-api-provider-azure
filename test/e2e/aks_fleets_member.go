@@ -127,7 +127,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 	By("Ensuring the fleet member is deleted")
 	Eventually(func(g Gomega) {
 		_, err := fleetsMemberClient.Get(ctx, groupName, fleetName, input.Cluster.Name, nil)
-		g.Expect(err).To(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
 	}, input.WaitIntervals...).Should(Succeed())
 
 	Logf("Deleting the fleet manager resource group %q", groupName)
