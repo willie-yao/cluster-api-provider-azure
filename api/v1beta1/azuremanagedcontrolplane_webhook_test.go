@@ -2728,6 +2728,101 @@ func TestAzureManagedControlPlane_ValidateUpdate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "AzureManagedControlPlane MarketplaceExtensions ConfigurationSettings and AutoUpgradeMinorVersion are mutable",
+			oldAMCP: &AzureManagedControlPlane{
+				Spec: AzureManagedControlPlaneSpec{
+					AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+						Version: "v1.18.0",
+						MarketplaceExtensions: []MarketplaceExtension{
+							{
+								Name:                    "extension1",
+								AutoUpgradeMinorVersion: ptr.To(false),
+								ConfigurationSettings: map[string]string{
+									"key1": "value1",
+								},
+								Plan: &MarketplacePlan{
+									Name:      "planName",
+									Product:   "planProduct",
+									Publisher: "planPublisher",
+								},
+							},
+						},
+					},
+				},
+			},
+			amcp: &AzureManagedControlPlane{
+				Spec: AzureManagedControlPlaneSpec{
+					AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+						Version: "v1.18.0",
+						MarketplaceExtensions: []MarketplaceExtension{
+							{
+								Name:                    "extension1",
+								AutoUpgradeMinorVersion: ptr.To(true),
+								ConfigurationSettings: map[string]string{
+									"key1": "value1",
+									"key2": "value2",
+								},
+								Plan: &MarketplacePlan{
+									Name:      "planName",
+									Product:   "planProduct",
+									Publisher: "planPublisher",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "AzureManagedControlPlane all other fields are immutable",
+			oldAMCP: &AzureManagedControlPlane{
+				Spec: AzureManagedControlPlaneSpec{
+					AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+						Version: "v1.18.0",
+						MarketplaceExtensions: []MarketplaceExtension{
+							{
+								Name:                    "extension1",
+								AKSAssignedIdentityType: AKSAssignedIdentitySystemAssigned,
+								ExtensionType:           ptr.To("extensionType"),
+								Plan: &MarketplacePlan{
+									Name:      "planName",
+									Product:   "planProduct",
+									Publisher: "planPublisher",
+								},
+								Scope:        "scope",
+								ReleaseTrain: ptr.To("releaseTrain"),
+								Version:      ptr.To("v1.0.0"),
+							},
+						},
+					},
+				},
+			},
+			amcp: &AzureManagedControlPlane{
+				Spec: AzureManagedControlPlaneSpec{
+					AzureManagedControlPlaneClassSpec: AzureManagedControlPlaneClassSpec{
+						Version: "v1.18.0",
+						MarketplaceExtensions: []MarketplaceExtension{
+							{
+								Name:                    "extension2",
+								AKSAssignedIdentityType: AKSAssignedIdentityUserAssigned,
+								ExtensionType:           ptr.To("extensionType1"),
+								Plan: &MarketplacePlan{
+									Name:      "planName1",
+									Product:   "planProduct1",
+									Publisher: "planPublisher1",
+								},
+								Scope:        "scope1",
+								ReleaseTrain: ptr.To("releaseTrain1"),
+								Version:      ptr.To("v1.1.0"),
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	client := mockClient{ReturnError: false}
 	for _, tc := range tests {

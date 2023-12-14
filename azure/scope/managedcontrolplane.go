@@ -927,7 +927,6 @@ func (s *ManagedControlPlaneScope) AKSExtensionSpecs() []azure.ASOResourceSpecGe
 			ReleaseTrain:            extension.ReleaseTrain,
 			Version:                 extension.Version,
 			Owner:                   azure.ManagedClusterID(s.SubscriptionID(), s.ResourceGroup(), s.ControlPlane.Name),
-			OwnerRef:                *metav1.NewControllerRef(s.ControlPlane, infrav1.GroupVersion.WithKind(infrav1.AzureManagedControlPlaneKind)),
 			Plan:                    *extension.Plan,
 			AKSAssignedIdentityType: extension.AKSAssignedIdentityType,
 			ExtensionIdentity:       extension.Identity,
