@@ -726,7 +726,7 @@ func (m *AzureManagedControlPlane) validateMarketplaceExtensionsUpdate(old *Azur
 				),
 			)
 		}
-		if extension.Plan != oldExtension.Plan {
+		if (extension.Plan != nil && oldExtension.Plan != nil) && *extension.Plan != *oldExtension.Plan {
 			allErrs = append(allErrs,
 				field.Invalid(
 					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Plan"),
@@ -744,7 +744,7 @@ func (m *AzureManagedControlPlane) validateMarketplaceExtensionsUpdate(old *Azur
 				),
 			)
 		}
-		if extension.ReleaseTrain != nil && oldExtension.ReleaseTrain != nil && *extension.ReleaseTrain != *oldExtension.ReleaseTrain {
+		if (extension.ReleaseTrain != nil && oldExtension.ReleaseTrain != nil) && *extension.ReleaseTrain != *oldExtension.ReleaseTrain {
 			allErrs = append(allErrs,
 				field.Invalid(
 					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "ReleaseTrain"),
@@ -753,7 +753,7 @@ func (m *AzureManagedControlPlane) validateMarketplaceExtensionsUpdate(old *Azur
 				),
 			)
 		}
-		if extension.Version != nil && oldExtension.Version != nil && *extension.Version != *oldExtension.Version {
+		if (extension.Version != nil && oldExtension.Version != nil) && *extension.Version != *oldExtension.Version {
 			allErrs = append(allErrs,
 				field.Invalid(
 					field.NewPath("Spec", "MarketplaceExtensions", fmt.Sprintf("[%d]", i), "Version"),

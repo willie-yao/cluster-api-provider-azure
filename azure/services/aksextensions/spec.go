@@ -30,7 +30,8 @@ import (
 type AKSExtensionSpec struct {
 	Name                    string
 	Namespace               string
-	AKSAssignedIdentityType infrav1.ExtensionIdentity
+	AKSAssignedIdentityType infrav1.AKSAssignedIdentity
+	ExtensionIdentity       infrav1.ExtensionIdentity
 	AutoUpgradeMinorVersion *bool
 	ConfigurationSettings   map[string]string
 	ExtensionType           *string
@@ -53,14 +54,14 @@ func (s *AKSExtensionSpec) ResourceRef() *asokubernetesconfigurationv1.Extension
 
 // Parameters implements azure.ASOResourceSpecGetter.
 func (s *AKSExtensionSpec) Parameters(ctx context.Context, existingAKSExtension *asokubernetesconfigurationv1.Extension) (parameters *asokubernetesconfigurationv1.Extension, err error) {
+	aksExtension := &asokubernetesconfigurationv1.Extension{}
 	if existingAKSExtension != nil {
-		return existingAKSExtension, nil
+		aksExtension = existingAKSExtension
 	}
 
-	aksExtension := &asokubernetesconfigurationv1.Extension{}
-	aksExtension.ObjectMeta = metav1.ObjectMeta{
-		OwnerReferences: []metav1.OwnerReference{s.OwnerRef},
-	}
+	// aksExtension.ObjectMeta = metav1.ObjectMeta{
+	// 	OwnerReferences: []metav1.OwnerReference{s.OwnerRef},
+	// }
 	aksExtension.Spec = asokubernetesconfigurationv1.Extension_Spec{}
 	aksExtension.Spec.AzureName = s.Name
 	aksExtension.Spec.AutoUpgradeMinorVersion = s.AutoUpgradeMinorVersion
@@ -77,9 +78,14 @@ func (s *AKSExtensionSpec) Parameters(ctx context.Context, existingAKSExtension 
 		Publisher: ptr.To(s.Plan.Publisher),
 		Version:   ptr.To(s.Plan.Version),
 	}
-	if s.AKSAssignedIdentityType != "" {
+	if s.ExtensionIdentity != "" {
 		aksExtension.Spec.Identity = &asokubernetesconfigurationv1.Identity{
-			Type: (*asokubernetesconfigurationv1.Identity_Type)(&s.AKSAssignedIdentityType),
+			Type: (*asokubernetesconfigurationv1.Identity_Type)(&s.ExtensionIdentity),
+		}
+	}
+	if s.AKSAssignedIdentityType != "" {
+		aksExtension.Spec.AksAssignedIdentity = &asokubernetesconfigurationv1.Extension_Properties_AksAssignedIdentity_Spec{
+			Type: (*asokubernetesconfigurationv1.Extension_Properties_AksAssignedIdentity_Type_Spec)(&s.AKSAssignedIdentityType),
 		}
 	}
 

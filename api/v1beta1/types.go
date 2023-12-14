@@ -1118,3 +1118,15 @@ const (
 	// ExtensionIdentitySystemAssigned ...
 	ExtensionIdentitySystemAssigned ExtensionIdentity = "SystemAssigned"
 )
+
+// AKSAssignedIdentity defines the AKS assigned identity of the aks marketplace extension, if configured.
+// +kubebuilder:validation:Enum=SystemAssigned;UserAssigned
+type AKSAssignedIdentity string
+
+const (
+	// AKSAssignedIdentitySystemAssigned ...
+	AKSAssignedIdentitySystemAssigned AKSAssignedIdentity = "SystemAssigned"
+
+	// AKSAssignedIdentityUserAssigned ...
+	AKSAssignedIdentityUserAssigned AKSAssignedIdentity = "UserAssigned"
+)

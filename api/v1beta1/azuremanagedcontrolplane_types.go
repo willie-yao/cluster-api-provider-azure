@@ -429,10 +429,13 @@ type MarketplaceExtension struct {
 	// Name is the name of the extension.
 	Name string `json:"name"`
 
+	// AKSAssignedIdentityType is the type of the AKS assigned identity.
+	AKSAssignedIdentityType AKSAssignedIdentity `json:"aksAssignedIdentityType"`
+
 	// AutoUpgradeMinorVersion is a flag to note if this extension participates in auto upgrade of minor version, or not.
 	// +kubebuilder:default=true
 	// +optional
-	AutoUpgradeMinorVersion *bool `json:"autoUpgradeMinorVersion"`
+	AutoUpgradeMinorVersion *bool `json:"autoUpgradeMinorVersion,omitempty"`
 
 	// ConfigurationSettings are the name-value pairs for configuring this extension.
 	// +optional
