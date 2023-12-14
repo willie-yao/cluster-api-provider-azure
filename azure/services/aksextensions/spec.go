@@ -59,9 +59,6 @@ func (s *AKSExtensionSpec) Parameters(ctx context.Context, existingAKSExtension 
 		aksExtension = existingAKSExtension
 	}
 
-	// aksExtension.ObjectMeta = metav1.ObjectMeta{
-	// 	OwnerReferences: []metav1.OwnerReference{s.OwnerRef},
-	// }
 	aksExtension.Spec = asokubernetesconfigurationv1.Extension_Spec{}
 	aksExtension.Spec.AzureName = s.Name
 	aksExtension.Spec.AutoUpgradeMinorVersion = s.AutoUpgradeMinorVersion
