@@ -31,17 +31,17 @@ import (
 var (
 	fakeAzureFleetsMember = asocontainerservicev1.FleetsMember{
 		Spec: asocontainerservicev1.Fleets_Member_Spec{
-			AzureName: fakeAzureFleetsMemberSpec1.Name,
+			AzureName: fakeAzureFleetsMemberSpec.Name,
 			Owner: &genruntime.KnownResourceReference{
-				ARMID: azure.FleetID(fakeAzureFleetsMemberSpec1.SubscriptionID, fakeAzureFleetsMemberSpec1.ManagerResourceGroup, fakeAzureFleetsMemberSpec1.ManagerName),
+				ARMID: azure.FleetID(fakeAzureFleetsMemberSpec.SubscriptionID, fakeAzureFleetsMemberSpec.ManagerResourceGroup, fakeAzureFleetsMemberSpec.ManagerName),
 			},
-			Group: ptr.To(fakeAzureFleetsMemberSpec1.Group),
+			Group: ptr.To(fakeAzureFleetsMemberSpec.Group),
 			ClusterResourceReference: &genruntime.ResourceReference{
-				ARMID: azure.ManagedClusterID(fakeAzureFleetsMemberSpec1.SubscriptionID, fakeAzureFleetsMemberSpec1.ClusterResourceGroup, fakeAzureFleetsMemberSpec1.ClusterName),
+				ARMID: azure.ManagedClusterID(fakeAzureFleetsMemberSpec.SubscriptionID, fakeAzureFleetsMemberSpec.ClusterResourceGroup, fakeAzureFleetsMemberSpec.ClusterName),
 			},
 		},
 	}
-	fakeAzureFleetsMemberSpec1 = AzureFleetsMemberSpec{
+	fakeAzureFleetsMemberSpec = AzureFleetsMemberSpec{
 		Name:                 "fake-name",
 		Namespace:            "fake-namespace",
 		ClusterName:          "fake-cluster-name",
@@ -52,7 +52,7 @@ var (
 		ManagerResourceGroup: "fake-manager-resource-group",
 	}
 	fakeFleetsMemberStatus = asocontainerservicev1.Fleets_Member_STATUS{
-		Name:              ptr.To(fakeAzureFleetsMemberSpec1.Name),
+		Name:              ptr.To(fakeAzureFleetsMemberSpec.Name),
 		ProvisioningState: ptr.To(asocontainerservicev1.FleetMemberProvisioningState_STATUS_Succeeded),
 	}
 )
@@ -75,7 +75,7 @@ func TestAzureFleetsMemberSpec_Parameters(t *testing.T) {
 	}{
 		{
 			name:     "Creating a new FleetsMember",
-			spec:     &fakeAzureFleetsMemberSpec1,
+			spec:     &fakeAzureFleetsMemberSpec,
 			existing: nil,
 			expect: func(g *WithT, result asocontainerservicev1.FleetsMember) {
 				g.Expect(result).To(Not(BeNil()))
@@ -89,7 +89,7 @@ func TestAzureFleetsMemberSpec_Parameters(t *testing.T) {
 		},
 		{
 			name: "User updates to a FleetsMember group should be overwritten",
-			spec: &fakeAzureFleetsMemberSpec1,
+			spec: &fakeAzureFleetsMemberSpec,
 			existing: getASOFleetsMember(
 				// user added group which should be overwritten by capz
 				func(fleetsMember *asocontainerservicev1.FleetsMember) {
