@@ -699,7 +699,7 @@ func (m *AzureManagedControlPlane) validateFleetsMember(old *AzureManagedControl
 	if old.Spec.FleetsMember == nil || m.Spec.FleetsMember == nil {
 		return allErrs
 	}
-	if old.Spec.FleetsMember.Name != m.Spec.FleetsMember.Name {
+	if old.Spec.FleetsMember.Name != "" && old.Spec.FleetsMember.Name != m.Spec.FleetsMember.Name {
 		allErrs = append(allErrs,
 			field.Forbidden(
 				field.NewPath("Spec", "FleetsMember", "Name"),

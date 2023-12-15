@@ -116,7 +116,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		g.Expect(fleetsMember.Properties.ClusterResourceID).To(Equal(ptr.To(expectedID)))
 	}, input.WaitIntervals...).Should(Succeed())
 
-	By("Deleting the fleet member by removing the FleetsMember spec")
+	By("Remove the FleetsMember spec from the AzureManagedControlPlane")
 	Eventually(func(g Gomega) {
 		err = mgmtClient.Get(ctx, client.ObjectKey{Namespace: input.Cluster.Spec.ControlPlaneRef.Namespace, Name: input.Cluster.Spec.ControlPlaneRef.Name}, infraControlPlane)
 		g.Expect(err).NotTo(HaveOccurred())
@@ -124,11 +124,11 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
 	}, input.WaitIntervals...).Should(Succeed())
 
-	By("Ensuring the fleet member is deleted")
-	Eventually(func(g Gomega) {
-		_, err := fleetsMemberClient.Get(ctx, groupName, fleetName, input.Cluster.Name, nil)
-		g.Expect(err).NotTo(HaveOccurred())
-	}, input.WaitIntervals...).Should(Succeed())
+	By("Deleting the fleets member")
+	fleetsMemberPoller, err := fleetsMemberClient.BeginDelete(ctx, groupName, fleetName, input.Cluster.Name, nil)
+	Expect(err).To(BeNil())
+	_, err = fleetsMemberPoller.PollUntilDone(ctx, nil)
+	Expect(err).To(BeNil())
 
 	Logf("Deleting the fleet manager resource group %q", groupName)
 	grpPoller, err := groupClient.BeginDelete(ctx, groupName, nil)
