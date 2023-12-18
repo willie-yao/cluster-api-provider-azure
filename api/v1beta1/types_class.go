@@ -190,7 +190,7 @@ type AzureManagedControlPlaneClassSpec struct {
 
 	// FleetsMember is the spec for the fleet this cluster is a member of.
 	// +optional
-	FleetsMember *FleetsMember `json:"fleetManager,omitempty"`
+	FleetsMember *FleetsMember `json:"fleetsMember,omitempty"`
 }
 
 // AzureManagedMachinePoolClassSpec defines the AzureManagedMachinePool properties that may be shared across several Azure managed machinepools.

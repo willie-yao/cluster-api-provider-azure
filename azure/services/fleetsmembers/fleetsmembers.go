@@ -27,7 +27,6 @@ const serviceName = "fleetsmember"
 
 // FleetsMemberScope defines the scope interface for a Fleet host service.
 type FleetsMemberScope interface {
-	azure.ClusterScoper
 	aso.Scope
 	AzureFleetsMemberSpec() azure.ASOResourceSpecGetter[*asocontainerservicev1.FleetsMember]
 }
