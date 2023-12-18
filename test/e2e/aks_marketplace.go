@@ -81,7 +81,7 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 
 	By("Ensuring the AKS Marketplace Extension is added to the AzureManagedControlPlane")
 	Eventually(func(g Gomega) {
-		resp, err := extensionClient.Get(ctx, amcp.Spec.ResourceGroupName, "Microsoft.KubernetesConfiguration", "managedClusters", input.Cluster.Name, extensionName, nil)
+		resp, err := extensionClient.Get(ctx, amcp.Spec.ResourceGroupName, "Microsoft.ContainerService", "managedClusters", input.Cluster.Name, extensionName, nil)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(resp.Properties.ProvisioningState).To(Equal(ptr.To(armkubernetesconfiguration.ProvisioningStateSucceeded)))
 		extension := resp.Extension
