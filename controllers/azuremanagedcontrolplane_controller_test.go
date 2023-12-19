@@ -20,7 +20,9 @@ import (
 	"context"
 	"testing"
 
+	aadpodv1 "github.com/Azure/aad-pod-identity/pkg/apis/aadpodidentity/v1"
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	asonetworkv1 "github.com/Azure/azure-service-operator/v2/api/network/v1api20201101"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -105,6 +107,9 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 		infrav1.AddToScheme,
 		asoresourcesv1.AddToScheme,
 		asocontainerservicev1.AddToScheme,
+		asonetworkv1.AddToScheme,
+		corev1.AddToScheme,
+		aadpodv1.AddToScheme,
 	)
 	s := runtime.NewScheme()
 	g.Expect(sb.AddToScheme(s)).To(Succeed())
@@ -135,6 +140,28 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 	}
 	g.Expect(c.Create(ctx, cluster)).To(Succeed())
 
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: "default",
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type: infrav1.ServicePrincipal,
+			ClientSecret: corev1.SecretReference{
+				Name:      "fooSecret",
+				Namespace: "default",
+			},
+		},
+	}
+	fakeSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fooSecret",
+			Namespace: "default",
+		},
+	}
+	g.Expect(c.Create(ctx, fakeIdentity)).To(Succeed())
+	g.Expect(c.Create(ctx, fakeSecret)).To(Succeed())
+
 	instance := &infrav1.AzureManagedControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -150,6 +177,19 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 		Spec: infrav1.AzureManagedControlPlaneSpec{
 			AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
 				SubscriptionID: "something",
+				VirtualNetwork: infrav1.ManagedControlPlaneVirtualNetwork{
+					ManagedControlPlaneVirtualNetworkClassSpec: infrav1.ManagedControlPlaneVirtualNetworkClassSpec{
+						Name: name,
+						Subnet: infrav1.ManagedControlPlaneSubnet{
+							Name: "subnet",
+						},
+					},
+				},
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "fake-identity",
+					Namespace: "default",
+					Kind:      "AzureClusterIdentity",
+				},
 			},
 			ResourceGroupName: name,
 		},
@@ -171,6 +211,22 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 		},
 	}
 	g.Expect(c.Create(ctx, mc)).To(Succeed())
+
+	vnet := &asonetworkv1.VirtualNetwork{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	g.Expect(c.Create(ctx, vnet)).To(Succeed())
+
+	subnet := &asonetworkv1.VirtualNetworksSubnet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-subnet",
+			Namespace: namespace,
+		},
+	}
+	g.Expect(c.Create(ctx, subnet)).To(Succeed())
 
 	result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: client.ObjectKey{
