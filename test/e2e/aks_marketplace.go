@@ -66,10 +66,8 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 		g.Expect(err).NotTo(HaveOccurred())
 		infraControlPlane.Spec.MarketplaceExtensions = []infrav1.MarketplaceExtension{
 			{
-				Name:                    extensionName,
-				ExtensionType:           ptr.To("testtestindustryexperiencestest.azurecomps"),
-				Identity:                infrav1.ExtensionIdentitySystemAssigned,
-				AKSAssignedIdentityType: infrav1.AKSAssignedIdentitySystemAssigned,
+				Name:          extensionName,
+				ExtensionType: ptr.To("testtestindustryexperiencestest.azurecomps"),
 				Plan: &infrav1.MarketplacePlan{
 					Name:      "publicplanforprivatepo",
 					Product:   "msalemcontainerdemo1",
