@@ -21,11 +21,14 @@ import (
 	"testing"
 	"time"
 
+	aadpodv1 "github.com/Azure/aad-pod-identity/pkg/apis/aadpodidentity/v1"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asonetworkv1 "github.com/Azure/azure-service-operator/v2/api/network/v1api20201101"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -56,7 +59,8 @@ type TestClusterReconcileInput struct {
 }
 
 const (
-	location = "westus2"
+	location  = "westus2"
+	namespace = "default"
 )
 
 var _ = Describe("AzureClusterReconciler", func() {
@@ -68,7 +72,7 @@ var _ = Describe("AzureClusterReconciler", func() {
 			reconciler := NewAzureClusterReconciler(testEnv, testEnv.GetEventRecorderFor("azurecluster-reconciler"), reconciler.DefaultLoopTimeout, "")
 			By("Calling reconcile")
 			name := test.RandomName("foo", 10)
-			instance := &infrav1.AzureCluster{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"}}
+			instance := &infrav1.AzureCluster{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
 			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 				NamespacedName: client.ObjectKey{
 					Namespace: instance.Namespace,
@@ -136,7 +140,7 @@ func TestAzureClusterReconcile(t *testing.T) {
 
 			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 				NamespacedName: types.NamespacedName{
-					Namespace: "default",
+					Namespace: namespace,
 					Name:      "my-azure-cluster",
 				},
 			})
@@ -247,18 +251,34 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 		clusterv1.AddToScheme,
 		infrav1.AddToScheme,
 		asoresourcesv1.AddToScheme,
+		asonetworkv1.AddToScheme,
+		corev1.AddToScheme,
+		aadpodv1.AddToScheme,
 	)
 	s := runtime.NewScheme()
 	g.Expect(sb.AddToScheme(s)).To(Succeed())
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: namespace,
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type: infrav1.ServicePrincipal,
+		},
+	}
+	fakeSecret := &corev1.Secret{}
+
+	initObjects := []runtime.Object{fakeIdentity, fakeSecret}
 	c := fake.NewClientBuilder().
 		WithScheme(s).
+		WithRuntimeObjects(initObjects...).
 		Build()
 
 	recorder := record.NewFakeRecorder(1)
 
 	reconciler := NewAzureClusterReconciler(c, recorder, reconciler.DefaultLoopTimeout, "")
 	name := test.RandomName("paused", 10)
-	namespace := "default"
+	namespace := namespace
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -290,8 +310,19 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 		Spec: infrav1.AzureClusterSpec{
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				SubscriptionID: "something",
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "fake-identity",
+					Namespace: namespace,
+					Kind:      "AzureClusterIdentity",
+				},
 			},
 			ResourceGroup: name,
+			NetworkSpec: infrav1.NetworkSpec{
+				Vnet: infrav1.VnetSpec{
+					Name:          name,
+					ResourceGroup: name,
+				},
+			},
 		},
 	}
 	g.Expect(c.Create(ctx, instance)).To(Succeed())
@@ -303,6 +334,14 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 		},
 	}
 	g.Expect(c.Create(ctx, rg)).To(Succeed())
+
+	vnet := &asonetworkv1.VirtualNetwork{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	g.Expect(c.Create(ctx, vnet)).To(Succeed())
 
 	result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -433,9 +472,22 @@ func getClusterReconcileInputs(tc TestClusterReconcileInput) (*AzureClusterRecon
 		})
 	}
 
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: namespace,
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type: infrav1.ServicePrincipal,
+		},
+	}
+	fakeSecret := &corev1.Secret{}
+
 	objects := []runtime.Object{
 		cluster,
 		azureCluster,
+		fakeIdentity,
+		fakeSecret,
 	}
 
 	client := fake.NewClientBuilder().
