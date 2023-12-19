@@ -128,10 +128,12 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Deleting the fleets member")
-	fleetsMemberPoller, err := fleetsMemberClient.BeginDelete(ctx, groupName, fleetName, input.Cluster.Name, nil)
-	Expect(err).To(BeNil())
-	_, err = fleetsMemberPoller.PollUntilDone(ctx, nil)
-	Expect(err).NotTo(HaveOccurred())
+	Eventually(func(g Gomega) {
+		fleetsMemberPoller, err := fleetsMemberClient.BeginDelete(ctx, groupName, fleetName, input.Cluster.Name, nil)
+		Expect(err).To(BeNil())
+		_, err = fleetsMemberPoller.PollUntilDone(ctx, nil)
+		Expect(err).NotTo(HaveOccurred())
+	}, input.WaitIntervals...).Should(Succeed())
 
 	Logf("Deleting the fleet manager resource group %q", groupName)
 	grpPoller, err := groupClient.BeginDelete(ctx, groupName, nil)
