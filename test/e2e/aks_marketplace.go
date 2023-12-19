@@ -27,6 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -77,6 +78,7 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 			},
 		}
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
+		g.Expect(conditions.IsTrue(infraControlPlane, infrav1.AKSExtensionsReadyCondition)).To(BeTrue())
 	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Ensuring the AKS Marketplace Extension is added to the AzureManagedControlPlane")
