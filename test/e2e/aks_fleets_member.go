@@ -24,6 +24,7 @@ import (
 	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice/v4"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservicefleet/armcontainerservicefleet"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	. "github.com/onsi/ginkgo/v2"
@@ -55,6 +56,9 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 
 	mgmtClient := bootstrapClusterProxy.GetClient()
 	Expect(mgmtClient).NotTo(BeNil())
+
+	containerserviceClient, err := armcontainerservice.NewManagedClustersClient(getSubscriptionID(Default), cred, nil)
+	Expect(err).NotTo(HaveOccurred())
 
 	amcp := &infrav1.AzureManagedControlPlane{}
 	err = mgmtClient.Get(ctx, types.NamespacedName{
@@ -127,13 +131,18 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
 	}, input.WaitIntervals...).Should(Succeed())
 
-	By("Deleting the fleets member")
+	By("Waiting for the managed cluster to finish updating")
 	Eventually(func(g Gomega) {
-		fleetsMemberPoller, err := fleetsMemberClient.BeginDelete(ctx, groupName, fleetName, input.Cluster.Name, nil)
-		Expect(err).To(BeNil())
-		_, err = fleetsMemberPoller.PollUntilDone(ctx, nil)
-		Expect(err).NotTo(HaveOccurred())
+		aks, err := containerserviceClient.Get(ctx, amcp.Spec.ResourceGroupName, amcp.Name, nil)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(aks.Properties.ProvisioningState).NotTo(Equal(ptr.To("Updating")))
 	}, input.WaitIntervals...).Should(Succeed())
+
+	By("Deleting the fleets member")
+	fleetsMemberPoller, err := fleetsMemberClient.BeginDelete(ctx, groupName, fleetName, input.Cluster.Name, nil)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = fleetsMemberPoller.PollUntilDone(ctx, nil)
+	Expect(err).NotTo(HaveOccurred())
 
 	Logf("Deleting the fleet manager resource group %q", groupName)
 	grpPoller, err := groupClient.BeginDelete(ctx, groupName, nil)
