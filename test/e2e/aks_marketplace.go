@@ -73,6 +73,7 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 					Name:      "publicplanforprivatepo",
 					Product:   "msalemcontainerdemo1",
 					Publisher: "testtestindustryexperiencestest",
+					Version:   "9.0.0",
 				},
 			},
 		}
