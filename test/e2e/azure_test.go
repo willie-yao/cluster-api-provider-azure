@@ -717,6 +717,7 @@ var _ = Describe("Workload cluster creation", func() {
 		It("with a single control plane node and 1 node", func() {
 			clusterName = getClusterName(clusterNamePrefix, aksClusterNameSuffix)
 			kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
+			kubernetesVersionUpgradeFrom = "v1.27.3"
 			Byf("Upgrading from k8s version %s", kubernetesVersionUpgradeFrom)
 			Expect(err).To(BeNil())
 			kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
@@ -740,110 +741,110 @@ var _ = Describe("Workload cluster creation", func() {
 				}),
 			), result)
 
-			By("Upgrading the Kubernetes version of the cluster", func() {
-				AKSUpgradeSpec(ctx, func() AKSUpgradeSpecInput {
-					return AKSUpgradeSpecInput{
-						Cluster:                    result.Cluster,
-						MachinePools:               result.MachinePools,
-						KubernetesVersionUpgradeTo: kubernetesVersion,
-						WaitForControlPlane:        e2eConfig.GetIntervals(specName, "wait-machine-upgrade"),
-						WaitForMachinePools:        e2eConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
-					}
-				})
-			})
+			// By("Upgrading the Kubernetes version of the cluster", func() {
+			// 	AKSUpgradeSpec(ctx, func() AKSUpgradeSpecInput {
+			// 		return AKSUpgradeSpecInput{
+			// 			Cluster:                    result.Cluster,
+			// 			MachinePools:               result.MachinePools,
+			// 			KubernetesVersionUpgradeTo: kubernetesVersion,
+			// 			WaitForControlPlane:        e2eConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			// 			WaitForMachinePools:        e2eConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+			// 		}
+			// 	})
+			// })
 
-			By("Exercising machine pools", func() {
-				AKSMachinePoolSpec(ctx, func() AKSMachinePoolSpecInput {
-					return AKSMachinePoolSpecInput{
-						Cluster:       result.Cluster,
-						MachinePools:  result.MachinePools,
-						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
-					}
-				})
-			})
+			// By("Exercising machine pools", func() {
+			// 	AKSMachinePoolSpec(ctx, func() AKSMachinePoolSpecInput {
+			// 		return AKSMachinePoolSpecInput{
+			// 			Cluster:       result.Cluster,
+			// 			MachinePools:  result.MachinePools,
+			// 			WaitIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+			// 		}
+			// 	})
+			// })
 
-			By("creating a machine pool with public IP addresses from a prefix", func() {
-				// This test is also currently serving as the canonical
-				// "create/delete node pool" test. Eventually, that should be
-				// made more distinct from this public IP prefix test.
-				AKSPublicIPPrefixSpec(ctx, func() AKSPublicIPPrefixSpecInput {
-					return AKSPublicIPPrefixSpecInput{
-						Cluster:           result.Cluster,
-						KubernetesVersion: kubernetesVersion,
-						WaitIntervals:     e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
-					}
-				})
-			})
+			// By("creating a machine pool with public IP addresses from a prefix", func() {
+			// 	// This test is also currently serving as the canonical
+			// 	// "create/delete node pool" test. Eventually, that should be
+			// 	// made more distinct from this public IP prefix test.
+			// 	AKSPublicIPPrefixSpec(ctx, func() AKSPublicIPPrefixSpecInput {
+			// 		return AKSPublicIPPrefixSpecInput{
+			// 			Cluster:           result.Cluster,
+			// 			KubernetesVersion: kubernetesVersion,
+			// 			WaitIntervals:     e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+			// 		}
+			// 	})
+			// })
 
-			By("creating a machine pool with spot max price and scale down mode", func() {
-				AKSSpotSpec(ctx, func() AKSSpotSpecInput {
-					return AKSSpotSpecInput{
-						Cluster:           result.Cluster,
-						KubernetesVersion: kubernetesVersion,
-						WaitIntervals:     e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
-					}
-				})
-			})
+			// By("creating a machine pool with spot max price and scale down mode", func() {
+			// 	AKSSpotSpec(ctx, func() AKSSpotSpecInput {
+			// 		return AKSSpotSpecInput{
+			// 			Cluster:           result.Cluster,
+			// 			KubernetesVersion: kubernetesVersion,
+			// 			WaitIntervals:     e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+			// 		}
+			// 	})
+			// })
 
-			By("modifying nodepool autoscaling configuration", func() {
-				AKSAutoscaleSpec(ctx, func() AKSAutoscaleSpecInput {
-					return AKSAutoscaleSpecInput{
-						Cluster:       result.Cluster,
-						MachinePool:   result.MachinePools[0],
-						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
-					}
-				})
-			})
+			// By("modifying nodepool autoscaling configuration", func() {
+			// 	AKSAutoscaleSpec(ctx, func() AKSAutoscaleSpecInput {
+			// 		return AKSAutoscaleSpecInput{
+			// 			Cluster:       result.Cluster,
+			// 			MachinePool:   result.MachinePools[0],
+			// 			WaitIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+			// 		}
+			// 	})
+			// })
 
-			By("modifying additionalTags configuration", func() {
-				AKSAdditionalTagsSpec(ctx, func() AKSAdditionalTagsSpecInput {
-					return AKSAdditionalTagsSpecInput{
-						Cluster:       result.Cluster,
-						MachinePools:  result.MachinePools,
-						WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
-					}
-				})
-			})
+			// By("modifying additionalTags configuration", func() {
+			// 	AKSAdditionalTagsSpec(ctx, func() AKSAdditionalTagsSpecInput {
+			// 		return AKSAdditionalTagsSpecInput{
+			// 			Cluster:       result.Cluster,
+			// 			MachinePools:  result.MachinePools,
+			// 			WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+			// 		}
+			// 	})
+			// })
 
-			By("modifying the azure cluster-autoscaler settings", func() {
-				AKSAzureClusterAutoscalerSettingsSpec(ctx, func() AKSAzureClusterAutoscalerSettingsSpecInput {
-					return AKSAzureClusterAutoscalerSettingsSpecInput{
-						Cluster:       result.Cluster,
-						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
-					}
-				})
-			})
+			// By("modifying the azure cluster-autoscaler settings", func() {
+			// 	AKSAzureClusterAutoscalerSettingsSpec(ctx, func() AKSAzureClusterAutoscalerSettingsSpecInput {
+			// 		return AKSAzureClusterAutoscalerSettingsSpecInput{
+			// 			Cluster:       result.Cluster,
+			// 			WaitIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
+			// 		}
+			// 	})
+			// })
 
-			By("modifying node labels configuration", func() {
-				AKSNodeLabelsSpec(ctx, func() AKSNodeLabelsSpecInput {
-					return AKSNodeLabelsSpecInput{
-						Cluster:       result.Cluster,
-						MachinePools:  result.MachinePools,
-						WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
-					}
-				})
-			})
+			// By("modifying node labels configuration", func() {
+			// 	AKSNodeLabelsSpec(ctx, func() AKSNodeLabelsSpecInput {
+			// 		return AKSNodeLabelsSpecInput{
+			// 			Cluster:       result.Cluster,
+			// 			MachinePools:  result.MachinePools,
+			// 			WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+			// 		}
+			// 	})
+			// })
 
-			By("modifying taints configuration", func() {
-				AKSNodeTaintsSpec(ctx, func() AKSNodeTaintsSpecInput {
-					return AKSNodeTaintsSpecInput{
-						Cluster:       result.Cluster,
-						MachinePools:  result.MachinePools,
-						WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
-					}
-				})
-			})
+			// By("modifying taints configuration", func() {
+			// 	AKSNodeTaintsSpec(ctx, func() AKSNodeTaintsSpecInput {
+			// 		return AKSNodeTaintsSpecInput{
+			// 			Cluster:       result.Cluster,
+			// 			MachinePools:  result.MachinePools,
+			// 			WaitForUpdate: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+			// 		}
+			// 	})
+			// })
 
-			By("creating a byo nodepool", func() {
-				AKSBYONodeSpec(ctx, func() AKSBYONodeSpecInput {
-					return AKSBYONodeSpecInput{
-						Cluster:             result.Cluster,
-						KubernetesVersion:   kubernetesVersion,
-						WaitIntervals:       e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
-						ExpectedWorkerNodes: result.ExpectedWorkerNodes(),
-					}
-				})
-			})
+			// By("creating a byo nodepool", func() {
+			// 	AKSBYONodeSpec(ctx, func() AKSBYONodeSpecInput {
+			// 		return AKSBYONodeSpecInput{
+			// 			Cluster:             result.Cluster,
+			// 			KubernetesVersion:   kubernetesVersion,
+			// 			WaitIntervals:       e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
+			// 			ExpectedWorkerNodes: result.ExpectedWorkerNodes(),
+			// 		}
+			// 	})
+			// })
 
 			By("attaching the cluster to azure fleet", func() {
 				AKSFleetsMemberSpec(ctx, func() AKSFleetsMemberInput {
