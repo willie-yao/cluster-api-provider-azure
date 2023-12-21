@@ -717,6 +717,7 @@ var _ = Describe("Workload cluster creation", func() {
 		It("with a single control plane node and 1 node", func() {
 			clusterName = getClusterName(clusterNamePrefix, aksClusterNameSuffix)
 			kubernetesVersionUpgradeFrom, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersionUpgradeFrom)
+			kubernetesVersionUpgradeFrom = "v1.27.3"
 			Byf("Upgrading from k8s version %s", kubernetesVersionUpgradeFrom)
 			Expect(err).To(BeNil())
 			kubernetesVersion, err := GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
