@@ -68,7 +68,6 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 			{
 				Name:                    extensionName,
 				ExtensionType:           ptr.To("testtestindustryexperiencestest.azurecomps"),
-				Identity:                infrav1.ExtensionIdentitySystemAssigned,
 				AKSAssignedIdentityType: infrav1.AKSAssignedIdentitySystemAssigned,
 				Plan: &infrav1.MarketplacePlan{
 					Name:      "publicplanforprivatepo",
