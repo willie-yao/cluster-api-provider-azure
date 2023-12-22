@@ -430,6 +430,7 @@ type MarketplaceExtension struct {
 	Name string `json:"name"`
 
 	// AKSAssignedIdentityType is the type of the AKS assigned identity.
+	// +optional
 	AKSAssignedIdentityType AKSAssignedIdentity `json:"aksAssignedIdentityType,omitempty"`
 
 	// AutoUpgradeMinorVersion is a flag to note if this extension participates in auto upgrade of minor version, or not.
