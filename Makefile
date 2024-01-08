@@ -89,7 +89,7 @@ KUSTOMIZE_VER := v4.5.2
 KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER)
 
-MOCKGEN_VER := v0.3.0
+MOCKGEN_VER := v0.4.0
 MOCKGEN_BIN := mockgen
 MOCKGEN := $(TOOLS_BIN_DIR)/$(MOCKGEN_BIN)-$(MOCKGEN_VER)
 
@@ -275,7 +275,7 @@ verify-tiltfile: ## Verify Tiltfile format.
 
 .PHONY: verify-codespell
 verify-codespell: codespell ## Verify codespell.
-	@$(CODESPELL) $(ROOT_DIR) --ignore-words=$(ROOT_DIR)/.codespellignore --skip="*.git,*_artifacts,*.sum,$(ROOT_DIR)/hack/tools/bin/codespell_dist"
+	@$(CODESPELL) $(ROOT_DIR) --ignore-words=$(ROOT_DIR)/.codespellignore --skip="*.git,*_artifacts,*.sum,$(ROOT_DIR)/docs/book/bookout,$(ROOT_DIR)/hack/tools/bin/codespell_dist"
 
 ## --------------------------------------
 ## Development

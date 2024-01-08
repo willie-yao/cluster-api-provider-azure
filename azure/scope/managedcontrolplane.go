@@ -71,6 +71,7 @@ type ManagedControlPlaneScopeParams struct {
 	ControlPlane        *infrav1.AzureManagedControlPlane
 	ManagedMachinePools []ManagedMachinePool
 	Cache               *ManagedControlPlaneCache
+	Timeouts            azure.AsyncReconciler
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
@@ -113,6 +114,7 @@ func NewManagedControlPlaneScope(ctx context.Context, params ManagedControlPlane
 		ManagedMachinePools: params.ManagedMachinePools,
 		PatchHelper:         helper,
 		cache:               params.Cache,
+		AsyncReconciler:     params.Timeouts,
 	}, nil
 }
 
@@ -128,6 +130,7 @@ type ManagedControlPlaneScope struct {
 	Cluster             *clusterv1.Cluster
 	ControlPlane        *infrav1.AzureManagedControlPlane
 	ManagedMachinePools []ManagedMachinePool
+	azure.AsyncReconciler
 }
 
 // ManagedControlPlaneCache stores ManagedControlPlane data locally so we don't have to hit the API multiple times within the same reconcile loop.

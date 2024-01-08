@@ -124,7 +124,7 @@ func TestAzureManagedControlPlaneReconcilePaused(t *testing.T) {
 	reconciler := &AzureManagedControlPlaneReconciler{
 		Client:                                   c,
 		Recorder:                                 recorder,
-		ReconcileTimeout:                         reconciler.DefaultLoopTimeout,
+		Timeouts:                                 reconciler.Timeouts{},
 		WatchFilterValue:                         "",
 		getNewAzureManagedControlPlaneReconciler: newAzureManagedControlPlaneReconciler,
 	}
