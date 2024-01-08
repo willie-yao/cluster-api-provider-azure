@@ -32,8 +32,9 @@ import (
 )
 
 type AKSMarketplaceExtensionSpecInput struct {
-	Cluster       *clusterv1.Cluster
-	WaitIntervals []interface{}
+	Cluster                *clusterv1.Cluster
+	WaitIntervals          []interface{}
+	WaitExtensionIntervals []interface{}
 }
 
 const (
@@ -79,7 +80,7 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 		}
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
 		g.Expect(conditions.IsTrue(infraControlPlane, infrav1.AKSExtensionsReadyCondition)).To(BeTrue())
-	}, input.WaitIntervals...).Should(Succeed())
+	}, input.WaitExtensionIntervals...).Should(Succeed())
 
 	By("Ensuring the AKS Marketplace Extension is added to the AzureManagedControlPlane")
 	Eventually(func(g Gomega) {

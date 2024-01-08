@@ -848,8 +848,9 @@ var _ = Describe("Workload cluster creation", func() {
 			By("adding a marketplace extension", func() {
 				AKSMarketplaceExtensionSpec(ctx, func() AKSMarketplaceExtensionSpecInput {
 					return AKSMarketplaceExtensionSpecInput{
-						Cluster:       result.Cluster,
-						WaitIntervals: e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+						Cluster:                result.Cluster,
+						WaitIntervals:          e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+						WaitExtensionIntervals: e2eConfig.GetIntervals(specName, "wait-extension"),
 					}
 				})
 			})
