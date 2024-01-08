@@ -40,6 +40,7 @@ type AKSExtensionSpec struct {
 	Owner                   string
 	OwnerRef                metav1.OwnerReference
 	Plan                    infrav1.MarketplacePlan
+	Scope                   infrav1.ExtensionScope
 }
 
 // ResourceRef implements azure.ASOResourceSpecGetter.
@@ -83,6 +84,19 @@ func (s *AKSExtensionSpec) Parameters(ctx context.Context, existingAKSExtension 
 	if s.AKSAssignedIdentityType != "" {
 		aksExtension.Spec.AksAssignedIdentity = &asokubernetesconfigurationv1.Extension_Properties_AksAssignedIdentity_Spec{
 			Type: (*asokubernetesconfigurationv1.Extension_Properties_AksAssignedIdentity_Type_Spec)(&s.AKSAssignedIdentityType),
+		}
+	}
+	if s.Scope.ScopeType == infrav1.ExtensionScopeCluster {
+		aksExtension.Spec.Scope = &asokubernetesconfigurationv1.Scope{
+			Cluster: &asokubernetesconfigurationv1.ScopeCluster{
+				ReleaseNamespace: ptr.To(s.Scope.ReleaseNamespace),
+			},
+		}
+	} else if s.Scope.ScopeType == infrav1.ExtensionScopeNamespace {
+		aksExtension.Spec.Scope = &asokubernetesconfigurationv1.Scope{
+			Namespace: &asokubernetesconfigurationv1.ScopeNamespace{
+				TargetNamespace: ptr.To(s.Scope.TargetNamespace),
+			},
 		}
 	}
 

@@ -1110,6 +1110,33 @@ type MarketplacePlan struct {
 	Version string `json:"version,omitempty"`
 }
 
+// ExtensionScope defines the scope of the aks marketplace extension, if configured.
+type ExtensionScope struct {
+	// ScopeType is the scope of the extension. It can be either Cluster or Namespace; but not both.
+	ScopeType ExtensionScopeType `json:"scopeType"`
+
+	// ReleaseNamespace is the namespace where the extension Release must be placed, for a Cluster scoped extension.
+	// Required for Cluster scoped extensions.
+	// +optional
+	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
+
+	// TargetNamespace is the namespace where the extension will be created for an Namespace scoped extension.
+	// Required for Namespace scoped extensions.
+	// +optional
+	TargetNamespace string `json:"targetNamespace,omitempty"`
+}
+
+// ExtensionScopeType defines the scope type of the aks marketplace extension, if configured.
+// +kubebuilder:validation:Enum=Cluster;Namespace
+type ExtensionScopeType string
+
+const (
+	// ExtensionScopeCluster ...
+	ExtensionScopeCluster ExtensionScopeType = "Cluster"
+	// ExtensionScopeNamespace ...
+	ExtensionScopeNamespace ExtensionScopeType = "Namespace"
+)
+
 // ExtensionIdentity defines the identity of the aks marketplace extension, if configured.
 // +kubebuilder:validation:Enum=SystemAssigned
 type ExtensionIdentity string

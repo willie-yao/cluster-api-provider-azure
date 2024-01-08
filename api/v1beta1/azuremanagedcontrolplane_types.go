@@ -456,7 +456,7 @@ type MarketplaceExtension struct {
 
 	// Scope is the scope at which this extension is enabled.
 	// +optional
-	Scope string `json:"scope,omitempty"`
+	Scope *ExtensionScope `json:"scope,omitempty"`
 
 	// Version is the version of the extension.
 	// +optional

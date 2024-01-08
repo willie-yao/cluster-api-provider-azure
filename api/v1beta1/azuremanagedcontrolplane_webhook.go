@@ -804,6 +804,23 @@ func validateMarketplaceExtensions(extensions []MarketplaceExtension, fldPath *f
 		if extension.AutoUpgradeMinorVersion == ptr.To(false) && extension.ReleaseTrain != nil {
 			allErrs = append(allErrs, field.Forbidden(fldPath.Child("ReleaseTrain"), "ReleaseTrain must not be given if AutoUpgradeMinorVersion is false"))
 		}
+		if extension.Scope != nil {
+			if extension.Scope.ScopeType == ExtensionScopeCluster {
+				if extension.Scope.ReleaseNamespace == "" {
+					allErrs = append(allErrs, field.Required(fldPath.Child("Scope", "ReleaseNamespace"), "ReleaseNamespace must be provided if Scope is Cluster"))
+				}
+				if extension.Scope.TargetNamespace != "" {
+					allErrs = append(allErrs, field.Forbidden(fldPath.Child("Scope", "TargetNamespace"), "TargetNamespace can only be given if Scope is Namespace"))
+				}
+			} else if extension.Scope.ScopeType == ExtensionScopeNamespace {
+				if extension.Scope.TargetNamespace == "" {
+					allErrs = append(allErrs, field.Required(fldPath.Child("Scope", "TargetNamespace"), "TargetNamespace must be provided if Scope is Namespace"))
+				}
+				if extension.Scope.ReleaseNamespace != "" {
+					allErrs = append(allErrs, field.Forbidden(fldPath.Child("Scope", "ReleaseNamespace"), "ReleaseNamespace can only be given if Scope is Cluster"))
+				}
+			}
+		}
 	}
 
 	return allErrs

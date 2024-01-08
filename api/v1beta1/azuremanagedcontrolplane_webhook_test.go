@@ -2791,7 +2791,10 @@ func TestAzureManagedControlPlane_ValidateUpdate(t *testing.T) {
 									Product:   "planProduct",
 									Publisher: "planPublisher",
 								},
-								Scope:        "scope",
+								Scope: &ExtensionScope{
+									ScopeType:        "Cluster",
+									ReleaseNamespace: "default",
+								},
 								ReleaseTrain: ptr.To("releaseTrain"),
 								Version:      ptr.To("v1.0.0"),
 							},
@@ -2813,7 +2816,10 @@ func TestAzureManagedControlPlane_ValidateUpdate(t *testing.T) {
 									Product:   "planProduct1",
 									Publisher: "planPublisher1",
 								},
-								Scope:        "scope1",
+								Scope: &ExtensionScope{
+									ScopeType:        "Namespace",
+									ReleaseNamespace: "default",
+								},
 								ReleaseTrain: ptr.To("releaseTrain1"),
 								Version:      ptr.To("v1.1.0"),
 							},
