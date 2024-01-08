@@ -78,7 +78,11 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 				},
 			},
 		}
-		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
+	}, input.WaitExtensionIntervals...).Should(Succeed())
+
+	Eventually(func(g Gomega) {
+		err = mgmtClient.Get(ctx, client.ObjectKey{Namespace: input.Cluster.Spec.ControlPlaneRef.Namespace, Name: input.Cluster.Spec.ControlPlaneRef.Name}, infraControlPlane)
+		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(conditions.IsTrue(infraControlPlane, infrav1.AKSExtensionsReadyCondition)).To(BeTrue())
 	}, input.WaitExtensionIntervals...).Should(Succeed())
 
