@@ -70,20 +70,19 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 		g.Expect(err).NotTo(HaveOccurred())
 		infraControlPlane.Spec.MarketplaceExtensions = []infrav1.MarketplaceExtension{
 			{
-				Name:                    extensionName,
-				ExtensionType:           ptr.To("testtestindustryexperiencestest.azurecomps"),
-				AKSAssignedIdentityType: infrav1.AKSAssignedIdentitySystemAssigned,
-				Identity:                infrav1.ExtensionIdentitySystemAssigned,
+				Name:          extensionName,
+				ExtensionType: ptr.To("TraefikLabs.TraefikProxy"),
 				Plan: &infrav1.MarketplacePlan{
-					Name:      "publicplanforprivatepo",
-					Product:   "msalemcontainerdemo1",
-					Publisher: "testtestindustryexperiencestest",
+					Name:      "traefik-proxy",
+					Product:   "traefik-proxy",
+					Publisher: "containous",
 				},
 			},
 		}
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
 	}, input.WaitExtensionIntervals...).Should(Succeed())
 
+	By("Ensuring the AKS Marketplace Extension status is ready on the AzureManagedControlPlane")
 	Eventually(func(g Gomega) {
 		err = mgmtClient.Get(ctx, client.ObjectKey{Namespace: input.Cluster.Spec.ControlPlaneRef.Namespace, Name: input.Cluster.Spec.ControlPlaneRef.Name}, infraControlPlane)
 		g.Expect(err).NotTo(HaveOccurred())
