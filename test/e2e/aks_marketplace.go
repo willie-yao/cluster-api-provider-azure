@@ -63,6 +63,23 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 	extensionClient, err := armkubernetesconfiguration.NewExtensionsClient(amcp.Spec.SubscriptionID, cred, nil)
 	Expect(err).NotTo(HaveOccurred())
 
+	By("Adding a taint to the Windows node pool")
+	Eventually(func(g Gomega) {
+		ammp := &infrav1.AzureManagedMachinePool{}
+		err = mgmtClient.Get(ctx, types.NamespacedName{
+			Namespace: input.Cluster.Namespace,
+			Name:      input.Cluster.Name + "-pool2",
+		}, ammp)
+		g.Expect(err).NotTo(HaveOccurred())
+		ammp.Spec.Taints = []infrav1.Taint{
+			{
+				Effect: "NoSchedule",
+				Key:    "test",
+				Value:  "test",
+			},
+		}
+	}, input.WaitIntervals...).Should(Succeed())
+
 	By("Adding an AKS Marketplace Extension to the AzureManagedControlPlane")
 	var infraControlPlane = &infrav1.AzureManagedControlPlane{}
 	Eventually(func(g Gomega) {
@@ -101,5 +118,16 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 		g.Expect(extension.Properties.AksAssignedIdentity.Type).To(Equal(ptr.To(armkubernetesconfiguration.AKSIdentityTypeSystemAssigned)))
 		g.Expect(extension.Properties.AutoUpgradeMinorVersion).To(Equal(ptr.To(true)))
 		g.Expect(extension.Properties.ExtensionType).To(Equal(ptr.To("testtestindustryexperiencestest.azurecomps")))
+	}, input.WaitIntervals...).Should(Succeed())
+
+	By("Removing the taint from the Windows node pool")
+	Eventually(func(g Gomega) {
+		ammp := &infrav1.AzureManagedMachinePool{}
+		err = mgmtClient.Get(ctx, types.NamespacedName{
+			Namespace: input.Cluster.Namespace,
+			Name:      input.Cluster.Name + "-pool2",
+		}, ammp)
+		g.Expect(err).NotTo(HaveOccurred())
+		ammp.Spec.Taints = []infrav1.Taint{}
 	}, input.WaitIntervals...).Should(Succeed())
 }
