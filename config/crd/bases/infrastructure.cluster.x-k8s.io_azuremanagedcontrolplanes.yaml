@@ -413,8 +413,8 @@ spec:
                         for configuring this extension.
                       type: object
                     extensionType:
-                      description: ExtensionType is the of the Extension, of which
-                        this resource is an instance of. It must be one of the Extension
+                      description: ExtensionType is the type of the Extension of which
+                        this resource is an instance. It must be one of the Extension
                         Types registered with Microsoft.KubernetesConfiguration by
                         the Extension publisher.
                       type: string
@@ -431,7 +431,7 @@ spec:
                       description: Plan is the plan of the extension.
                       properties:
                         name:
-                          description: Name is the user defined name of the 3rd Party
+                          description: Name is the user-defined name of the 3rd Party
                             Artifact that is being procured.
                           type: string
                         product:
@@ -439,12 +439,12 @@ spec:
                             that is being procured.
                           type: string
                         promotionCode:
-                          description: PromotionCode is a publisher provided promotion
+                          description: PromotionCode is a publisher-provided promotion
                             code as provisioned in Data Market for the said product/artifact.
                           type: string
                         publisher:
                           description: Publisher is the name of the publisher of the
-                            3rd Party Artifact that is being bought
+                            3rd Party Artifact that is being bought.
                           type: string
                         version:
                           description: Version is the version of the plan.
@@ -456,27 +456,27 @@ spec:
                     releaseTrain:
                       description: ReleaseTrain is the release train this extension
                         participates in for auto-upgrade (e.g. Stable, Preview, etc.)
-                        only if autoUpgradeMinorVersion is ‘true’.
+                        This is only used if autoUpgradeMinorVersion is ‘true’.
                       type: string
                     scope:
                       description: Scope is the scope at which this extension is enabled.
                       properties:
                         releaseNamespace:
                           description: ReleaseNamespace is the namespace where the
-                            extension Release must be placed, for a Cluster scoped
-                            extension. Required for Cluster scoped extensions.
+                            extension Release must be placed, for a Cluster-scoped
+                            extension. Required for Cluster-scoped extensions.
                           type: string
                         scopeType:
                           description: ScopeType is the scope of the extension. It
-                            can be either Cluster or Namespace; but not both.
+                            can be either Cluster or Namespace, but not both.
                           enum:
                           - Cluster
                           - Namespace
                           type: string
                         targetNamespace:
                           description: TargetNamespace is the namespace where the
-                            extension will be created for an Namespace scoped extension.
-                            Required for Namespace scoped extensions.
+                            extension will be created for a Namespace-scoped extension.
+                            Required for Namespace-scoped extensions.
                           type: string
                       required:
                       - scopeType

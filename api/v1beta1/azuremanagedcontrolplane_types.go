@@ -442,7 +442,7 @@ type MarketplaceExtension struct {
 	// +optional
 	ConfigurationSettings map[string]string `json:"configurationSettings,omitempty"`
 
-	// ExtensionType is the of the Extension, of which this resource is an instance of.
+	// ExtensionType is the type of the Extension of which this resource is an instance.
 	// It must be one of the Extension Types registered with Microsoft.KubernetesConfiguration by the Extension publisher.
 	ExtensionType *string `json:"extensionType"`
 
@@ -450,7 +450,7 @@ type MarketplaceExtension struct {
 	Plan *MarketplacePlan `json:"plan"`
 
 	// ReleaseTrain is the release train this extension participates in for auto-upgrade (e.g. Stable, Preview, etc.)
-	// only if autoUpgradeMinorVersion is ‘true’.
+	// This is only used if autoUpgradeMinorVersion is ‘true’.
 	// +optional
 	ReleaseTrain *string `json:"releaseTrain,omitempty"`
 

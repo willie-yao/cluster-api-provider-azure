@@ -38,9 +38,8 @@ import (
 )
 
 type AKSMarketplaceExtensionSpecInput struct {
-	Cluster                *clusterv1.Cluster
-	WaitIntervals          []interface{}
-	WaitExtensionIntervals []interface{}
+	Cluster       *clusterv1.Cluster
+	WaitIntervals []interface{}
 }
 
 const (
@@ -138,8 +137,9 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 		g.Expect(err).NotTo(HaveOccurred())
 		infraControlPlane.Spec.MarketplaceExtensions = []infrav1.MarketplaceExtension{
 			{
-				Name:          extensionName,
-				ExtensionType: ptr.To("TraefikLabs.TraefikProxy"),
+				Name:                    extensionName,
+				ExtensionType:           ptr.To("TraefikLabs.TraefikProxy"),
+				AKSAssignedIdentityType: infrav1.AKSAssignedIdentitySystemAssigned,
 				Plan: &infrav1.MarketplacePlan{
 					Name:      "traefik-proxy",
 					Product:   "traefik-proxy",
@@ -148,14 +148,14 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 			},
 		}
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
-	}, input.WaitExtensionIntervals...).Should(Succeed())
+	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Ensuring the AKS Marketplace Extension status is ready on the AzureManagedControlPlane")
 	Eventually(func(g Gomega) {
 		err = mgmtClient.Get(ctx, client.ObjectKey{Namespace: input.Cluster.Spec.ControlPlaneRef.Namespace, Name: input.Cluster.Spec.ControlPlaneRef.Name}, infraControlPlane)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(conditions.IsTrue(infraControlPlane, infrav1.AKSExtensionsReadyCondition)).To(BeTrue())
-	}, input.WaitExtensionIntervals...).Should(Succeed())
+	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Ensuring the AKS Marketplace Extension is added to the AzureManagedControlPlane")
 	Eventually(func(g Gomega) {
@@ -164,11 +164,11 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 		g.Expect(resp.Properties.ProvisioningState).To(Equal(ptr.To(armkubernetesconfiguration.ProvisioningStateSucceeded)))
 		extension := resp.Extension
 		g.Expect(extension.Properties).NotTo(BeNil())
-		g.Expect(extension.Name).To(Equal(extensionName))
+		g.Expect(extension.Name).To(Equal(ptr.To(extensionName)))
 		g.Expect(extension.Properties.AksAssignedIdentity).NotTo(BeNil())
 		g.Expect(extension.Properties.AksAssignedIdentity.Type).To(Equal(ptr.To(armkubernetesconfiguration.AKSIdentityTypeSystemAssigned)))
 		g.Expect(extension.Properties.AutoUpgradeMinorVersion).To(Equal(ptr.To(true)))
-		g.Expect(extension.Properties.ExtensionType).To(Equal(ptr.To("testtestindustryexperiencestest.azurecomps")))
+		g.Expect(extension.Properties.ExtensionType).To(Equal(ptr.To("TraefikLabs.TraefikProxy")))
 	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Restoring initial taints for Windows machine pool")
