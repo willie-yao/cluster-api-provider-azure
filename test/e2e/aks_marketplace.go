@@ -137,9 +137,8 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 		g.Expect(err).NotTo(HaveOccurred())
 		infraControlPlane.Spec.MarketplaceExtensions = []infrav1.MarketplaceExtension{
 			{
-				Name:                    extensionName,
-				ExtensionType:           ptr.To("TraefikLabs.TraefikProxy"),
-				AKSAssignedIdentityType: infrav1.AKSAssignedIdentitySystemAssigned,
+				Name:          extensionName,
+				ExtensionType: ptr.To("TraefikLabs.TraefikProxy"),
 				Plan: &infrav1.MarketplacePlan{
 					Name:      "traefik-proxy",
 					Product:   "traefik-proxy",
@@ -165,8 +164,6 @@ func AKSMarketplaceExtensionSpec(ctx context.Context, inputGetter func() AKSMark
 		extension := resp.Extension
 		g.Expect(extension.Properties).NotTo(BeNil())
 		g.Expect(extension.Name).To(Equal(ptr.To(extensionName)))
-		g.Expect(extension.Properties.AksAssignedIdentity).NotTo(BeNil())
-		g.Expect(extension.Properties.AksAssignedIdentity.Type).To(Equal(ptr.To(armkubernetesconfiguration.AKSIdentityTypeSystemAssigned)))
 		g.Expect(extension.Properties.AutoUpgradeMinorVersion).To(Equal(ptr.To(true)))
 		g.Expect(extension.Properties.ExtensionType).To(Equal(ptr.To("TraefikLabs.TraefikProxy")))
 	}, input.WaitIntervals...).Should(Succeed())

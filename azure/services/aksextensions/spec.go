@@ -78,12 +78,12 @@ func (s *AKSExtensionSpec) Parameters(ctx context.Context, existingAKSExtension 
 	}
 	if s.ExtensionIdentity != "" {
 		aksExtension.Spec.Identity = &asokubernetesconfigurationv1.Identity{
-			Type: (*asokubernetesconfigurationv1.Identity_Type)(&s.ExtensionIdentity),
+			Type: (*asokubernetesconfigurationv1.Identity_Type)(ptr.To(s.ExtensionIdentity)),
 		}
 	}
 	if s.AKSAssignedIdentityType != "" {
 		aksExtension.Spec.AksAssignedIdentity = &asokubernetesconfigurationv1.Extension_Properties_AksAssignedIdentity_Spec{
-			Type: (*asokubernetesconfigurationv1.Extension_Properties_AksAssignedIdentity_Type_Spec)(&s.AKSAssignedIdentityType),
+			Type: (*asokubernetesconfigurationv1.Extension_Properties_AksAssignedIdentity_Type_Spec)(ptr.To(s.AKSAssignedIdentityType)),
 		}
 	}
 	if s.Scope.ScopeType == infrav1.ExtensionScopeCluster {
