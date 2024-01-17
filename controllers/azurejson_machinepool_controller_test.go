@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
@@ -136,11 +135,11 @@ func TestAzureJSONPoolReconciler(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: infrav1.AzureClusterIdentitySpec{
-			Type: infrav1.ServicePrincipal,
+			Type:     infrav1.ServicePrincipal,
+			TenantID: "fake-tenantid",
 		},
 	}
-
-	fakeSecret := &corev1.Secret{}
+	fakeSecret := &corev1.Secret{Data: map[string][]byte{"clientSecret": []byte("fooSecret")}}
 
 	cases := map[string]struct {
 		objects []runtime.Object
@@ -211,9 +210,9 @@ func TestAzureJSONPoolReconciler(t *testing.T) {
 		},
 	}
 
-	t.Setenv(auth.ClientID, "fooClient")
-	t.Setenv(auth.ClientSecret, "fooSecret")
-	t.Setenv(auth.TenantID, "fooTenant")
+	t.Setenv("AZURE_CLIENT_ID", "fooClient")
+	t.Setenv("AZURE_CLIENT_SECRET", "fooSecret")
+	t.Setenv("AZURE_TENANT_ID", "fooTenant")
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -348,6 +347,7 @@ func TestAzureJSONPoolReconcilerUserAssignedIdentities(t *testing.T) {
 				Name:      azureMP.Name,
 				Namespace: "fake-ns",
 			},
+			TenantID: "fake-tenantid",
 		},
 	}
 
@@ -366,6 +366,9 @@ func TestAzureJSONPoolReconcilerUserAssignedIdentities(t *testing.T) {
 					Controller: ptr.To(true),
 				},
 			},
+		},
+		Data: map[string][]byte{
+			"clientSecret": []byte("fooSecret"),
 		},
 	}
 

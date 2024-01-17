@@ -18,12 +18,9 @@ package controllers
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
-	aadpodv1 "github.com/Azure/aad-pod-identity/pkg/apis/aadpodidentity/v1"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
@@ -74,10 +71,6 @@ func TestAzureMachinePoolMachineReconciler_Reconcile(t *testing.T) {
 		},
 	}
 
-	os.Setenv(auth.ClientID, "fooClient")
-	os.Setenv(auth.ClientSecret, "fooSecret")
-	os.Setenv(auth.TenantID, "fooTenant")
-
 	for _, c := range cases {
 		c := c
 		t.Run(c.Name, func(t *testing.T) {
@@ -93,7 +86,6 @@ func TestAzureMachinePoolMachineReconciler_Reconcile(t *testing.T) {
 						infrav1.AddToScheme,
 						infrav1exp.AddToScheme,
 						corev1.AddToScheme,
-						aadpodv1.AddToScheme,
 					} {
 						g.Expect(addTo(s)).To(Succeed())
 					}
@@ -242,6 +234,7 @@ func getReadyMachinePoolMachineClusterObjects(ampmIsDeleting bool) []client.Obje
 				Name:      "fooSecret",
 				Namespace: "default",
 			},
+			TenantID: "fake-tenantid",
 		},
 	}
 
@@ -249,6 +242,9 @@ func getReadyMachinePoolMachineClusterObjects(ampmIsDeleting bool) []client.Obje
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "fooSecret",
 			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"clientSecret": []byte("fooSecret"),
 		},
 	}
 

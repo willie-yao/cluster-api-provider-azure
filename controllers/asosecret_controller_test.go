@@ -21,8 +21,6 @@ import (
 	"os"
 	"testing"
 
-	aadpodv1 "github.com/Azure/aad-pod-identity/pkg/apis/aadpodidentity/v1"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,16 +37,15 @@ import (
 )
 
 func TestASOSecretReconcile(t *testing.T) {
-	os.Setenv(auth.ClientID, "fooClient")
-	os.Setenv(auth.ClientSecret, "fooSecret")
-	os.Setenv(auth.TenantID, "fooTenant")
-	os.Setenv(auth.SubscriptionID, "fooSubscription")
+	os.Setenv("AZURE_CLIENT_ID", "fooClient")
+	os.Setenv("AZURE_CLIENT_SECRET", "fooSecret")
+	os.Setenv("AZURE_TENANT_ID", "fooTenant")
+	os.Setenv("AZURE_SUBSCRIPTION_ID", "fooSubscription")
 
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = aadpodv1.AddToScheme(scheme)
 
 	defaultCluster := getASOCluster()
 	defaultAzureCluster := getASOAzureCluster()

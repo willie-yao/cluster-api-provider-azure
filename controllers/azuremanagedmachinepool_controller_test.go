@@ -18,13 +18,10 @@ package controllers
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
-	aadpodv1 "github.com/Azure/aad-pod-identity/pkg/apis/aadpodidentity/v1"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"go.uber.org/mock/gomock"
@@ -53,11 +50,6 @@ func TestAzureManagedMachinePoolReconcile(t *testing.T) {
 		*mock_azure.MockReconciler
 		*mock_azure.MockPauser
 	}
-
-	os.Setenv(auth.ClientID, "fooClient")
-	os.Setenv(auth.ClientSecret, "fooSecret")
-	os.Setenv(auth.TenantID, "fooTenant")
-	os.Setenv(auth.SubscriptionID, "fooSubscription")
 
 	cases := []struct {
 		name   string
@@ -154,10 +146,11 @@ func TestAzureManagedMachinePoolReconcile(t *testing.T) {
 						Namespace: "default",
 					},
 					Spec: infrav1.AzureClusterIdentitySpec{
-						Type: infrav1.ServicePrincipal,
+						Type:     infrav1.ServicePrincipal,
+						TenantID: "fake-tenantid",
 					},
 				}
-				fakeSecret  = &corev1.Secret{}
+				fakeSecret  = &corev1.Secret{Data: map[string][]byte{"clientSecret": []byte("fooSecret")}}
 				initObjects = []runtime.Object{fakeIdentity, fakeSecret}
 				scheme      = func() *runtime.Scheme {
 					s := runtime.NewScheme()
@@ -167,7 +160,6 @@ func TestAzureManagedMachinePoolReconcile(t *testing.T) {
 						expv1.AddToScheme,
 						infrav1.AddToScheme,
 						corev1.AddToScheme,
-						aadpodv1.AddToScheme,
 					} {
 						g.Expect(addTo(s)).To(Succeed())
 					}
