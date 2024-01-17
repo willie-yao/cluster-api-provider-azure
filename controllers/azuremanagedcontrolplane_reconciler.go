@@ -46,19 +46,7 @@ type azureManagedControlPlaneService struct {
 
 // newAzureManagedControlPlaneReconciler populates all the services based on input scope.
 func newAzureManagedControlPlaneReconciler(scope *scope.ManagedControlPlaneScope) (*azureManagedControlPlaneService, error) {
-	privateEndpointsSvc, err := privateendpoints.New(scope)
-	if err != nil {
-		return nil, err
-	}
 	resourceHealthSvc, err := resourcehealth.New(scope)
-	if err != nil {
-		return nil, err
-	}
-	subnetsSvc, err := subnets.New(scope)
-	if err != nil {
-		return nil, err
-	}
-	virtualNetworksSvc, err := virtualnetworks.New(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -67,10 +55,10 @@ func newAzureManagedControlPlaneReconciler(scope *scope.ManagedControlPlaneScope
 		scope:      scope,
 		services: []azure.ServiceReconciler{
 			groups.New(scope),
-			virtualNetworksSvc,
-			subnetsSvc,
+			virtualnetworks.New(scope),
+			subnets.New(scope),
 			managedclusters.New(scope),
-			privateEndpointsSvc,
+			privateendpoints.New(scope),
 			resourceHealthSvc,
 			fleets.New(scope),
 		},

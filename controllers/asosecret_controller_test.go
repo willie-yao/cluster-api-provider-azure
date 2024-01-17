@@ -21,8 +21,6 @@ import (
 	"os"
 	"testing"
 
-	aadpodv1 "github.com/Azure/aad-pod-identity/pkg/apis/aadpodidentity/v1"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,16 +37,15 @@ import (
 )
 
 func TestASOSecretReconcile(t *testing.T) {
-	os.Setenv(auth.ClientID, "fooClient")
-	os.Setenv(auth.ClientSecret, "fooSecret")
-	os.Setenv(auth.TenantID, "fooTenant")
-	os.Setenv(auth.SubscriptionID, "fooSubscription")
+	os.Setenv("AZURE_CLIENT_ID", "fooClient")
+	os.Setenv("AZURE_CLIENT_SECRET", "fooSecret")
+	os.Setenv("AZURE_TENANT_ID", "fooTenant")
+	os.Setenv("AZURE_SUBSCRIPTION_ID", "fooSubscription")
 
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = aadpodv1.AddToScheme(scheme)
 
 	defaultCluster := getASOCluster()
 	defaultAzureCluster := getASOAzureCluster()
@@ -262,7 +259,20 @@ func TestASOSecretReconcile(t *testing.T) {
 				getASOCluster(func(c *clusterv1.Cluster) {
 					c.Spec.Paused = true
 				}),
-				defaultAzureCluster,
+				getASOAzureCluster(func(c *infrav1.AzureCluster) {
+					c.Spec.IdentityRef = &corev1.ObjectReference{
+						Name:      "my-azure-cluster-identity",
+						Namespace: "default",
+					}
+				}),
+				getASOAzureClusterIdentity(func(identity *infrav1.AzureClusterIdentity) {
+					identity.Spec.Type = defaultClusterIdentityType
+					identity.Spec.ClientSecret = corev1.SecretReference{
+						Name:      "fooSecret",
+						Namespace: "default",
+					}
+				}),
+				getASOAzureClusterIdentitySecret(),
 			},
 			event: "AzureCluster or linked Cluster is marked as paused. Won't reconcile",
 		},
@@ -305,13 +315,13 @@ func TestASOSecretReconcile(t *testing.T) {
 				g.Expect(asoSecretErr).To(HaveOccurred())
 			}
 
-			if tc.event != "" {
-				g.Expect(reconciler.Recorder.(*record.FakeRecorder).Events).To(Receive(ContainSubstring(tc.event)))
-			}
 			if tc.err != "" {
 				g.Expect(err).To(MatchError(ContainSubstring(tc.err)))
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
+			}
+			if tc.event != "" {
+				g.Expect(reconciler.Recorder.(*record.FakeRecorder).Events).To(Receive(ContainSubstring(tc.event)))
 			}
 		})
 	}

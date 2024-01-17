@@ -18,10 +18,12 @@ package disks
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 
-	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -29,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/async/mock_async"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/disks/mock_disks"
 	gomockinternal "sigs.k8s.io/cluster-api-provider-azure/internal/test/matchers/gomock"
+	"sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 )
 
 var (
@@ -47,7 +50,12 @@ var (
 		&diskSpec2,
 	}
 
-	internalError = autorest.NewErrorWithResponse("", "", &http.Response{StatusCode: http.StatusInternalServerError}, "Internal Server Error")
+	internalError = &azcore.ResponseError{
+		RawResponse: &http.Response{
+			Body:       io.NopCloser(strings.NewReader("#: Internal Server Error: StatusCode=500")),
+			StatusCode: http.StatusInternalServerError,
+		},
+	}
 )
 
 func TestDeleteDisk(t *testing.T) {
@@ -60,6 +68,7 @@ func TestDeleteDisk(t *testing.T) {
 			name:          "noop if no disk specs are found",
 			expectedError: "",
 			expect: func(s *mock_disks.MockDiskScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.DiskSpecs().Return([]azure.ResourceSpecGetter{})
 			},
 		},
@@ -69,6 +78,7 @@ func TestDeleteDisk(t *testing.T) {
 			expect: func(s *mock_disks.MockDiskScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
 				s.DiskSpecs().Return(fakeDiskSpecs)
 				gomock.InOrder(
+					s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout),
 					r.DeleteResource(gomockinternal.AContext(), &diskSpec1, serviceName).Return(nil),
 					r.DeleteResource(gomockinternal.AContext(), &diskSpec2, serviceName).Return(nil),
 					s.UpdateDeleteStatus(infrav1.DisksReadyCondition, serviceName, nil),
@@ -81,6 +91,7 @@ func TestDeleteDisk(t *testing.T) {
 			expect: func(s *mock_disks.MockDiskScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
 				s.DiskSpecs().Return(fakeDiskSpecs)
 				gomock.InOrder(
+					s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout),
 					r.DeleteResource(gomockinternal.AContext(), &diskSpec1, serviceName).Return(nil),
 					r.DeleteResource(gomockinternal.AContext(), &diskSpec2, serviceName).Return(nil),
 					s.UpdateDeleteStatus(infrav1.DisksReadyCondition, serviceName, nil),
@@ -93,6 +104,7 @@ func TestDeleteDisk(t *testing.T) {
 			expect: func(s *mock_disks.MockDiskScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
 				s.DiskSpecs().Return(fakeDiskSpecs)
 				gomock.InOrder(
+					s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout),
 					r.DeleteResource(gomockinternal.AContext(), &diskSpec1, serviceName).Return(internalError),
 					r.DeleteResource(gomockinternal.AContext(), &diskSpec2, serviceName).Return(nil),
 					s.UpdateDeleteStatus(infrav1.DisksReadyCondition, serviceName, internalError),
@@ -122,7 +134,7 @@ func TestDeleteDisk(t *testing.T) {
 			err := s.Delete(context.TODO())
 			if tc.expectedError != "" {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err).To(MatchError(tc.expectedError))
+				g.Expect(err.Error()).To(ContainSubstring(tc.expectedError))
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}

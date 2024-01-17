@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure/mock_azure"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/aso/mock_aso"
 	gomockinternal "sigs.k8s.io/cluster-api-provider-azure/internal/test/matchers/gomock"
+	reconcilerutils "sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -39,6 +40,29 @@ const (
 )
 
 func TestServiceReconcile(t *testing.T) {
+	t.Run("no specs", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		mockCtrl := gomock.NewController(t)
+		scope := mock_aso.NewMockScope(mockCtrl)
+		reconciler := mock_aso.NewMockReconciler[*asoresourcesv1.ResourceGroup](mockCtrl)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
+
+		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
+			Reconciler:    reconciler,
+			Scope:         scope,
+			Specs:         nil,
+			name:          serviceName,
+			ConditionType: conditionType,
+			PostReconcileHook: func(_ context.Context, _ *mock_aso.MockScope, _ error) error {
+				return errors.New("hook should not be called")
+			},
+		}
+
+		err := s.Reconcile(context.Background())
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+
 	t.Run("CreateOrUpdateResource returns error", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -53,6 +77,7 @@ func TestServiceReconcile(t *testing.T) {
 		reconciler := mock_aso.NewMockReconciler[*asoresourcesv1.ResourceGroup](mockCtrl)
 		reconciler.EXPECT().CreateOrUpdateResource(gomockinternal.AContext(), specs[0], serviceName).Return(nil, reconcileErr)
 		scope.EXPECT().UpdatePutStatus(conditionType, serviceName, reconcileErr)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -83,6 +108,7 @@ func TestServiceReconcile(t *testing.T) {
 		reconciler.EXPECT().CreateOrUpdateResource(gomockinternal.AContext(), specs[1], serviceName).Return(nil, nil)
 		reconciler.EXPECT().CreateOrUpdateResource(gomockinternal.AContext(), specs[2], serviceName).Return(nil, nil)
 		scope.EXPECT().UpdatePutStatus(conditionType, serviceName, nil)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -114,6 +140,7 @@ func TestServiceReconcile(t *testing.T) {
 		reconciler.EXPECT().CreateOrUpdateResource(gomockinternal.AContext(), specs[1], serviceName).Return(nil, reconcileErr)
 		reconciler.EXPECT().CreateOrUpdateResource(gomockinternal.AContext(), specs[2], serviceName).Return(nil, nil)
 		scope.EXPECT().UpdatePutStatus(conditionType, serviceName, reconcileErr)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -145,6 +172,7 @@ func TestServiceReconcile(t *testing.T) {
 		reconciler.EXPECT().CreateOrUpdateResource(gomockinternal.AContext(), specs[1], serviceName).Return(nil, reconcileErr)
 		reconciler.EXPECT().CreateOrUpdateResource(gomockinternal.AContext(), specs[2], serviceName).Return(nil, azure.NewOperationNotDoneError(&infrav1.Future{}))
 		scope.EXPECT().UpdatePutStatus(conditionType, serviceName, reconcileErr)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -178,6 +206,7 @@ func TestServiceReconcile(t *testing.T) {
 			},
 		}, reconcileErr)
 		scope.EXPECT().UpdatePutStatus(conditionType, serviceName, postReconcileErr)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -204,6 +233,29 @@ func TestServiceReconcile(t *testing.T) {
 }
 
 func TestServiceDelete(t *testing.T) {
+	t.Run("no specs", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+
+		mockCtrl := gomock.NewController(t)
+		scope := mock_aso.NewMockScope(mockCtrl)
+		reconciler := mock_aso.NewMockReconciler[*asoresourcesv1.ResourceGroup](mockCtrl)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
+
+		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
+			Reconciler:    reconciler,
+			Scope:         scope,
+			Specs:         nil,
+			name:          serviceName,
+			ConditionType: conditionType,
+			PostDeleteHook: func(_ context.Context, _ *mock_aso.MockScope, _ error) error {
+				return errors.New("hook should not be called")
+			},
+		}
+
+		err := s.Delete(context.Background())
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+
 	t.Run("DeleteResource returns error", func(t *testing.T) {
 		g := NewGomegaWithT(t)
 
@@ -218,6 +270,7 @@ func TestServiceDelete(t *testing.T) {
 		reconciler := mock_aso.NewMockReconciler[*asoresourcesv1.ResourceGroup](mockCtrl)
 		reconciler.EXPECT().DeleteResource(gomockinternal.AContext(), specs[0], serviceName).Return(deleteErr)
 		scope.EXPECT().UpdateDeleteStatus(conditionType, serviceName, deleteErr)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -228,7 +281,7 @@ func TestServiceDelete(t *testing.T) {
 		}
 
 		err := s.Delete(context.Background())
-		g.Expect(err).To(MatchError("DeleteResource error"))
+		g.Expect(err).To(MatchError(deleteErr))
 	})
 
 	t.Run("DeleteResource succeeds for all resources", func(t *testing.T) {
@@ -248,6 +301,7 @@ func TestServiceDelete(t *testing.T) {
 		reconciler.EXPECT().DeleteResource(gomockinternal.AContext(), specs[1], serviceName).Return(nil)
 		reconciler.EXPECT().DeleteResource(gomockinternal.AContext(), specs[2], serviceName).Return(nil)
 		scope.EXPECT().UpdateDeleteStatus(conditionType, serviceName, nil)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -279,6 +333,7 @@ func TestServiceDelete(t *testing.T) {
 		reconciler.EXPECT().DeleteResource(gomockinternal.AContext(), specs[1], serviceName).Return(deleteErr)
 		reconciler.EXPECT().DeleteResource(gomockinternal.AContext(), specs[2], serviceName).Return(nil)
 		scope.EXPECT().UpdateDeleteStatus(conditionType, serviceName, deleteErr)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -310,6 +365,7 @@ func TestServiceDelete(t *testing.T) {
 		reconciler.EXPECT().DeleteResource(gomockinternal.AContext(), specs[1], serviceName).Return(deleteErr)
 		reconciler.EXPECT().DeleteResource(gomockinternal.AContext(), specs[2], serviceName).Return(azure.NewOperationNotDoneError(&infrav1.Future{}))
 		scope.EXPECT().UpdateDeleteStatus(conditionType, serviceName, deleteErr)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -320,7 +376,7 @@ func TestServiceDelete(t *testing.T) {
 		}
 
 		err := s.Delete(context.Background())
-		g.Expect(err).To(MatchError("non-not done error"))
+		g.Expect(err).To(MatchError(deleteErr))
 	})
 
 	t.Run("DeleteResource returns error and runs PostDeleteHook", func(t *testing.T) {
@@ -338,6 +394,7 @@ func TestServiceDelete(t *testing.T) {
 		reconciler := mock_aso.NewMockReconciler[*asoresourcesv1.ResourceGroup](mockCtrl)
 		reconciler.EXPECT().DeleteResource(gomockinternal.AContext(), specs[0], serviceName).Return(deleteErr)
 		scope.EXPECT().UpdateDeleteStatus(conditionType, serviceName, postErr)
+		scope.EXPECT().DefaultedAzureServiceReconcileTimeout().Return(reconcilerutils.DefaultAzureServiceReconcileTimeout)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -406,9 +463,10 @@ func TestServicePause(t *testing.T) {
 			mock_azure.NewMockASOResourceSpecGetter[*asoresourcesv1.ResourceGroup](mockCtrl),
 		}
 
+		pauseErr := errors.New("Pause error")
 		reconciler := mock_aso.NewMockReconciler[*asoresourcesv1.ResourceGroup](mockCtrl)
 		reconciler.EXPECT().PauseResource(gomockinternal.AContext(), specs[0], serviceName).Return(nil)
-		reconciler.EXPECT().PauseResource(gomockinternal.AContext(), specs[1], serviceName).Return(errors.New("Pause error"))
+		reconciler.EXPECT().PauseResource(gomockinternal.AContext(), specs[1], serviceName).Return(pauseErr)
 
 		s := &Service[*asoresourcesv1.ResourceGroup, *mock_aso.MockScope]{
 			Reconciler:    reconciler,
@@ -419,6 +477,6 @@ func TestServicePause(t *testing.T) {
 		}
 
 		err := s.Pause(context.Background())
-		g.Expect(err).To(MatchError(ContainSubstring("Pause error")))
+		g.Expect(err).To(MatchError(pauseErr))
 	})
 }

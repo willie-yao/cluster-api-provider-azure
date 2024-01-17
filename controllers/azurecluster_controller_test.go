@@ -22,10 +22,12 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
+	asonetworkv1 "github.com/Azure/azure-service-operator/v2/api/network/v1api20201101"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/internal/test"
 	"sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,7 +58,8 @@ type TestClusterReconcileInput struct {
 }
 
 const (
-	location = "westus2"
+	location  = "westus2"
+	namespace = "default"
 )
 
 var _ = Describe("AzureClusterReconciler", func() {
@@ -64,10 +68,10 @@ var _ = Describe("AzureClusterReconciler", func() {
 
 	Context("Reconcile an AzureCluster", func() {
 		It("should not error with minimal set up", func() {
-			reconciler := NewAzureClusterReconciler(testEnv, testEnv.GetEventRecorderFor("azurecluster-reconciler"), reconciler.DefaultLoopTimeout, "")
+			reconciler := NewAzureClusterReconciler(testEnv, testEnv.GetEventRecorderFor("azurecluster-reconciler"), reconciler.Timeouts{}, "")
 			By("Calling reconcile")
 			name := test.RandomName("foo", 10)
-			instance := &infrav1.AzureCluster{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "default"}}
+			instance := &infrav1.AzureCluster{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
 			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 				NamespacedName: client.ObjectKey{
 					Namespace: instance.Namespace,
@@ -135,7 +139,7 @@ func TestAzureClusterReconcile(t *testing.T) {
 
 			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 				NamespacedName: types.NamespacedName{
-					Namespace: "default",
+					Namespace: namespace,
 					Name:      "my-azure-cluster",
 				},
 			})
@@ -246,18 +250,34 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 		clusterv1.AddToScheme,
 		infrav1.AddToScheme,
 		asoresourcesv1.AddToScheme,
+		asonetworkv1.AddToScheme,
+		corev1.AddToScheme,
 	)
 	s := runtime.NewScheme()
 	g.Expect(sb.AddToScheme(s)).To(Succeed())
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: namespace,
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type:     infrav1.ServicePrincipal,
+			TenantID: "fake-tenantid",
+		},
+	}
+	fakeSecret := &corev1.Secret{Data: map[string][]byte{"clientSecret": []byte("fooSecret")}}
+
+	initObjects := []runtime.Object{fakeIdentity, fakeSecret}
 	c := fake.NewClientBuilder().
 		WithScheme(s).
+		WithRuntimeObjects(initObjects...).
 		Build()
 
 	recorder := record.NewFakeRecorder(1)
 
-	reconciler := NewAzureClusterReconciler(c, recorder, reconciler.DefaultLoopTimeout, "")
+	reconciler := NewAzureClusterReconciler(c, recorder, reconciler.Timeouts{}, "")
 	name := test.RandomName("paused", 10)
-	namespace := "default"
+	namespace := namespace
 
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -274,6 +294,9 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Annotations: map[string]string{
+				clusterctlv1.BlockMoveAnnotation: "true",
+			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Kind:       "Cluster",
@@ -286,8 +309,19 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 		Spec: infrav1.AzureClusterSpec{
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				SubscriptionID: "something",
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "fake-identity",
+					Namespace: namespace,
+					Kind:      "AzureClusterIdentity",
+				},
 			},
 			ResourceGroup: name,
+			NetworkSpec: infrav1.NetworkSpec{
+				Vnet: infrav1.VnetSpec{
+					Name:          name,
+					ResourceGroup: name,
+				},
+			},
 		},
 	}
 	g.Expect(c.Create(ctx, instance)).To(Succeed())
@@ -300,6 +334,14 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 	}
 	g.Expect(c.Create(ctx, rg)).To(Succeed())
 
+	vnet := &asonetworkv1.VirtualNetwork{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	g.Expect(c.Create(ctx, vnet)).To(Succeed())
+
 	result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 		NamespacedName: client.ObjectKey{
 			Namespace: instance.Namespace,
@@ -311,6 +353,9 @@ func TestAzureClusterReconcilePaused(t *testing.T) {
 	g.Expect(result.RequeueAfter).To(BeZero())
 
 	g.Eventually(recorder.Events).Should(Receive(Equal("Normal ClusterPaused AzureCluster or linked Cluster is marked as paused. Won't reconcile normally")))
+
+	g.Expect(c.Get(ctx, client.ObjectKeyFromObject(instance), instance)).To(Succeed())
+	g.Expect(instance.GetAnnotations()).NotTo(HaveKey(clusterctlv1.BlockMoveAnnotation))
 }
 
 func TestAzureClusterReconcileDelete(t *testing.T) {
@@ -426,9 +471,23 @@ func getClusterReconcileInputs(tc TestClusterReconcileInput) (*AzureClusterRecon
 		})
 	}
 
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: namespace,
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type:     infrav1.ServicePrincipal,
+			TenantID: "fake-tenantid",
+		},
+	}
+	fakeSecret := &corev1.Secret{Data: map[string][]byte{"clientSecret": []byte("fooSecret")}}
+
 	objects := []runtime.Object{
 		cluster,
 		azureCluster,
+		fakeIdentity,
+		fakeSecret,
 	}
 
 	client := fake.NewClientBuilder().

@@ -65,27 +65,11 @@ func newAzureClusterService(scope *scope.ClusterScope) (*azureClusterService, er
 	if err != nil {
 		return nil, err
 	}
-	bastionHostsSvc, err := bastionhosts.New(scope)
-	if err != nil {
-		return nil, err
-	}
-	privateEndpointsSvc, err := privateendpoints.New(scope)
-	if err != nil {
-		return nil, err
-	}
 	publicIPsSvc, err := publicips.New(scope)
 	if err != nil {
 		return nil, err
 	}
 	privateDNSSvc, err := privatedns.New(scope)
-	if err != nil {
-		return nil, err
-	}
-	subnetsSvc, err := subnets.New(scope)
-	if err != nil {
-		return nil, err
-	}
-	virtualNetworksSvc, err := virtualnetworks.New(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -101,17 +85,17 @@ func newAzureClusterService(scope *scope.ClusterScope) (*azureClusterService, er
 		scope: scope,
 		services: []azure.ServiceReconciler{
 			groups.New(scope),
-			virtualNetworksSvc,
+			virtualnetworks.New(scope),
 			securityGroupsSvc,
 			routeTablesSvc,
 			publicIPsSvc,
 			natgateways.New(scope),
-			subnetsSvc,
+			subnets.New(scope),
 			vnetPeeringsSvc,
 			loadbalancersSvc,
 			privateDNSSvc,
-			bastionHostsSvc,
-			privateEndpointsSvc,
+			privateendpoints.New(scope),
+			bastionhosts.New(scope),
 		},
 		skuCache: skuCache,
 	}

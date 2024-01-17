@@ -84,7 +84,6 @@ const (
 	SecurityScanFailThreshold       = "SECURITY_SCAN_FAIL_THRESHOLD"
 	SecurityScanContainer           = "SECURITY_SCAN_CONTAINER"
 	CalicoVersion                   = "CALICO_VERSION"
-	AzureDiskCSIDriverVersion       = "AZUREDISK_CSI_DRIVER_VERSION"
 	ManagedClustersResourceType     = "managedClusters"
 	capiImagePublisher              = "cncf-upstream"
 	capiOfferName                   = "capi"
@@ -293,7 +292,7 @@ func ensureControlPlaneInitialized(ctx context.Context, input clusterctl.ApplyCu
 
 	if kubeadmControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager.ExtraArgs["cloud-provider"] != infrav1.AzureNetworkPluginName {
 		// There is a co-dependency between cloud-provider and CNI so we install both together if cloud-provider is external.
-		InstallCNIAndCloudProviderAzureHelmChart(ctx, input, installHelmCharts, cluster.Spec.ClusterNetwork.Pods.CIDRBlocks, hasWindows)
+		EnsureCNIAndCloudProviderAzureHelmChart(ctx, input, installHelmCharts, cluster.Spec.ClusterNetwork.Pods.CIDRBlocks, hasWindows)
 	} else {
 		EnsureCNI(ctx, input, installHelmCharts, cluster.Spec.ClusterNetwork.Pods.CIDRBlocks, hasWindows)
 	}

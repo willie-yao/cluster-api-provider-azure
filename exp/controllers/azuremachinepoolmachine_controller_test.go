@@ -18,11 +18,9 @@ package controllers
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure/scope"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1beta1"
 	gomock2 "sigs.k8s.io/cluster-api-provider-azure/internal/test/matchers/gomock"
+	reconcilerutils "sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -72,10 +71,6 @@ func TestAzureMachinePoolMachineReconciler_Reconcile(t *testing.T) {
 		},
 	}
 
-	os.Setenv(auth.ClientID, "fooClient")
-	os.Setenv(auth.ClientSecret, "fooSecret")
-	os.Setenv(auth.TenantID, "fooTenant")
-
 	for _, c := range cases {
 		c := c
 		t.Run(c.Name, func(t *testing.T) {
@@ -90,6 +85,7 @@ func TestAzureMachinePoolMachineReconciler_Reconcile(t *testing.T) {
 						expv1.AddToScheme,
 						infrav1.AddToScheme,
 						infrav1exp.AddToScheme,
+						corev1.AddToScheme,
 					} {
 						g.Expect(addTo(s)).To(Succeed())
 					}
@@ -101,7 +97,7 @@ func TestAzureMachinePoolMachineReconciler_Reconcile(t *testing.T) {
 			defer mockCtrl.Finish()
 
 			c.Setup(cb, reconciler.EXPECT())
-			controller := NewAzureMachinePoolMachineController(cb.Build(), nil, 30*time.Second, "foo")
+			controller := NewAzureMachinePoolMachineController(cb.Build(), nil, reconcilerutils.Timeouts{}, "foo")
 			controller.reconcilerFactory = func(_ *scope.MachinePoolMachineScope) (azure.Reconciler, error) {
 				return reconciler, nil
 			}
@@ -128,6 +124,11 @@ func getReadyMachinePoolMachineClusterObjects(ampmIsDeleting bool) []client.Obje
 		Spec: infrav1.AzureClusterSpec{
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				SubscriptionID: "subID",
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "fake-identity",
+					Namespace: "default",
+					Kind:      "AzureClusterIdentity",
+				},
 			},
 		},
 	}
@@ -222,11 +223,36 @@ func getReadyMachinePoolMachineClusterObjects(ampmIsDeleting bool) []client.Obje
 		},
 	}
 
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: "default",
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type: infrav1.ServicePrincipal,
+			ClientSecret: corev1.SecretReference{
+				Name:      "fooSecret",
+				Namespace: "default",
+			},
+			TenantID: "fake-tenantid",
+		},
+	}
+
+	fakeSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fooSecret",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"clientSecret": []byte("fooSecret"),
+		},
+	}
+
 	if ampmIsDeleting {
 		ampm.DeletionTimestamp = &metav1.Time{
 			Time: time.Now(),
 		}
 	}
 
-	return []client.Object{cluster, azCluster, mp, amp, ma, ampm}
+	return []client.Object{cluster, azCluster, mp, amp, ma, ampm, fakeIdentity, fakeSecret}
 }

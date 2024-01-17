@@ -21,15 +21,17 @@ limitations under the License.
 //
 //	mockgen -destination managedclusters_mock.go -package mock_managedclusters -source ../managedclusters.go ManagedClusterScope
 //
+
 // Package mock_managedclusters is a generated GoMock package.
 package mock_managedclusters
 
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	azcore "github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	v1api20230201 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230201"
+	v1api20231001 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
 	gomock "go.uber.org/mock/gomock"
 	v1 "k8s.io/api/core/v1"
 	v1beta1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -143,6 +145,48 @@ func (m *MockManagedClusterScope) ClusterName() string {
 func (mr *MockManagedClusterScopeMockRecorder) ClusterName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterName", reflect.TypeOf((*MockManagedClusterScope)(nil).ClusterName))
+}
+
+// DefaultedAzureCallTimeout mocks base method.
+func (m *MockManagedClusterScope) DefaultedAzureCallTimeout() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DefaultedAzureCallTimeout")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// DefaultedAzureCallTimeout indicates an expected call of DefaultedAzureCallTimeout.
+func (mr *MockManagedClusterScopeMockRecorder) DefaultedAzureCallTimeout() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultedAzureCallTimeout", reflect.TypeOf((*MockManagedClusterScope)(nil).DefaultedAzureCallTimeout))
+}
+
+// DefaultedAzureServiceReconcileTimeout mocks base method.
+func (m *MockManagedClusterScope) DefaultedAzureServiceReconcileTimeout() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DefaultedAzureServiceReconcileTimeout")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// DefaultedAzureServiceReconcileTimeout indicates an expected call of DefaultedAzureServiceReconcileTimeout.
+func (mr *MockManagedClusterScopeMockRecorder) DefaultedAzureServiceReconcileTimeout() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultedAzureServiceReconcileTimeout", reflect.TypeOf((*MockManagedClusterScope)(nil).DefaultedAzureServiceReconcileTimeout))
+}
+
+// DefaultedReconcilerRequeue mocks base method.
+func (m *MockManagedClusterScope) DefaultedReconcilerRequeue() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DefaultedReconcilerRequeue")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// DefaultedReconcilerRequeue indicates an expected call of DefaultedReconcilerRequeue.
+func (mr *MockManagedClusterScopeMockRecorder) DefaultedReconcilerRequeue() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultedReconcilerRequeue", reflect.TypeOf((*MockManagedClusterScope)(nil).DefaultedReconcilerRequeue))
 }
 
 // DeleteLongRunningOperationState mocks base method.
@@ -270,10 +314,10 @@ func (mr *MockManagedClusterScopeMockRecorder) MakeEmptyKubeConfigSecret() *gomo
 }
 
 // ManagedClusterSpec mocks base method.
-func (m *MockManagedClusterScope) ManagedClusterSpec() azure.ASOResourceSpecGetter[*v1api20230201.ManagedCluster] {
+func (m *MockManagedClusterScope) ManagedClusterSpec() azure.ASOResourceSpecGetter[*v1api20231001.ManagedCluster] {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ManagedClusterSpec")
-	ret0, _ := ret[0].(azure.ASOResourceSpecGetter[*v1api20230201.ManagedCluster])
+	ret0, _ := ret[0].(azure.ASOResourceSpecGetter[*v1api20231001.ManagedCluster])
 	return ret0
 }
 

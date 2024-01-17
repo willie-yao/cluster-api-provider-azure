@@ -305,6 +305,8 @@ type SecurityRule struct {
 	// Source specifies the CIDR or source IP range. Asterix '*' can also be used to match all source IPs. Default tags such as 'VirtualNetwork', 'AzureLoadBalancer' and 'Internet' can also be used. If this is an ingress rule, specifies where network traffic originates from.
 	// +optional
 	Source *string `json:"source,omitempty"`
+	// Sources specifies The CIDR or source IP ranges.
+	Sources []*string `json:"sources,omitempty"`
 	// Destination is the destination address prefix. CIDR or destination IP range. Asterix '*' can also be used to match all source IPs. Default tags such as 'VirtualNetwork', 'AzureLoadBalancer' and 'Internet' can also be used.
 	// +optional
 	Destination *string `json:"destination,omitempty"`
@@ -564,13 +566,6 @@ type UserAssignedIdentity struct {
 	// 'azure:///subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName}'
 	ProviderID string `json:"providerID"`
 }
-
-const (
-	// AzureIdentityBindingSelector is the label used to match with the AzureIdentityBinding
-	// For the controller to match an identity binding, it needs a [label] with the key `aadpodidbinding`
-	// whose value is that of the `selector:` field in the `AzureIdentityBinding`.
-	AzureIdentityBindingSelector = "capz-controller-aadpodidentity-selector"
-)
 
 // IdentityType represents different types of identities.
 // +kubebuilder:validation:Enum=ServicePrincipal;UserAssignedMSI;ManualServicePrincipal;ServicePrincipalCertificate;WorkloadIdentity

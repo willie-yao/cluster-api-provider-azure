@@ -26,21 +26,20 @@ import (
 	"time"
 
 	// +kubebuilder:scaffold:imports
-	aadpodv1 "github.com/Azure/aad-pod-identity/pkg/apis/aadpodidentity/v1"
-	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230315preview"
-	asonetworkv1 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
+	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230315preview"
+	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	asonetworkv1api20201101 "github.com/Azure/azure-service-operator/v2/api/network/v1api20201101"
+	asonetworkv1api20220701 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/server/routes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cgrecord "k8s.io/client-go/tools/record"
 	"k8s.io/component-base/logs"
-	"k8s.io/klog/v2/textlogger"
+	"k8s.io/klog/v2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/controllers"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-azure/exp/api/v1beta1"
@@ -78,21 +77,11 @@ func init() {
 	_ = expv1.AddToScheme(scheme)
 	_ = kubeadmv1.AddToScheme(scheme)
 	_ = asoresourcesv1.AddToScheme(scheme)
-	_ = asonetworkv1.AddToScheme(scheme)
 	_ = asocontainerservicev1.AddToScheme(scheme)
+	_ = asocontainerservicev1preview.AddToScheme(scheme)
+	_ = asonetworkv1api20220701.AddToScheme(scheme)
+	_ = asonetworkv1api20201101.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
-
-	// Add aadpodidentity v1 to the scheme.
-	aadPodIdentityGroupVersion := schema.GroupVersion{Group: aadpodv1.GroupName, Version: "v1"}
-	scheme.AddKnownTypes(aadPodIdentityGroupVersion,
-		&aadpodv1.AzureIdentity{},
-		&aadpodv1.AzureIdentityList{},
-		&aadpodv1.AzureIdentityBinding{},
-		&aadpodv1.AzureIdentityBindingList{},
-		&aadpodv1.AzurePodIdentityException{},
-		&aadpodv1.AzurePodIdentityExceptionList{},
-	)
-	metav1.AddToGroupVersion(scheme, aadPodIdentityGroupVersion)
 }
 
 var (
@@ -114,13 +103,12 @@ var (
 	webhookPort                        int
 	webhookCertDir                     string
 	diagnosticsOptions                 = DiagnosticsOptions{}
-	reconcileTimeout                   time.Duration
+	timeouts                           reconciler.Timeouts
 	enableTracing                      bool
-	logConfig                          = textlogger.NewConfig()
 )
 
 // InitFlags initializes all command-line flags.
-func InitFlags(fs *pflag.FlagSet, gofs *flag.FlagSet) {
+func InitFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(
 		&enableLeaderElection,
 		"leader-elect",
@@ -226,10 +214,28 @@ func InitFlags(fs *pflag.FlagSet, gofs *flag.FlagSet) {
 	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
 		"The webhook certificate directory, where the server should find the TLS certificate and key.")
 
-	fs.DurationVar(&reconcileTimeout,
+	fs.DurationVar(&timeouts.Loop,
 		"reconcile-timeout",
 		reconciler.DefaultLoopTimeout,
-		"The maximum duration a reconcile loop can run (e.g. 90m)",
+		"The maximum duration a reconcile loop can run (e.g. 10m)",
+	)
+
+	fs.DurationVar(&timeouts.AzureServiceReconcile,
+		"service-reconcile-timeout",
+		reconciler.DefaultAzureServiceReconcileTimeout,
+		"The maximum duration each Azure service reconcile can run (e.g. 90m)",
+	)
+
+	fs.DurationVar(&timeouts.AzureCall,
+		"api-call-timeout",
+		reconciler.DefaultAzureCallTimeout,
+		"The maximum duration CAPZ will wait for each Azure API request before it is considered long running and performed async (e.g. 10s)",
+	)
+
+	fs.DurationVar(&timeouts.Requeue,
+		"reconciler-requeue",
+		reconciler.DefaultReconcilerRequeue,
+		"The duration to wait before retrying after a transient reconcile error occurs (e.g. 15s)",
 	)
 
 	fs.BoolVar(
@@ -240,7 +246,6 @@ func InitFlags(fs *pflag.FlagSet, gofs *flag.FlagSet) {
 	)
 
 	AddDiagnosticsOptions(fs, &diagnosticsOptions)
-	logConfig.AddFlags(gofs)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -250,11 +255,13 @@ func InitFlags(fs *pflag.FlagSet, gofs *flag.FlagSet) {
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func main() {
-	InitFlags(pflag.CommandLine, flag.CommandLine)
+	InitFlags(pflag.CommandLine)
+	klog.InitFlags(flag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	ctrl.SetLogger(textlogger.NewLogger(logConfig))
+	// klog.Background will automatically use the right logger.
+	ctrl.SetLogger(klog.Background())
 
 	// Machine and cluster operations can create enough events to trigger the event recorder spam filter
 	// Setting the burst size higher ensures all events will be recorded and submitted to the API
@@ -347,7 +354,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 	}
 	if err := controllers.NewAzureMachineReconciler(mgr.GetClient(),
 		mgr.GetEventRecorderFor("azuremachine-reconciler"),
-		reconcileTimeout,
+		timeouts,
 		watchFilterValue,
 	).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: azureMachineConcurrency}, Cache: machineCache}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AzureMachine")
@@ -361,7 +368,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 	if err := controllers.NewAzureClusterReconciler(
 		mgr.GetClient(),
 		mgr.GetEventRecorderFor("azurecluster-reconciler"),
-		reconcileTimeout,
+		timeouts,
 		watchFilterValue,
 	).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: azureClusterConcurrency}, Cache: clusterCache}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AzureCluster")
@@ -371,7 +378,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 	if err := (&controllers.AzureJSONTemplateReconciler{
 		Client:           mgr.GetClient(),
 		Recorder:         mgr.GetEventRecorderFor("azurejsontemplate-reconciler"),
-		ReconcileTimeout: reconcileTimeout,
+		Timeouts:         timeouts,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: azureMachineConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AzureJSONTemplate")
@@ -381,27 +388,17 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 	if err := (&controllers.AzureJSONMachineReconciler{
 		Client:           mgr.GetClient(),
 		Recorder:         mgr.GetEventRecorderFor("azurejsonmachine-reconciler"),
-		ReconcileTimeout: reconcileTimeout,
+		Timeouts:         timeouts,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: azureMachineConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AzureJSONMachine")
 		os.Exit(1)
 	}
 
-	if err := (&controllers.AzureIdentityReconciler{
-		Client:           mgr.GetClient(),
-		Recorder:         mgr.GetEventRecorderFor("azureidentity-reconciler"),
-		ReconcileTimeout: reconcileTimeout,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: azureClusterConcurrency}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AzureIdentity")
-		os.Exit(1)
-	}
-
 	if err := (&controllers.ASOSecretReconciler{
 		Client:           mgr.GetClient(),
 		Recorder:         mgr.GetEventRecorderFor("asosecret-reconciler"),
-		ReconcileTimeout: reconcileTimeout,
+		Timeouts:         timeouts,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: azureClusterConcurrency}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ASOSecret")
@@ -419,7 +416,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 		if err := infrav1controllersexp.NewAzureMachinePoolReconciler(
 			mgr.GetClient(),
 			mgr.GetEventRecorderFor("azuremachinepool-reconciler"),
-			reconcileTimeout,
+			timeouts,
 			watchFilterValue,
 		).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: azureMachinePoolConcurrency}, Cache: mpCache}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AzureMachinePool")
@@ -434,7 +431,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 		if err := infrav1controllersexp.NewAzureMachinePoolMachineController(
 			mgr.GetClient(),
 			mgr.GetEventRecorderFor("azuremachinepoolmachine-reconciler"),
-			reconcileTimeout,
+			timeouts,
 			watchFilterValue,
 		).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: azureMachinePoolMachineConcurrency}, Cache: mpmCache}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AzureMachinePoolMachine")
@@ -444,7 +441,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 		if err := (&controllers.AzureJSONMachinePoolReconciler{
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("azurejsonmachinepool-reconciler"),
-			ReconcileTimeout: reconcileTimeout,
+			Timeouts:         timeouts,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: azureMachinePoolConcurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AzureJSONMachinePool")
@@ -459,7 +456,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 		if err := controllers.NewAzureManagedMachinePoolReconciler(
 			mgr.GetClient(),
 			mgr.GetEventRecorderFor("azuremanagedmachinepoolmachine-reconciler"),
-			reconcileTimeout,
+			timeouts,
 			watchFilterValue,
 		).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: azureMachinePoolConcurrency}, Cache: mmpmCache}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AzureManagedMachinePool")
@@ -474,7 +471,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 		if err := (&controllers.AzureManagedClusterReconciler{
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("azuremanagedcluster-reconciler"),
-			ReconcileTimeout: reconcileTimeout,
+			Timeouts:         timeouts,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: azureClusterConcurrency}, Cache: mcCache}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AzureManagedCluster")
@@ -489,7 +486,7 @@ func registerControllers(ctx context.Context, mgr manager.Manager) {
 		if err := (&controllers.AzureManagedControlPlaneReconciler{
 			Client:           mgr.GetClient(),
 			Recorder:         mgr.GetEventRecorderFor("azuremanagedcontrolplane-reconciler"),
-			ReconcileTimeout: reconcileTimeout,
+			Timeouts:         timeouts,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controllers.Options{Options: controller.Options{MaxConcurrentReconciles: azureClusterConcurrency}, Cache: mcpCache}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AzureManagedControlPlane")

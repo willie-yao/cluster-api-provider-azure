@@ -21,7 +21,6 @@ import (
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
-	reconcilerutil "sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 	"sigs.k8s.io/cluster-api-provider-azure/util/tele"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -60,8 +59,12 @@ func (s *Service[T, S]) Reconcile(ctx context.Context) error {
 	ctx, _, done := tele.StartSpanWithLogger(ctx, "aso.Service.Reconcile")
 	defer done()
 
-	ctx, cancel := context.WithTimeout(ctx, reconcilerutil.DefaultAzureServiceReconcileTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.Scope.DefaultedAzureServiceReconcileTimeout())
 	defer cancel()
+
+	if len(s.Specs) == 0 {
+		return nil
+	}
 
 	// We go through the list of Specs to reconcile each one, independently of the result of the previous one.
 	// If multiple errors occur, we return the most pressing one.
@@ -92,8 +95,12 @@ func (s *Service[T, S]) Delete(ctx context.Context) error {
 	ctx, _, done := tele.StartSpanWithLogger(ctx, "aso.Service.Delete")
 	defer done()
 
-	ctx, cancel := context.WithTimeout(ctx, reconcilerutil.DefaultAzureServiceReconcileTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.Scope.DefaultedAzureServiceReconcileTimeout())
 	defer cancel()
+
+	if len(s.Specs) == 0 {
+		return nil
+	}
 
 	// We go through the list of Specs to delete each one, independently of the resultErr of the previous one.
 	// If multiple errors occur, we return the most pressing one.

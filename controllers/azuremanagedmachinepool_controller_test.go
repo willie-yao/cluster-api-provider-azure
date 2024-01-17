@@ -18,12 +18,10 @@ package controllers
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"go.uber.org/mock/gomock"
@@ -40,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/agentpools"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/agentpools/mock_agentpools"
 	gomock2 "sigs.k8s.io/cluster-api-provider-azure/internal/test/matchers/gomock"
+	reconcilerutils "sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -51,11 +50,6 @@ func TestAzureManagedMachinePoolReconcile(t *testing.T) {
 		*mock_azure.MockReconciler
 		*mock_azure.MockPauser
 	}
-
-	os.Setenv(auth.ClientID, "fooClient")
-	os.Setenv(auth.ClientSecret, "fooSecret")
-	os.Setenv(auth.TenantID, "fooTenant")
-	os.Setenv(auth.SubscriptionID, "fooSubscription")
 
 	cases := []struct {
 		name   string
@@ -144,15 +138,28 @@ func TestAzureManagedMachinePoolReconcile(t *testing.T) {
 					MockReconciler: mock_azure.NewMockReconciler(mockCtrl),
 					MockPauser:     mock_azure.NewMockPauser(mockCtrl),
 				}
-				agentpools = mock_agentpools.NewMockAgentPoolScope(mockCtrl)
-				nodelister = NewMockNodeLister(mockCtrl)
-				scheme     = func() *runtime.Scheme {
+				agentpools   = mock_agentpools.NewMockAgentPoolScope(mockCtrl)
+				nodelister   = NewMockNodeLister(mockCtrl)
+				fakeIdentity = &infrav1.AzureClusterIdentity{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "fake-identity",
+						Namespace: "default",
+					},
+					Spec: infrav1.AzureClusterIdentitySpec{
+						Type:     infrav1.ServicePrincipal,
+						TenantID: "fake-tenantid",
+					},
+				}
+				fakeSecret  = &corev1.Secret{Data: map[string][]byte{"clientSecret": []byte("fooSecret")}}
+				initObjects = []runtime.Object{fakeIdentity, fakeSecret}
+				scheme      = func() *runtime.Scheme {
 					s := runtime.NewScheme()
 					for _, addTo := range []func(s *runtime.Scheme) error{
 						scheme.AddToScheme,
 						clusterv1.AddToScheme,
 						expv1.AddToScheme,
 						infrav1.AddToScheme,
+						corev1.AddToScheme,
 					} {
 						g.Expect(addTo(s)).To(Succeed())
 					}
@@ -163,13 +170,14 @@ func TestAzureManagedMachinePoolReconcile(t *testing.T) {
 					WithStatusSubresource(
 						&infrav1.AzureManagedMachinePool{},
 					).
+					WithRuntimeObjects(initObjects...).
 					WithScheme(scheme)
 			)
 			defer mockCtrl.Finish()
 
 			c.Setup(cb, reconciler, agentpools.EXPECT(), nodelister.EXPECT())
-			controller := NewAzureManagedMachinePoolReconciler(cb.Build(), nil, 30*time.Second, "foo")
-			controller.createAzureManagedMachinePoolService = func(_ *scope.ManagedMachinePoolScope) (*azureManagedMachinePoolService, error) {
+			controller := NewAzureManagedMachinePoolReconciler(cb.Build(), nil, reconcilerutils.Timeouts{}, "foo")
+			controller.createAzureManagedMachinePoolService = func(_ *scope.ManagedMachinePoolScope, _ time.Duration) (*azureManagedMachinePoolService, error) {
 				return &azureManagedMachinePoolService{
 					scope:         agentpools,
 					agentPoolsSvc: reconciler,
@@ -225,6 +233,13 @@ func newReadyAzureManagedMachinePoolCluster() (*clusterv1.Cluster, *infrav1.Azur
 			ControlPlaneEndpoint: clusterv1.APIEndpoint{
 				Host: "foo.bar",
 				Port: 123,
+			},
+			AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "fake-identity",
+					Namespace: "default",
+					Kind:      "AzureClusterIdentity",
+				},
 			},
 		},
 		Status: infrav1.AzureManagedControlPlaneStatus{

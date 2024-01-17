@@ -23,11 +23,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure/scope"
 	"sigs.k8s.io/cluster-api-provider-azure/internal/test/mock_log"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	capifeature "sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -96,6 +97,7 @@ func TestGetCloudProviderConfig(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
 
 	cluster := newCluster("foo")
 	azureCluster := newAzureCluster("bar")
@@ -165,17 +167,43 @@ func TestGetCloudProviderConfig(t *testing.T) {
 		},
 	}
 
-	os.Setenv(auth.ClientID, "fooClient")
-	os.Setenv(auth.ClientSecret, "fooSecret")
-	os.Setenv(auth.TenantID, "fooTenant")
+	os.Setenv("AZURE_CLIENT_ID", "fooClient")
+	os.Setenv("AZURE_CLIENT_SECRET", "fooSecret")
+	os.Setenv("AZURE_TENANT_ID", "fooTenant")
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			if tc.machinePoolFeature {
 				defer utilfeature.SetFeatureGateDuringTest(t, capifeature.Gates, capifeature.MachinePool, true)()
 			}
-			initObjects := []runtime.Object{tc.cluster, tc.azureCluster}
+			fakeIdentity := &infrav1.AzureClusterIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "fake-identity",
+					Namespace: "default",
+				},
+				Spec: infrav1.AzureClusterIdentitySpec{
+					Type:         infrav1.ServicePrincipal,
+					ClientID:     "fooClient",
+					TenantID:     "fooTenant",
+					ClientSecret: corev1.SecretReference{Name: "fooSecret", Namespace: "default"},
+				},
+			}
+			fakeSecret := getASOSecret(tc.cluster, func(s *corev1.Secret) {
+				s.ObjectMeta.Name = "fooSecret"
+				s.Data = map[string][]byte{
+					"AZURE_SUBSCRIPTION_ID": []byte("fooSubscription"),
+					"AZURE_TENANT_ID":       []byte("fooTenant"),
+					"AZURE_CLIENT_ID":       []byte("fooClient"),
+					"AZURE_CLIENT_SECRET":   []byte("fooSecret"),
+					"clientSecret":          []byte("fooSecret"),
+				}
+			})
+
+			initObjects := []runtime.Object{tc.cluster, tc.azureCluster, fakeIdentity, fakeSecret}
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(initObjects...).Build()
+			resultSecret := &corev1.Secret{}
+			key := client.ObjectKey{Name: fakeSecret.Name, Namespace: fakeSecret.Namespace}
+			g.Expect(fakeClient.Get(context.Background(), key, resultSecret)).To(Succeed())
 
 			clusterScope, err := scope.NewClusterScope(context.Background(), scope.ClusterScopeParams{
 				Cluster:      tc.cluster,
@@ -280,8 +308,21 @@ func TestReconcileAzureSecret(t *testing.T) {
 	azureCluster.Default()
 	cluster.Name = "testCluster"
 
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: "default",
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type:     infrav1.ServicePrincipal,
+			TenantID: "fake-tenantid",
+		},
+	}
+	fakeSecret := &corev1.Secret{Data: map[string][]byte{"clientSecret": []byte("fooSecret")}}
+	initObjects := []runtime.Object{fakeIdentity, fakeSecret}
+
 	scheme := setupScheme(g)
-	kubeclient := fake.NewClientBuilder().WithScheme(scheme).Build()
+	kubeclient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(initObjects...).Build()
 
 	clusterScope, err := scope.NewClusterScope(context.Background(), scope.ClusterScopeParams{
 		Cluster:      cluster,
@@ -382,6 +423,11 @@ func newAzureCluster(location string) *infrav1.AzureCluster {
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				Location:       location,
 				SubscriptionID: "baz",
+				IdentityRef: &corev1.ObjectReference{
+					Kind:      "AzureClusterIdentity",
+					Name:      "fake-identity",
+					Namespace: "default",
+				},
 			},
 			NetworkSpec: infrav1.NetworkSpec{
 				Vnet: infrav1.VnetSpec{},
@@ -435,6 +481,11 @@ func newAzureClusterWithCustomVnet(location string) *infrav1.AzureCluster {
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				Location:       location,
 				SubscriptionID: "baz",
+				IdentityRef: &corev1.ObjectReference{
+					Kind:      "AzureClusterIdentity",
+					Name:      "fake-identity",
+					Namespace: "default",
+				},
 			},
 			NetworkSpec: infrav1.NetworkSpec{
 				Vnet: infrav1.VnetSpec{
@@ -1514,6 +1565,85 @@ func TestClusterPauseChangeAndInfrastructureReady(t *testing.T) {
 				panic("unimplemented event type")
 			}
 			NewGomegaWithT(t).Expect(actual).To(Equal(test.expect))
+		})
+	}
+}
+
+func TestAddBlockMoveAnnotation(t *testing.T) {
+	tests := []struct {
+		name                string
+		annotations         map[string]string
+		expectedAnnotations map[string]string
+		expected            bool
+	}{
+		{
+			name:                "annotation does not exist",
+			annotations:         nil,
+			expectedAnnotations: map[string]string{clusterctlv1.BlockMoveAnnotation: "true"},
+			expected:            true,
+		},
+		{
+			name:                "annotation already exists",
+			annotations:         map[string]string{clusterctlv1.BlockMoveAnnotation: "this value might be different but it doesn't matter"},
+			expectedAnnotations: map[string]string{clusterctlv1.BlockMoveAnnotation: "this value might be different but it doesn't matter"},
+			expected:            false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			obj := &metav1.ObjectMeta{
+				Annotations: test.annotations,
+			}
+			actual := AddBlockMoveAnnotation(obj)
+			if test.expected != actual {
+				t.Errorf("expected %v, got %v", test.expected, actual)
+			}
+			if !maps.Equal(test.expectedAnnotations, obj.GetAnnotations()) {
+				t.Errorf("expected %v, got %v", test.expectedAnnotations, obj.GetAnnotations())
+			}
+		})
+	}
+}
+
+func TestRemoveBlockMoveAnnotation(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		expected    map[string]string
+	}{
+		{
+			name:        "nil",
+			annotations: nil,
+			expected:    nil,
+		},
+		{
+			name:        "annotation not present",
+			annotations: map[string]string{"another": "annotation"},
+			expected:    map[string]string{"another": "annotation"},
+		},
+		{
+			name: "annotation present",
+			annotations: map[string]string{
+				clusterctlv1.BlockMoveAnnotation: "any value",
+				"another":                        "annotation",
+			},
+			expected: map[string]string{
+				"another": "annotation",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			obj := &metav1.ObjectMeta{
+				Annotations: maps.Clone(test.annotations),
+			}
+			RemoveBlockMoveAnnotation(obj)
+			actual := obj.GetAnnotations()
+			if !maps.Equal(test.expected, actual) {
+				t.Errorf("expected %v, got %v", test.expected, actual)
+			}
 		})
 	}
 }

@@ -33,7 +33,7 @@ export GOPROXY
 export GO111MODULE=on
 
 # Kubebuilder.
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.27
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.28
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?= 60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?= 60s
 
@@ -69,7 +69,7 @@ ifneq ($(abspath $(ROOT_DIR)),$(GOPATH)/src/sigs.k8s.io/cluster-api-provider-azu
 endif
 
 # Binaries.
-CONTROLLER_GEN_VER := v0.9.2
+CONTROLLER_GEN_VER := v0.13.0
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER)
 
@@ -89,7 +89,7 @@ KUSTOMIZE_VER := v4.5.2
 KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER)
 
-MOCKGEN_VER := v0.3.0
+MOCKGEN_VER := v0.4.0
 MOCKGEN_BIN := mockgen
 MOCKGEN := $(TOOLS_BIN_DIR)/$(MOCKGEN_BIN)-$(MOCKGEN_VER)
 
@@ -105,11 +105,11 @@ GO_APIDIFF_VER := v0.6.0
 GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)
 
-GINKGO_VER := v2.13.1
+GINKGO_VER := v2.14.0
 GINKGO_BIN := ginkgo
 GINKGO := $(TOOLS_BIN_DIR)/$(GINKGO_BIN)-$(GINKGO_VER)
 
-KUBECTL_VER := v1.25.6
+KUBECTL_VER := v1.28.4
 KUBECTL_BIN := kubectl
 KUBECTL := $(TOOLS_BIN_DIR)/$(KUBECTL_BIN)-$(KUBECTL_VER)
 
@@ -157,8 +157,8 @@ CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 ASO_CRDS_PATH := $(MANIFEST_ROOT)/aso/crds.yaml
-ASO_VERSION := v2.4.0
-ASO_CRDS := resourcegroups.resources.azure.com natgateways.network.azure.com managedclusters.containerservice.azure.com managedclustersagentpools.containerservice.azure.com fleets.containerservice.azure.com
+ASO_VERSION := v2.5.0
+ASO_CRDS := resourcegroups.resources.azure.com natgateways.network.azure.com managedclusters.containerservice.azure.com managedclustersagentpools.containerservice.azure.com bastionhosts.network.azure.com virtualnetworks.network.azure.com virtualnetworkssubnets.network.azure.com privateendpoints.network.azure.com fleets.containerservice.azure.com
 
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
@@ -275,7 +275,7 @@ verify-tiltfile: ## Verify Tiltfile format.
 
 .PHONY: verify-codespell
 verify-codespell: codespell ## Verify codespell.
-	@$(CODESPELL) $(ROOT_DIR) --ignore-words=$(ROOT_DIR)/.codespellignore --skip="*.git,*_artifacts,*.sum,$(ROOT_DIR)/hack/tools/bin/codespell_dist"
+	@$(CODESPELL) $(ROOT_DIR) --ignore-words=$(ROOT_DIR)/.codespellignore --skip="*.git,*_artifacts,*.sum,$(ROOT_DIR)/docs/book/bookout,$(ROOT_DIR)/hack/tools/bin/codespell_dist"
 
 ## --------------------------------------
 ## Development
@@ -301,7 +301,7 @@ create-management-cluster: $(KUSTOMIZE) $(ENVSUBST) $(KUBECTL) $(KIND) ## Create
 	./hack/create-custom-cloud-provider-config.sh
 
 	# Deploy CAPI
-	curl --retry $(CURL_RETRIES) -sSL https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.3/cluster-api-components.yaml | $(ENVSUBST) | $(KUBECTL) apply -f -
+	curl --retry $(CURL_RETRIES) -sSL https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.6.0/cluster-api-components.yaml | $(ENVSUBST) | $(KUBECTL) apply -f -
 
 	# Deploy CAAPH
 	curl --retry $(CURL_RETRIES) -sSL https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/download/v0.1.0-alpha.10/addon-components.yaml | $(ENVSUBST) | $(KUBECTL) apply -f -
@@ -475,6 +475,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook
 	$(CONTROLLER_GEN) \
+		paths=./ \
 		paths=./controllers/... \
 		paths=./$(EXP_DIR)/controllers/... \
 		output:rbac:dir=$(RBAC_ROOT) \
@@ -536,8 +537,6 @@ $(CALICO_MANIFESTS_DIR):
 	@echo "Fetching Calico release manifests from release artifacts, this might take a minute..."
 	wget -qO- https://github.com/projectcalico/calico/releases/download/$(CALICO_VERSION)/release-$(CALICO_VERSION).tgz | tar xz --directory $(CALICO_RELEASES) $(CALICO_RELEASE_MANIFESTS_DIR)
 
-export AZUREDISK_CSI_DRIVER_VERSION := v1.29.0
-
 .PHONY: modules
 modules: ## Runs go mod tidy to ensure proper vendoring.
 	go mod tidy
@@ -584,15 +583,25 @@ RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 ifneq (,$(findstring -,$(RELEASE_TAG)))
     PRE_RELEASE=true
 endif
+FULL_VERSION := $(RELEASE_TAG:v%=%)
+MAJOR_VERSION := $(shell echo $(FULL_VERSION) | sed -E 's/^([0-9]+)\.([0-9]+)\.([0-9]+)$$/\1/')
+MINOR_VERSION := $(shell echo $(FULL_VERSION) | sed -E 's/^([0-9]+)\.([0-9]+)\.([0-9]+)$$/\2/')
+PATCH_VERSION := $(shell echo $(FULL_VERSION) | sed -E 's/^([0-9]+)\.([0-9]+)\.([0-9]+)$$/\3/')
+# if the release tag is a .0 version, use the main branch
+ifeq ($(PATCH_VERSION),0)
+	RELEASE_BRANCH ?= main
+else
+	RELEASE_BRANCH ?= release-$(MAJOR_VERSION).$(MINOR_VERSION)
+endif
 # the previous release tag, e.g., v0.3.9, excluding pre-release tags
-PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
+PREVIOUS_TAG ?= $(shell git tag --merged $(GIT_REMOTE_NAME)/$(RELEASE_BRANCH) -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | tail -n 1 2>/dev/null)
+START_SHA ?= $(shell git rev-list -n 1 $(PREVIOUS_TAG) 2>/dev/null)
+END_SHA ?= $(shell git rev-parse $(GIT_REMOTE_NAME)/$(RELEASE_BRANCH) 2>/dev/null)
 RELEASE_DIR ?= out
-RELEASE_NOTES_DIR := _releasenotes
+RELEASE_NOTES_DIR := CHANGELOG
 GIT_REPO_NAME ?= cluster-api-provider-azure
 GIT_ORG_NAME ?= kubernetes-sigs
-FULL_VERSION := $(RELEASE_TAG:v%=%)
-MINOR_VERSION := $(shell v='$(FULL_VERSION)'; echo "$${v%.*}")
-RELEASE_BRANCH ?= release-$(MINOR_VERSION)
+GIT_REMOTE_NAME ?= upstream
 USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4)
 IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh)
 
@@ -651,9 +660,11 @@ release-alias-tag: ## Adds the tag to the last build tag.
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES) $(RELEASE_NOTES_DIR) ## Generate/update release notes.
+	@echo "generating release notes from $(PREVIOUS_TAG) to $(RELEASE_TAG) with start sha $(START_SHA) and end sha $(END_SHA)"
 	@if [ -n "${PRE_RELEASE}" ]; then echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api-provider-azure/issues/new)." > $(RELEASE_NOTES_DIR)/release-notes-$(RELEASE_TAG).md; \
-	else $(RELEASE_NOTES) --org $(GIT_ORG_NAME) --repo $(GIT_REPO_NAME) --branch $(RELEASE_BRANCH)  --start-rev $(PREVIOUS_TAG) --end-rev $(RELEASE_TAG) --output $(RELEASE_NOTES_DIR)/tmp-release-notes.md --list-v2; \
-	sed 's/\[SIG Cluster Lifecycle\]//g' $(RELEASE_NOTES_DIR)/tmp-release-notes.md > $(RELEASE_NOTES_DIR)/release-notes-$(RELEASE_TAG).md; \
+	else $(RELEASE_NOTES) --org $(GIT_ORG_NAME) --repo $(GIT_REPO_NAME) --branch $(RELEASE_BRANCH)  --start-sha $(START_SHA) --end-sha $(END_SHA) --markdown-links true --output $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md --list-v2; \
+	sed 's/\[SIG Cluster Lifecycle\]//g' $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md > $(RELEASE_NOTES_DIR)/tmp-release-notes.md; \
+	cp $(RELEASE_NOTES_DIR)/tmp-release-notes.md $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	rm -f $(RELEASE_NOTES_DIR)/tmp-release-notes.md; \
 	fi
 
@@ -761,7 +772,7 @@ delete-cluster: delete-workload-cluster  ## Deletes the example kind cluster "ca
 	$(KIND) delete cluster --name=capz
 
 .PHONY: kind-reset
-kind-reset: ## Destroys the "capz" and "capz-e2e" kind clusters.
+kind-reset: $(KIND) ## Destroys the "capz" and "capz-e2e" kind clusters.
 	$(KIND) delete cluster --name=$(KIND_CLUSTER_NAME) || true
 	$(KIND) delete cluster --name=capz-e2e || true
 

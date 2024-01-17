@@ -18,11 +18,13 @@ package scalesets
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v5"
-	"github.com/Azure/go-autorest/autorest"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -35,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/scalesets/mock_scalesets"
 	gomockinternal "sigs.k8s.io/cluster-api-provider-azure/internal/test/matchers/gomock"
 	azureutil "sigs.k8s.io/cluster-api-provider-azure/util/azure"
+	"sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -60,9 +63,17 @@ var (
 		},
 	}
 
-	internalError = autorest.NewErrorWithResponse("", "", &http.Response{StatusCode: http.StatusInternalServerError}, "Internal Server Error")
-	notFoundError = autorest.NewErrorWithResponse("", "", &http.Response{StatusCode: http.StatusNotFound}, "Not Found")
+	notFoundError = &azcore.ResponseError{StatusCode: http.StatusNotFound}
 )
+
+func internalError() *azcore.ResponseError {
+	return &azcore.ResponseError{
+		RawResponse: &http.Response{
+			Body:       io.NopCloser(strings.NewReader("#: Internal Server Error: StatusCode=500")),
+			StatusCode: http.StatusInternalServerError,
+		},
+	}
+}
 
 func init() {
 	_ = clusterv1.AddToScheme(scheme.Scheme)
@@ -104,6 +115,7 @@ func TestReconcileVMSS(t *testing.T) {
 			name:          "update an existing vmss",
 			expectedError: "",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := getDefaultVMSSSpec()
 				// Validate spec
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(spec).AnyTimes()
@@ -121,6 +133,7 @@ func TestReconcileVMSS(t *testing.T) {
 			name:          "create a vmss, skip list instances if vmss doesn't exist",
 			expectedError: "",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := getDefaultVMSSSpec()
 				// Validate spec
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(spec).AnyTimes()
@@ -135,44 +148,48 @@ func TestReconcileVMSS(t *testing.T) {
 		},
 		{
 			name:          "error getting existing vmss",
-			expectedError: "failed to get existing VMSS: #: Internal Server Error: StatusCode=500",
+			expectedError: "failed to get existing VMSS:.*#: Internal Server Error: StatusCode=500",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := getDefaultVMSSSpec()
 				// Validate spec
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(spec).AnyTimes()
-				m.Get(gomockinternal.AContext(), &defaultSpec).Return(nil, internalError)
+				m.Get(gomockinternal.AContext(), &defaultSpec).Return(nil, internalError())
 			},
 		},
 		{
 			name:          "failed to list instances",
-			expectedError: "failed to get existing VMSS instances: #: Internal Server Error: StatusCode=500",
+			expectedError: "failed to get existing VMSS instances:.*#: Internal Server Error: StatusCode=500",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := getDefaultVMSSSpec()
 				// Validate spec
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(spec).AnyTimes()
 				m.Get(gomockinternal.AContext(), &defaultSpec).Return(&resultVMSS, nil)
-				m.ListInstances(gomockinternal.AContext(), defaultSpec.ResourceGroup, defaultSpec.Name).Return(defaultInstances, internalError)
-				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, gomockinternal.ErrStrEq("failed to get existing VMSS instances: #: Internal Server Error: StatusCode=500"))
+				m.ListInstances(gomockinternal.AContext(), defaultSpec.ResourceGroup, defaultSpec.Name).Return(defaultInstances, internalError())
+				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, gomockinternal.ErrStrEq("failed to get existing VMSS instances: "+internalError().Error()))
 			},
 		},
 		{
 			name:          "failed to create a vmss",
 			expectedError: "#: Internal Server Error: StatusCode=500",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := getDefaultVMSSSpec()
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(spec).AnyTimes()
 				m.Get(gomockinternal.AContext(), &defaultSpec).Return(&resultVMSS, nil)
 				m.ListInstances(gomockinternal.AContext(), defaultSpec.ResourceGroup, defaultSpec.Name).Return(defaultInstances, nil)
 
 				r.CreateOrUpdateResource(gomockinternal.AContext(), spec, serviceName).
-					Return(nil, internalError)
-				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, internalError)
+					Return(nil, internalError())
+				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, internalError())
 			},
 		},
 		{
 			name:          "failed to reconcile replicas",
-			expectedError: "unable to reconcile VMSS replicas: #: Internal Server Error: StatusCode=500",
+			expectedError: "unable to reconcile VMSS replicas:.*#: Internal Server Error: StatusCode=500",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := getDefaultVMSSSpec()
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(spec).AnyTimes()
 				m.Get(gomockinternal.AContext(), &defaultSpec).Return(&resultVMSS, nil)
@@ -181,13 +198,14 @@ func TestReconcileVMSS(t *testing.T) {
 				r.CreateOrUpdateResource(gomockinternal.AContext(), spec, serviceName).Return(getResultVMSS(), nil)
 				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, nil)
 
-				s.ReconcileReplicas(gomockinternal.AContext(), &fetchedVMSS).Return(internalError)
+				s.ReconcileReplicas(gomockinternal.AContext(), &fetchedVMSS).Return(internalError())
 			},
 		},
 		{
 			name:          "validate spec failure: less than 2 vCPUs",
 			expectedError: "reconcile error that cannot be recovered occurred: vm size should be bigger or equal to at least 2 vCPUs. Object will not be requeued",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := newDefaultVMSSSpec()
 				spec.Size = "VM_SIZE_1_CPU"
 				spec.Capacity = 2
@@ -199,6 +217,7 @@ func TestReconcileVMSS(t *testing.T) {
 			name:          "validate spec failure: Memory is less than 2Gi",
 			expectedError: "reconcile error that cannot be recovered occurred: vm memory should be bigger or equal to at least 2Gi. Object will not be requeued",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := newDefaultVMSSSpec()
 				spec.Size = "VM_SIZE_1_MEM"
 				spec.Capacity = 2
@@ -210,6 +229,7 @@ func TestReconcileVMSS(t *testing.T) {
 			name:          "validate spec failure: failed to get SKU",
 			expectedError: "failed to get SKU INVALID_VM_SIZE in compute api: reconcile error that cannot be recovered occurred: resource sku with name 'INVALID_VM_SIZE' and category 'virtualMachines' not found in location 'test-location'. Object will not be requeued",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := newDefaultVMSSSpec()
 				spec.Size = "INVALID_VM_SIZE"
 				spec.Capacity = 2
@@ -221,6 +241,7 @@ func TestReconcileVMSS(t *testing.T) {
 			name:          "validate spec failure: fail to create a vm with ultra disk implicitly enabled by data disk, when location not supported",
 			expectedError: "reconcile error that cannot be recovered occurred: vm size VM_SIZE_USSD does not support ultra disks in location test-location. select a different vm size or disable ultra disks. Object will not be requeued",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := newDefaultVMSSSpec()
 				spec.Size = vmSizeUSSD
 				spec.Capacity = 2
@@ -237,6 +258,7 @@ func TestReconcileVMSS(t *testing.T) {
 			name:          "validate spec failure: fail to create a vm with ultra disk explicitly enabled via additional capabilities, when location not supported",
 			expectedError: "reconcile error that cannot be recovered occurred: vm size VM_SIZE_USSD does not support ultra disks in location test-location. select a different vm size or disable ultra disks. Object will not be requeued",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := newDefaultVMSSSpec()
 				spec.Size = vmSizeUSSD
 				spec.Capacity = 2
@@ -251,6 +273,7 @@ func TestReconcileVMSS(t *testing.T) {
 			name:          "validate spec failure: fail to create a vm with ultra disk explicitly enabled via additional capabilities, when location not supported",
 			expectedError: "reconcile error that cannot be recovered occurred: vm size VM_SIZE_USSD does not support ultra disks in location test-location. select a different vm size or disable ultra disks. Object will not be requeued",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := newDefaultVMSSSpec()
 				spec.Size = vmSizeUSSD
 				spec.Capacity = 2
@@ -270,6 +293,7 @@ func TestReconcileVMSS(t *testing.T) {
 			name:          "validate spec failure: fail to create a vm with diagnostics set to User Managed but empty StorageAccountURI",
 			expectedError: "reconcile error that cannot be recovered occurred: userManaged must be specified when storageAccountType is 'UserManaged'. Object will not be requeued",
 			expect: func(g *WithT, s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				spec := newDefaultVMSSSpec()
 				spec.Size = vmSizeUSSD
 				spec.Capacity = 2
@@ -309,7 +333,7 @@ func TestReconcileVMSS(t *testing.T) {
 			err := s.Reconcile(context.TODO())
 			if tc.expectedError != "" {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err).To(MatchError(tc.expectedError), err.Error())
+				g.Expect(strings.ReplaceAll(err.Error(), "\n", "")).To(MatchRegexp(tc.expectedError), err.Error())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
@@ -334,6 +358,7 @@ func TestDeleteVMSS(t *testing.T) {
 			name:          "successfully delete an existing vmss",
 			expectedError: "",
 			expect: func(s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(&defaultSpec).AnyTimes()
 				r.DeleteResource(gomockinternal.AContext(), &defaultSpec, serviceName).Return(nil)
 				s.UpdateDeleteStatus(infrav1.BootstrapSucceededCondition, serviceName, nil)
@@ -347,6 +372,7 @@ func TestDeleteVMSS(t *testing.T) {
 			name:          "successfully delete an existing vmss, fetch call returns error",
 			expectedError: "",
 			expect: func(s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(&defaultSpec).AnyTimes()
 				r.DeleteResource(gomockinternal.AContext(), &defaultSpec, serviceName).Return(nil)
 				s.UpdateDeleteStatus(infrav1.BootstrapSucceededCondition, serviceName, nil)
@@ -357,9 +383,10 @@ func TestDeleteVMSS(t *testing.T) {
 			name:          "failed to delete an existing vmss",
 			expectedError: "#: Internal Server Error: StatusCode=500",
 			expect: func(s *mock_scalesets.MockScaleSetScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder, m *mock_scalesets.MockClientMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.ScaleSetSpec(gomockinternal.AContext()).Return(&defaultSpec).AnyTimes()
-				r.DeleteResource(gomockinternal.AContext(), &defaultSpec, serviceName).Return(internalError)
-				s.UpdateDeleteStatus(infrav1.BootstrapSucceededCondition, serviceName, internalError)
+				r.DeleteResource(gomockinternal.AContext(), &defaultSpec, serviceName).Return(internalError())
+				s.UpdateDeleteStatus(infrav1.BootstrapSucceededCondition, serviceName, internalError())
 				m.Get(gomockinternal.AContext(), &defaultSpec).Return(armcompute.VirtualMachineScaleSet{}, notFoundError)
 			},
 		},
@@ -387,7 +414,7 @@ func TestDeleteVMSS(t *testing.T) {
 			err := s.Delete(context.TODO())
 			if tc.expectedError != "" {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(err).To(MatchError(tc.expectedError))
+				g.Expect(err.Error()).To(ContainSubstring(tc.expectedError))
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}

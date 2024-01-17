@@ -110,6 +110,7 @@ var _ = Describe("Conformance Tests", func() {
 			kubernetesVersion, err = resolveCIVersion(kubernetesVersion)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(os.Setenv("CI_VERSION", kubernetesVersion)).To(Succeed())
+			Expect(os.Setenv("CLOUD_PROVIDER_AZURE_LABEL", "azure-ci")).To(Succeed())
 
 			if useCIArtifacts {
 				flavor = "conformance-ci-artifacts"
@@ -164,7 +165,7 @@ var _ = Describe("Conformance Tests", func() {
 			withControlPlaneMachineCount(controlPlaneMachineCount),
 			withWorkerMachineCount(linuxWorkerMachineCount),
 			withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
-				WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+				WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
 			}),
 		), result)
 		stopwatch.Record("cluster creation")

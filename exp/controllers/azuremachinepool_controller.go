@@ -57,7 +57,7 @@ type (
 		client.Client
 		Scheme                        *runtime.Scheme
 		Recorder                      record.EventRecorder
-		ReconcileTimeout              time.Duration
+		Timeouts                      reconciler.Timeouts
 		WatchFilterValue              string
 		createAzureMachinePoolService azureMachinePoolServiceCreator
 	}
@@ -72,11 +72,11 @@ type (
 type azureMachinePoolServiceCreator func(machinePoolScope *scope.MachinePoolScope) (*azureMachinePoolService, error)
 
 // NewAzureMachinePoolReconciler returns a new AzureMachinePoolReconciler instance.
-func NewAzureMachinePoolReconciler(client client.Client, recorder record.EventRecorder, reconcileTimeout time.Duration, watchFilterValue string) *AzureMachinePoolReconciler {
+func NewAzureMachinePoolReconciler(client client.Client, recorder record.EventRecorder, timeouts reconciler.Timeouts, watchFilterValue string) *AzureMachinePoolReconciler {
 	ampr := &AzureMachinePoolReconciler{
 		Client:           client,
 		Recorder:         recorder,
-		ReconcileTimeout: reconcileTimeout,
+		Timeouts:         timeouts,
 		WatchFilterValue: watchFilterValue,
 	}
 
@@ -185,7 +185,7 @@ func (ampr *AzureMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.
 		tele.KVP("kind", infrav1.AzureMachinePoolKind),
 	)
 	defer done()
-	ctx, cancel := context.WithTimeout(ctx, reconciler.DefaultedLoopTimeout(ampr.ReconcileTimeout))
+	ctx, cancel := context.WithTimeout(ctx, ampr.Timeouts.DefaultedLoopTimeout())
 	defer cancel()
 
 	logger = logger.WithValues("namespace", req.Namespace, "azureMachinePool", req.Name)
@@ -220,7 +220,7 @@ func (ampr *AzureMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	logger = logger.WithValues("cluster", cluster.Name)
 
-	clusterScope, err := infracontroller.GetClusterScoper(ctx, logger, ampr.Client, cluster)
+	clusterScope, err := infracontroller.GetClusterScoper(ctx, logger, ampr.Client, cluster, ampr.Timeouts)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to create cluster scope for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
@@ -270,12 +270,12 @@ func (ampr *AzureMachinePoolReconciler) reconcileNormal(ctx context.Context, mac
 		return reconcile.Result{}, nil
 	}
 
-	// Add the finalizer and the InfrastructureMachineKind if it is not already set, and patch if either changed.
-
+	// Register the finalizer immediately to avoid orphaning Azure resources on delete
 	needsPatch := controllerutil.AddFinalizer(machinePoolScope.AzureMachinePool, expv1.MachinePoolFinalizer)
 	needsPatch = machinePoolScope.SetInfrastructureMachineKind() || needsPatch
+	// Register the block-move annotation immediately to avoid moving un-paused ASO resources
+	needsPatch = infracontroller.AddBlockMoveAnnotation(machinePoolScope.AzureMachinePool) || needsPatch
 	if needsPatch {
-		// Register the finalizer immediately to avoid orphaning Azure resources on delete
 		if err := machinePoolScope.PatchObject(ctx); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -368,6 +368,7 @@ func (ampr *AzureMachinePoolReconciler) reconcilePause(ctx context.Context, mach
 	if err := amps.Pause(ctx); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "error deleting AzureMachinePool %s/%s", machinePoolScope.AzureMachinePool.Namespace, machinePoolScope.Name())
 	}
+	infracontroller.RemoveBlockMoveAnnotation(machinePoolScope.AzureMachinePool)
 
 	return reconcile.Result{}, nil
 }

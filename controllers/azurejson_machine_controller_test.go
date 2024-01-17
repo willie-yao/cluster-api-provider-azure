@@ -18,10 +18,8 @@ package controllers
 
 import (
 	"context"
-	"os"
 	"testing"
 
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -119,6 +117,10 @@ func TestAzureJSONMachineReconciler(t *testing.T) {
 		Spec: infrav1.AzureClusterSpec{
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				SubscriptionID: "123",
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "fake-identity",
+					Namespace: "default",
+				},
 			},
 			NetworkSpec: infrav1.NetworkSpec{
 				Subnets: infrav1.Subnets{
@@ -149,6 +151,18 @@ func TestAzureJSONMachineReconciler(t *testing.T) {
 		},
 	}
 
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: "default",
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type:     infrav1.ServicePrincipal,
+			TenantID: "fake-tenantid",
+		},
+	}
+	fakeSecret := &corev1.Secret{Data: map[string][]byte{"clientSecret": []byte("fooSecret")}}
+
 	cases := map[string]struct {
 		objects []runtime.Object
 		fail    bool
@@ -159,6 +173,8 @@ func TestAzureJSONMachineReconciler(t *testing.T) {
 				cluster,
 				azureCluster,
 				azureMachine,
+				fakeIdentity,
+				fakeSecret,
 			},
 		},
 		"missing azure cluster should return error": {
@@ -181,6 +197,8 @@ func TestAzureJSONMachineReconciler(t *testing.T) {
 				},
 				azureCluster,
 				azureMachine,
+				fakeIdentity,
+				fakeSecret,
 			},
 			fail: false,
 		},
@@ -200,14 +218,12 @@ func TestAzureJSONMachineReconciler(t *testing.T) {
 				},
 				azureCluster,
 				azureMachine,
+				fakeIdentity,
+				fakeSecret,
 			},
 			fail: false,
 		},
 	}
-
-	os.Setenv(auth.ClientID, "fooClient")
-	os.Setenv(auth.ClientSecret, "fooSecret")
-	os.Setenv(auth.TenantID, "fooTenant")
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -245,6 +261,7 @@ func newScheme() (*runtime.Scheme, error) {
 		clusterv1.AddToScheme,
 		infrav1exp.AddToScheme,
 		expv1.AddToScheme,
+		corev1.AddToScheme,
 	}
 	for _, fn := range schemeFn {
 		fn := fn

@@ -44,7 +44,7 @@ var _ = Describe("AzureMachinePoolReconciler", func() {
 	Context("Reconcile an AzureMachinePool", func() {
 		It("should not error with minimal set up", func() {
 			reconciler := NewAzureMachinePoolReconciler(testEnv, testEnv.GetEventRecorderFor("azuremachinepool-reconciler"),
-				reconciler.DefaultLoopTimeout, "")
+				reconciler.Timeouts{}, "")
 			By("Calling reconcile")
 			instance := &infrav1exp.AzureMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
 			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
@@ -69,6 +69,7 @@ func TestAzureMachinePoolReconcilePaused(t *testing.T) {
 		infrav1.AddToScheme,
 		expv1.AddToScheme,
 		infrav1exp.AddToScheme,
+		corev1.AddToScheme,
 	)
 	s := runtime.NewScheme()
 	g.Expect(sb.AddToScheme(s)).To(Succeed())
@@ -78,7 +79,7 @@ func TestAzureMachinePoolReconcilePaused(t *testing.T) {
 
 	recorder := record.NewFakeRecorder(1)
 
-	reconciler := NewAzureMachinePoolReconciler(c, recorder, reconciler.DefaultLoopTimeout, "")
+	reconciler := NewAzureMachinePoolReconciler(c, recorder, reconciler.Timeouts{}, "")
 	name := test.RandomName("paused", 10)
 	namespace := "default"
 
@@ -106,10 +107,41 @@ func TestAzureMachinePoolReconcilePaused(t *testing.T) {
 		Spec: infrav1.AzureClusterSpec{
 			AzureClusterClassSpec: infrav1.AzureClusterClassSpec{
 				SubscriptionID: "something",
+				IdentityRef: &corev1.ObjectReference{
+					Name:      "fake-identity",
+					Namespace: "default",
+					Kind:      "AzureClusterIdentity",
+				},
 			},
 		},
 	}
 	g.Expect(c.Create(ctx, azCluster)).To(Succeed())
+
+	fakeIdentity := &infrav1.AzureClusterIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fake-identity",
+			Namespace: "default",
+		},
+		Spec: infrav1.AzureClusterIdentitySpec{
+			Type: infrav1.ServicePrincipal,
+			ClientSecret: corev1.SecretReference{
+				Name:      "fooSecret",
+				Namespace: "default",
+			},
+			TenantID: "fake-tenantid",
+		},
+	}
+	fakeSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "fooSecret",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"clientSecret": []byte("fooSecret"),
+		},
+	}
+	g.Expect(c.Create(ctx, fakeIdentity)).To(Succeed())
+	g.Expect(c.Create(ctx, fakeSecret)).To(Succeed())
 
 	mp := &expv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{

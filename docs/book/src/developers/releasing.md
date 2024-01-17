@@ -37,6 +37,8 @@ Sometimes pull requests touch a large number of files and are more likely to cre
 - Make sure the [metadata.yaml](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/main/metadata.yaml) file is up to date and contains the new release with the correct cluster-api contract version.
   - If not, open a [PR](https://github.com/kubernetes-sigs/cluster-api-provider-azure/pull/1928) to add it.
 
+This must be done prior to generating release artifacts, so the release contains the correct metadata information for clusterctl to use.
+
 ### Change milestone (skip for patch releases)
 
 - Create a new GitHub milestone for the next release
@@ -44,61 +46,71 @@ Sometimes pull requests touch a large number of files and are more likely to cre
   - Open a PR in https://github.com/kubernetes/test-infra to change this [line](https://github.com/kubernetes/test-infra/blob/25db54eb9d52e08c16b3601726d8f154f8741025/config/prow/plugins.yaml#L344)
     - Example PR: https://github.com/kubernetes/test-infra/pull/16827
 
-### Update test capz provider metadata.yaml (skip for patch releases)
+### Update test provider versions (skip for patch releases)
+
+This can be done in parallel with release publishing and does not impact the release or its artifacts.
+
+#### Update test capz provider metadata.yaml
 
 Using that same next release version used to create a new milestone, update the the capz provider [metadata.yaml](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/main/test/e2e/data/shared/v1beta1_provider/metadata.yaml) that we use to run PR and periodic cluster E2E tests against the main branch templates.
 
-For example, if the latest stable API version of capz that we run E2E tests against is `v1beta`, and we're releasing `v1.4.0`, and our next release version is `v1.5.0`, then we want to ensure that the `metadata.yaml` defines a contract between `1.5` and `v1beta1`:
+For example, if the latest stable API version of capz that we run E2E tests against is `v1beta`, and we're releasing `v1.12.0`, and our next release version is `v1.13.0`, then we want to ensure that the `metadata.yaml` defines a contract between `v1.13.0` and `v1beta1`:
 
 ```yaml
 apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3
 releaseSeries:
-  - major: 0
-    minor: 5
-    contract: v1alpha4
   - major: 1
-    minor: 5
+    minor: 11
+    contract: v1beta1
+  - major: 1
+    minor: 12
+    contract: v1beta1
+  - major: 1
+    minor: 13
     contract: v1beta1
 ```
 
-Additionally, we need to update the `type: InfrastructureProvider` spec in [azure-dev.yaml](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/main/test/e2e/config/azure-dev.yaml) to express that our intent is to test (using the above example) `1.5`. By convention we use a sentinel patch version "99" to express "any patch version". In this example we want to look for the `type: InfrastructureProvider` with a `name` value of `v1.4.99` and update it to `v1.5.99`:
+Additionally, we need to update the `type: InfrastructureProvider` spec in [azure-dev.yaml](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/main/test/e2e/config/azure-dev.yaml) to express that our intent is to test (using the above example) `1.5`. By convention we use a sentinel patch version "99" to express "any patch version". In this example we want to look for the `type: InfrastructureProvider` with a `name` value of `v1.12.99` and update it to `v1.13.99`:
 
-```
-    - name: v1.5.99 # "vNext"; use manifests from local source files
-```
-
-### Create a tag
-
-Before you create a GPG-signed tag you may need to prepare your local environment's TTY to properly hoist your signed key into the flow of the `git tag` command:
-
-```sh
-$ export GPG_TTY=$(tty)
+```yaml
+    - name: v1.13.99 # "vNext"; use manifests from local source files
 ```
 
-- Prepare the release branch. :warning: Always release from the release branch and not from main!
-  - If releasing a patch release, check out the existing release branch and make sure you have the latest changes:
-    - `git checkout release-1.x`
-    - `git fetch upstream`
-    - `git rebase upstream/release-1.x`
-  - If releasing a minor release, create a new release branch from the main branch:
-    - `git fetch upstream`
-    - `git rebase upstream/main`
-    - `git checkout -b release-1.x`
-    - `git push upstream release-1.x`
-- Create tag with git
-  - `export RELEASE_TAG=v1.2.3` (the tag of the release to be cut)
-  - `git tag -s ${RELEASE_TAG} -m "${RELEASE_TAG}"`
-  - `-s` creates a signed tag, you must have a GPG key [added to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-new-gpg-key-to-your-github-account)
-  - `git push upstream ${RELEASE_TAG}`
+#### Update clusterctl API version upgrade tests
 
-This will automatically trigger a [Github Action](https://github.com/kubernetes-sigs/cluster-api-provider-azure/actions) to create a draft release.
+Update the [API version upgrade tests](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/v1.12.1/test/e2e/capi_test.go#L214) to use the oldest supported release versions of CAPI and CAPZ after the release is cut as "Init" provider versions. See [this PR](https://github.com/kubernetes-sigs/cluster-api-provider-azure/pull/4433) for more details.
+
+### Open a PR for release notes
+
+1. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
+
+1. Fetch the latest changes from upstream and checkout the main branch:
+
+    ```sh
+    git fetch upstream
+    git checkout main
+    ```
+
+1. Generate release notes by running the following command:
+
+    ```sh
+    export GITHUB_TOKEN=<your GH token>
+    export RELEASE_TAG=v1.2.3 # change this to the tag of the release to be cut
+    make release-notes
+    ```
+
+1. Review the release notes file generated at `CHANGELOG/<RELEASE_TAG>.md` and make any necessary changes.
+
+1. Open a pull request with the release notes.
+
+**Note**: Important! The commit should only contain the release notes file, nothing else, otherwise automation will not work.
+
+Merging the PR will automatically trigger a [Github Action](https://github.com/kubernetes-sigs/cluster-api-provider-azure/actions) to create a release branch (if needed), push a tag, and publish a draft release.
 
 ### Promote image to prod repo
 
 - Images are built by the [post push images job](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-azure#post-cluster-api-provider-azure-push-images). This will push the image to a [staging repository][staging-repository].
-- If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
 - Wait for the above job to complete for the tag commit and for the image to exist in the staging directory, then create a PR to promote the image and tag:
-  - `export GITHUB_TOKEN=<your GH token>`
   - `make promote-images`
 
 This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPZ maintainers. Example PR: https://github.com/kubernetes/k8s.io/pull/4284.
@@ -113,9 +125,11 @@ Using [the above example PR](https://github.com/kubernetes/k8s.io/pull/4284), to
 
 - Manually format and categorize the release notes
 - Ensure that the promoted release image is live. For example:
+
 ```sh
-$ docker pull registry.k8s.io/cluster-api-azure/cluster-api-azure-controller:${RELEASE_TAG}
+docker pull registry.k8s.io/cluster-api-azure/cluster-api-azure-controller:${RELEASE_TAG}
 ```
+
 - Publish release
 - [Announce][release-announcement] the release
 

@@ -31,6 +31,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type AKSClusterClassInput struct {
@@ -66,18 +67,22 @@ func AKSClusterClassSpec(ctx context.Context, inputGetter func() AKSClusterClass
 	By("Editing the AzureManagedMachinePoolTemplate to change the scale down mode")
 	ammpt := &infrav1.AzureManagedMachinePoolTemplate{}
 
-	// TODO: We are hard-coding the ammpt name suffix since to get the name from
-	// the ClusterClass, we have to upgrade CAPI to v1.6.0. Fix this once CAPI
-	// v1.6.0 is released.
-	// CAPI v1.6.0 Bump PR: https://github.com/kubernetes-sigs/cluster-api-provider-azure/pull/4182
+	clusterClass := &clusterv1.ClusterClass{}
+	err = mgmtClient.Get(ctx, types.NamespacedName{
+		Namespace: input.Cluster.Namespace,
+		Name:      "default",
+	}, clusterClass)
+
 	Eventually(func(g Gomega) {
-		err = mgmtClient.Get(ctx, types.NamespacedName{
-			Namespace: input.Cluster.Namespace,
-			Name:      input.Cluster.Name + "-pool0",
-		}, ammpt)
-		Expect(err).NotTo(HaveOccurred())
-		ammpt.Spec.Template.Spec.ScaleDownMode = ptr.To("Deallocate")
-		g.Expect(mgmtClient.Update(ctx, ammpt)).To(Succeed())
+		for i := range clusterClass.Spec.Workers.MachinePools {
+			err = mgmtClient.Get(ctx, types.NamespacedName{
+				Namespace: clusterClass.Spec.Workers.MachinePools[i].Template.Infrastructure.Ref.Namespace,
+				Name:      clusterClass.Spec.Workers.MachinePools[i].Template.Infrastructure.Ref.Name,
+			}, ammpt)
+			Expect(err).NotTo(HaveOccurred())
+			ammpt.Spec.Template.Spec.ScaleDownMode = ptr.To("Deallocate")
+			g.Expect(mgmtClient.Update(ctx, ammpt)).To(Succeed())
+		}
 	}, inputGetter().WaitIntervals...).Should(Succeed())
 
 	ammp := &infrav1.AzureManagedMachinePool{}
@@ -102,6 +107,8 @@ func AKSClusterClassSpec(ctx context.Context, inputGetter func() AKSClusterClass
 
 	By("Upgrading the cluster topology version")
 	Eventually(func(g Gomega) {
+		err := mgmtClient.Get(ctx, client.ObjectKeyFromObject(input.Cluster), input.Cluster)
+		g.Expect(err).NotTo(HaveOccurred())
 		input.Cluster.Spec.Topology.Version = input.KubernetesVersionUpgradeTo
 		g.Expect(mgmtClient.Update(ctx, input.Cluster)).To(Succeed())
 	}, inputGetter().WaitIntervals...).Should(Succeed())

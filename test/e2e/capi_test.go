@@ -111,7 +111,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-					WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+					WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
 				},
 			}
 		})
@@ -126,7 +126,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-					WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+					WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
 				},
 			}
 		})
@@ -142,7 +142,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 					ArtifactFolder:        artifactFolder,
 					SkipCleanup:           skipCleanup,
 					ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-						WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+						WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
 					},
 				}
 			})
@@ -159,7 +159,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-					WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+					WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
 				},
 			}
 		})
@@ -174,7 +174,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-					WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+					WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
 				},
 			}
 		})
@@ -189,7 +189,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-					WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+					WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
 				},
 			}
 		})
@@ -204,7 +204,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 				ArtifactFolder:        artifactFolder,
 				SkipCleanup:           skipCleanup,
 				ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-					WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+					WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
 				},
 			}
 		})
@@ -257,13 +257,14 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 						PreInit:                   getPreInitFunc(ctx),
 						InitWithProvidersContract: "v1beta1",
 						ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-							WaitForControlPlaneInitialized: EnsureControlPlaneInitializedNoAddons,
+							WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
 						},
-						InitWithBinary:                  "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/clusterctl-{OS}-{ARCH}",
-						InitWithCoreProvider:            "cluster-api:v1.0.5",
-						InitWithBootstrapProviders:      []string{"kubeadm:v1.0.5"},
-						InitWithControlPlaneProviders:   []string{"kubeadm:v1.0.5"},
-						InitWithInfrastructureProviders: []string{"azure:v1.0.2"},
+						InitWithKubernetesVersion:       "v1.26.12",
+						InitWithBinary:                  "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.4/clusterctl-{OS}-{ARCH}",
+						InitWithCoreProvider:            "cluster-api:v1.5.4",
+						InitWithBootstrapProviders:      []string{"kubeadm:v1.5.4"},
+						InitWithControlPlaneProviders:   []string{"kubeadm:v1.5.4"},
+						InitWithInfrastructureProviders: []string{"azure:v1.11.7"},
 					}
 				})
 			})

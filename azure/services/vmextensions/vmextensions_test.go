@@ -18,10 +18,12 @@ package vmextensions
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 
-	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"go.uber.org/mock/gomock"
@@ -30,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/async/mock_async"
 	"sigs.k8s.io/cluster-api-provider-azure/azure/services/vmextensions/mock_vmextensions"
 	gomockinternal "sigs.k8s.io/cluster-api-provider-azure/internal/test/matchers/gomock"
+	"sigs.k8s.io/cluster-api-provider-azure/util/reconciler"
 )
 
 var (
@@ -55,12 +58,22 @@ var (
 		Location:      "test-location",
 	}
 
-	internalError        = autorest.NewErrorWithResponse("", "", &http.Response{StatusCode: http.StatusInternalServerError}, "Internal Server Error")
-	extensionFailedError = errors.Wrapf(internalError, "extension state failed. This likely means the Kubernetes node bootstrapping process failed or timed out. Check VM boot diagnostics logs to learn more")
-
 	notDoneError          = azure.NewOperationNotDoneError(&infrav1.Future{})
 	extensionNotDoneError = errors.Wrapf(notDoneError, "extension is still in provisioning state. This likely means that bootstrapping has not yet completed on the VM")
 )
+
+func extensionFailedError() error {
+	return errors.Wrapf(internalError(), "extension state failed. This likely means the Kubernetes node bootstrapping process failed or timed out. Check VM boot diagnostics logs to learn more")
+}
+
+func internalError() *azcore.ResponseError {
+	return &azcore.ResponseError{
+		RawResponse: &http.Response{
+			Body:       io.NopCloser(strings.NewReader("#: Internal Server Error: StatusCode=500")),
+			StatusCode: http.StatusInternalServerError,
+		},
+	}
+}
 
 func TestReconcileVMExtension(t *testing.T) {
 	testcases := []struct {
@@ -72,6 +85,7 @@ func TestReconcileVMExtension(t *testing.T) {
 			name:          "extension is in succeeded state",
 			expectedError: "",
 			expect: func(s *mock_vmextensions.MockVMExtensionScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.VMExtensionSpecs().Return([]azure.ResourceSpecGetter{&extensionSpec1})
 				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec1, serviceName).Return(nil, nil)
 				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, nil)
@@ -79,17 +93,19 @@ func TestReconcileVMExtension(t *testing.T) {
 		},
 		{
 			name:          "extension is in failed state",
-			expectedError: extensionFailedError.Error(),
+			expectedError: extensionFailedError().Error(),
 			expect: func(s *mock_vmextensions.MockVMExtensionScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.VMExtensionSpecs().Return([]azure.ResourceSpecGetter{&extensionSpec1})
-				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec1, serviceName).Return(nil, internalError)
-				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, gomockinternal.ErrStrEq(extensionFailedError.Error()))
+				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec1, serviceName).Return(nil, internalError())
+				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, gomockinternal.ErrStrEq(extensionFailedError().Error()))
 			},
 		},
 		{
 			name:          "extension is still creating",
 			expectedError: extensionNotDoneError.Error(),
 			expect: func(s *mock_vmextensions.MockVMExtensionScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.VMExtensionSpecs().Return([]azure.ResourceSpecGetter{&extensionSpec1})
 				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec1, serviceName).Return(nil, notDoneError)
 				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, gomockinternal.ErrStrEq(extensionNotDoneError.Error()))
@@ -99,6 +115,7 @@ func TestReconcileVMExtension(t *testing.T) {
 			name:          "reconcile multiple extensions",
 			expectedError: "",
 			expect: func(s *mock_vmextensions.MockVMExtensionScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.VMExtensionSpecs().Return([]azure.ResourceSpecGetter{&extensionSpec1, &extensionSpec2})
 				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec1, serviceName).Return(nil, nil)
 				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec2, serviceName).Return(nil, nil)
@@ -107,12 +124,13 @@ func TestReconcileVMExtension(t *testing.T) {
 		},
 		{
 			name:          "error creating the first extension",
-			expectedError: extensionFailedError.Error(),
+			expectedError: extensionFailedError().Error(),
 			expect: func(s *mock_vmextensions.MockVMExtensionScopeMockRecorder, r *mock_async.MockReconcilerMockRecorder) {
+				s.DefaultedAzureServiceReconcileTimeout().Return(reconciler.DefaultAzureServiceReconcileTimeout)
 				s.VMExtensionSpecs().Return([]azure.ResourceSpecGetter{&extensionSpec1, &extensionSpec2})
-				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec1, serviceName).Return(nil, internalError)
+				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec1, serviceName).Return(nil, internalError())
 				r.CreateOrUpdateResource(gomockinternal.AContext(), &extensionSpec2, serviceName).Return(nil, nil)
-				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, gomockinternal.ErrStrEq(extensionFailedError.Error()))
+				s.UpdatePutStatus(infrav1.BootstrapSucceededCondition, serviceName, gomockinternal.ErrStrEq(extensionFailedError().Error()))
 			},
 		},
 	}

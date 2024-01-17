@@ -5,8 +5,6 @@ metadata:
   namespace: system
   labels:
     control-plane: capz-controller-manager
-    #ToDo: (@sonasingh46): Remove this label as part of aad pod identity deprecation
-    aadpodidbinding: capz-controller-aadpodidentity-selector
 
 spec:
   selector:
@@ -17,7 +15,6 @@ spec:
     metadata:
       labels:
         control-plane: capz-controller-manager
-        aadpodidbinding: capz-controller-aadpodidentity-selector
         azure.workload.identity/use: "true"
       annotations:
         kubectl.kubernetes.io/default-container: manager
@@ -25,7 +22,8 @@ spec:
       containers:
         - args:
             - --leader-elect
-            - "--metrics-bind-addr=localhost:8080"
+            - "--diagnostics-address=${CAPZ_DIAGNOSTICS_ADDRESS:=:8443}"
+            - "--insecure-diagnostics=${CAPZ_INSECURE_DIAGNOSTICS:=false}"
             - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},AKSResourceHealth=${EXP_AKS_RESOURCE_HEALTH:=false},EdgeZone=${EXP_EDGEZONE:=false}"
             - "--v=0"
           image: controller:latest
@@ -38,6 +36,9 @@ spec:
           ports:
             - containerPort: 9440
               name: healthz
+              protocol: TCP
+            - containerPort: 8443
+              name: metrics
               protocol: TCP
           readinessProbe:
             httpGet:
