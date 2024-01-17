@@ -70,7 +70,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 	groupClient, err := armresources.NewResourceGroupsClient(getSubscriptionID(Default), cred, nil)
 	Expect(err).NotTo(HaveOccurred())
 
-	By("creating a resource group")
+	By("Creating a resource group")
 	groupName := "capz-aks-fleets-member-" + amcp.Spec.ResourceGroupName
 	_, err = groupClient.CreateOrUpdate(ctx, groupName, armresources.ResourceGroup{
 		Location: ptr.To(os.Getenv(AzureLocation)),
@@ -79,7 +79,7 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 			"creationTimestamp": ptr.To(os.Getenv(Timestamp)),
 		},
 	}, nil)
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 
 	fleetClient, err := armcontainerservicefleet.NewFleetsClient(getSubscriptionID(Default), cred, nil)
 	Expect(err).NotTo(HaveOccurred())
@@ -91,9 +91,9 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 	poller, err := fleetClient.BeginCreateOrUpdate(ctx, groupName, fleetName, armcontainerservicefleet.Fleet{
 		Location: ptr.To(os.Getenv(AzureLocation)),
 	}, nil)
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 	_, err = poller.PollUntilDone(ctx, nil)
-	Expect(err).To(BeNil())
+	Expect(err).NotTo(HaveOccurred())
 
 	By("Joining the cluster to the fleet hub")
 	var infraControlPlane = &infrav1.AzureManagedControlPlane{}

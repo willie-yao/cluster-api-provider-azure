@@ -275,6 +275,9 @@ spec:
                   name:
                     description: Name is the name of the member.
                     type: string
+                required:
+                - managerName
+                - managerResourceGroup
                 type: object
               httpProxyConfig:
                 description: HTTPProxyConfig is the HTTP proxy configuration for the

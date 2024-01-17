@@ -459,12 +459,10 @@ type FleetsMemberClassSpec struct {
 	Group string `json:"group,omitempty"`
 
 	// ManagerName is the name of the fleet manager.
-	// +kubebuilder:validation:Required
-	ManagerName string `json:"managerName,omitempty"`
+	ManagerName string `json:"managerName"`
 
 	// ManagerResourceGroup is the resource group of the fleet manager.
-	// +kubebuilder:validation:Required
-	ManagerResourceGroup string `json:"managerResourceGroup,omitempty"`
+	ManagerResourceGroup string `json:"managerResourceGroup"`
 }
 
 // SecurityGroupClass defines the SecurityGroup properties that may be shared across several Azure clusters.
