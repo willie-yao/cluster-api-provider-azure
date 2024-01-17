@@ -98,9 +98,6 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 	By("Joining the cluster to the fleet hub")
 	var infraControlPlane = &infrav1.AzureManagedControlPlane{}
 	Eventually(func(g Gomega) {
-		aks, err := containerserviceClient.Get(ctx, amcp.Spec.ResourceGroupName, amcp.Name, nil)
-		g.Expect(err).NotTo(HaveOccurred())
-		Logf("AKS provisioning state -1: %s", *aks.ManagedCluster.Properties.ProvisioningState)
 		err = mgmtClient.Get(ctx, client.ObjectKey{Namespace: input.Cluster.Spec.ControlPlaneRef.Namespace, Name: input.Cluster.Spec.ControlPlaneRef.Name}, infraControlPlane)
 		g.Expect(err).NotTo(HaveOccurred())
 		infraControlPlane.Spec.FleetsMember = &infrav1.FleetsMember{
@@ -112,9 +109,6 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		}
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
 		g.Expect(conditions.IsTrue(infraControlPlane, infrav1.FleetReadyCondition)).To(BeTrue())
-		aks, err = containerserviceClient.Get(ctx, amcp.Spec.ResourceGroupName, amcp.Name, nil)
-		g.Expect(err).NotTo(HaveOccurred())
-		Logf("AKS provisioning state 0: %s", *aks.ManagedCluster.Properties.ProvisioningState)
 	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Ensuring the fleet member is created and attached to the managed cluster")
@@ -127,9 +121,6 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		expectedID := azure.ManagedClusterID(getSubscriptionID(Default), infraControlPlane.Spec.ResourceGroupName, input.Cluster.Name)
 		g.Expect(fleetsMember.Properties.ClusterResourceID).To(Equal(ptr.To(expectedID)))
 		g.Expect(fleetsMember.Properties.ProvisioningState).To(Equal(ptr.To(armcontainerservicefleet.FleetMemberProvisioningStateSucceeded)))
-		aks, err := containerserviceClient.Get(ctx, amcp.Spec.ResourceGroupName, amcp.Name, nil)
-		g.Expect(err).NotTo(HaveOccurred())
-		Logf("AKS provisioning state 1: %s", *aks.ManagedCluster.Properties.ProvisioningState)
 	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Remove the FleetsMember spec from the AzureManagedControlPlane")
@@ -138,16 +129,12 @@ func AKSFleetsMemberSpec(ctx context.Context, inputGetter func() AKSFleetsMember
 		g.Expect(err).NotTo(HaveOccurred())
 		infraControlPlane.Spec.FleetsMember = nil
 		g.Expect(mgmtClient.Update(ctx, infraControlPlane)).To(Succeed())
-		aks, err := containerserviceClient.Get(ctx, amcp.Spec.ResourceGroupName, amcp.Name, nil)
-		g.Expect(err).NotTo(HaveOccurred())
-		Logf("AKS provisioning state 2: %s", *aks.ManagedCluster.Properties.ProvisioningState)
 	}, input.WaitIntervals...).Should(Succeed())
 
 	By("Waiting for the managed cluster to finish updating")
 	Eventually(func(g Gomega) {
 		aks, err := containerserviceClient.Get(ctx, amcp.Spec.ResourceGroupName, amcp.Name, nil)
 		g.Expect(err).NotTo(HaveOccurred())
-		Logf("AKS provisioning state 3: %s", *aks.ManagedCluster.Properties.ProvisioningState)
 		g.Expect(aks.ManagedCluster.Properties.ProvisioningState).NotTo(Equal(ptr.To("Updating")))
 	}, input.WaitIntervals...).Should(Succeed())
 
