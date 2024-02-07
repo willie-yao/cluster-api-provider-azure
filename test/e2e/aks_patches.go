@@ -130,15 +130,6 @@ func AKSPatchSpec(ctx context.Context, inputGetter func() AKSPatchSpecInput) {
 				Name:      mp.Spec.Template.Spec.InfrastructureRef.Name,
 			}, ammp)).To(Succeed())
 
-			nonAdditionalTagKeys := map[string]struct{}{}
-			resp, err := agentpoolsClient.Get(ctx, infraControlPlane.Spec.ResourceGroupName, infraControlPlane.Name, *ammp.Spec.Name, nil)
-			Expect(err).NotTo(HaveOccurred())
-			for k := range resp.AgentPool.Properties.Tags {
-				if _, exists := infraControlPlane.Spec.AdditionalTags[k]; !exists {
-					nonAdditionalTagKeys[k] = struct{}{}
-				}
-			}
-
 			checkTags := func(exist map[string]string) func(Gomega) {
 				return func(g Gomega) {
 					resp, err := agentpoolsClient.Get(ctx, infraControlPlane.Spec.ResourceGroupName, infraControlPlane.Name, *ammp.Spec.Name, nil)
