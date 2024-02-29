@@ -311,7 +311,8 @@ func TestParameters(t *testing.T) {
 			},
 		}
 
-		actual, err := spec.Parameters(context.Background(), existing)
+		actualObj, err := spec.Parameters(context.Background(), existing)
+		actual := actualObj.(*asocontainerservicev1.ManagedCluster)
 
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(actual.Spec.AgentPoolProfiles).To(BeNil())
@@ -342,7 +343,8 @@ func TestParameters(t *testing.T) {
 			},
 		}
 
-		actual, err := spec.Parameters(context.Background(), existing)
+		actualObj, err := spec.Parameters(context.Background(), existing)
+		actual := actualObj.(*asocontainerservicev1.ManagedCluster)
 
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(actual.Spec.AgentPoolProfiles).To(BeNil())

@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -50,7 +51,7 @@ const (
 type ManagedClusterScope interface {
 	aso.Scope
 	azure.Authorizer
-	ManagedClusterSpec() azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedCluster]
+	ManagedClusterSpec() azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	SetControlPlaneEndpoint(clusterv1.APIEndpoint)
 	MakeEmptyKubeConfigSecret() corev1.Secret
 	GetAdminKubeconfigData() []byte
@@ -68,18 +69,23 @@ type ManagedClusterScope interface {
 }
 
 // New creates a new service.
-func New(scope ManagedClusterScope) *aso.Service[*asocontainerservicev1.ManagedCluster, ManagedClusterScope] {
-	svc := aso.NewService[*asocontainerservicev1.ManagedCluster](serviceName, scope)
-	svc.Specs = []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedCluster]{scope.ManagedClusterSpec()}
+func New(scope ManagedClusterScope) *aso.Service[genruntime.MetaObject, ManagedClusterScope] {
+	// genruntime.MetaObject is used here instead of an *asocontainerservicev1.ManagedCluster to better
+	// facilitate returning different API versions.
+	svc := aso.NewService[genruntime.MetaObject](serviceName, scope)
+	svc.Specs = []azure.ASOResourceSpecGetter[genruntime.MetaObject]{scope.ManagedClusterSpec()}
 	svc.ConditionType = infrav1.ManagedClusterRunningCondition
 	svc.PostCreateOrUpdateResourceHook = postCreateOrUpdateResourceHook
 	return svc
 }
 
-func postCreateOrUpdateResourceHook(ctx context.Context, scope ManagedClusterScope, managedCluster *asocontainerservicev1.ManagedCluster, err error) error {
+func postCreateOrUpdateResourceHook(ctx context.Context, scope ManagedClusterScope, obj genruntime.MetaObject, err error) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO(willie): this could be a preview or stable version object.
+	managedCluster := obj.(*asocontainerservicev1.ManagedCluster)
 
 	// Update control plane endpoint.
 	endpoint := clusterv1.APIEndpoint{

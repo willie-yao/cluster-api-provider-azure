@@ -29,6 +29,7 @@ import (
 	asonetworkv1api20201101 "github.com/Azure/azure-service-operator/v2/api/network/v1api20201101"
 	asonetworkv1api20220701 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
@@ -525,7 +526,7 @@ func isManagedVersionUpgrade(managedControlPlane *infrav1.AzureManagedControlPla
 }
 
 // ManagedClusterSpec returns the managed cluster spec.
-func (s *ManagedControlPlaneScope) ManagedClusterSpec() azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedCluster] {
+func (s *ManagedControlPlaneScope) ManagedClusterSpec() azure.ASOResourceSpecGetter[genruntime.MetaObject] {
 	managedClusterSpec := managedclusters.ManagedClusterSpec{
 		Name:              s.ControlPlane.Name,
 		ResourceGroup:     s.ControlPlane.Spec.ResourceGroupName,

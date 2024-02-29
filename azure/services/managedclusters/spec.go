@@ -268,15 +268,6 @@ type OIDCIssuerProfile struct {
 	Enabled *bool
 }
 
-// ResourceRef implements azure.ASOResourceSpecGetter.
-func (s *ManagedClusterSpec) ResourceRef() *asocontainerservicev1.ManagedCluster {
-	return &asocontainerservicev1.ManagedCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: s.Name,
-		},
-	}
-}
-
 // ManagedClusterSecurityProfile defines the security profile for the cluster.
 type ManagedClusterSecurityProfile struct {
 	// AzureKeyVaultKms defines Azure Key Vault key management service settings for the security profile.
@@ -384,12 +375,29 @@ func (s *ManagedClusterSpec) getManagedClusterVersion(existing *asocontainerserv
 	return versions.GetHigherK8sVersion(s.Version, *existing.Status.CurrentKubernetesVersion)
 }
 
+// ResourceRef implements azure.ASOResourceSpecGetter.
+func (s *ManagedClusterSpec) ResourceRef() genruntime.MetaObject {
+	// TODO(willie): this also needs to return a preview or stable object so the GET in aso.go gets the right
+	// version.
+	return &asocontainerservicev1.ManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: s.Name,
+		},
+	}
+}
+
 // Parameters returns the parameters for the managed clusters.
 //
 //nolint:gocyclo // Function requires a lot of nil checks that raise complexity.
-func (s *ManagedClusterSpec) Parameters(ctx context.Context, existing *asocontainerservicev1.ManagedCluster) (params *asocontainerservicev1.ManagedCluster, err error) {
+func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genruntime.MetaObject) (params genruntime.MetaObject, err error) {
 	ctx, _, done := tele.StartSpanWithLogger(ctx, "managedclusters.Service.Parameters")
 	defer done()
+
+	// TODO(willie): existing could be a stable or preview API version.
+	var existing *asocontainerservicev1.ManagedCluster
+	if existingObj != nil {
+		existing = existingObj.(*asocontainerservicev1.ManagedCluster)
+	}
 
 	managedCluster := existing
 	if managedCluster == nil {
@@ -675,6 +683,8 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existing *asocontai
 		}
 	}
 
+	// TODO(willie): I think we still need to do the conversion dance here to avoid having to duplicate this
+	// whole function.
 	return managedCluster, nil
 }
 
@@ -750,7 +760,7 @@ func userKubeconfigSecretName(clusterName string) string {
 }
 
 // WasManaged implements azure.ASOResourceSpecGetter.
-func (s *ManagedClusterSpec) WasManaged(resource *asocontainerservicev1.ManagedCluster) bool {
+func (s *ManagedClusterSpec) WasManaged(resource genruntime.MetaObject) bool {
 	// CAPZ has never supported BYO managed clusters.
 	return true
 }
