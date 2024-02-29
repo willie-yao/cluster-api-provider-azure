@@ -24,11 +24,11 @@ import (
 	"time"
 
 	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230315preview"
-	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
 	asokubernetesconfigurationv1 "github.com/Azure/azure-service-operator/v2/api/kubernetesconfiguration/v1api20230501"
 	asonetworkv1api20201101 "github.com/Azure/azure-service-operator/v2/api/network/v1api20201101"
 	asonetworkv1api20220701 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
 	asoresourcesv1 "github.com/Azure/azure-service-operator/v2/api/resources/v1api20200601"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
 	"golang.org/x/mod/semver"
 	"gopkg.in/yaml.v3"
@@ -517,6 +517,14 @@ func (s *ManagedControlPlaneScope) IsManagedVersionUpgrade() bool {
 	return isManagedVersionUpgrade(s.ControlPlane)
 }
 
+// IsPreviewEnabled checks if the preview feature is enabled.
+func (s *ManagedControlPlaneScope) IsPreviewEnabled() bool {
+	if s.ControlPlane.Spec.EnablePreviewFeatures == nil {
+		return false
+	}
+	return *s.ControlPlane.Spec.EnablePreviewFeatures
+}
+
 func isManagedVersionUpgrade(managedControlPlane *infrav1.AzureManagedControlPlane) bool {
 	return managedControlPlane.Spec.AutoUpgradeProfile != nil &&
 		managedControlPlane.Spec.AutoUpgradeProfile.UpgradeChannel != nil &&
@@ -525,7 +533,7 @@ func isManagedVersionUpgrade(managedControlPlane *infrav1.AzureManagedControlPla
 }
 
 // ManagedClusterSpec returns the managed cluster spec.
-func (s *ManagedControlPlaneScope) ManagedClusterSpec() azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedCluster] {
+func (s *ManagedControlPlaneScope) ManagedClusterSpec() azure.ASOResourceSpecGetter[genruntime.MetaObject] {
 	managedClusterSpec := managedclusters.ManagedClusterSpec{
 		Name:              s.ControlPlane.Name,
 		ResourceGroup:     s.ControlPlane.Spec.ResourceGroupName,
@@ -670,6 +678,10 @@ func (s *ManagedControlPlaneScope) ManagedClusterSpec() azure.ASOResourceSpecGet
 		managedClusterSpec.SecurityProfile = s.getManagedClusterSecurityProfile()
 	}
 
+	if s.ControlPlane.Spec.EnablePreviewFeatures != nil {
+		managedClusterSpec.Preview = *s.ControlPlane.Spec.EnablePreviewFeatures
+	}
+
 	return &managedClusterSpec
 }
 
@@ -715,9 +727,9 @@ func (s *ManagedControlPlaneScope) getManagedClusterSecurityProfile() *managedcl
 }
 
 // GetAllAgentPoolSpecs gets a slice of azure.AgentPoolSpec for the list of agent pools.
-func (s *ManagedControlPlaneScope) GetAllAgentPoolSpecs() ([]azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool], error) {
+func (s *ManagedControlPlaneScope) GetAllAgentPoolSpecs() ([]azure.ASOResourceSpecGetter[genruntime.MetaObject], error) {
 	var (
-		ammps           = make([]azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool], 0, len(s.ManagedMachinePools))
+		ammps           = make([]azure.ASOResourceSpecGetter[genruntime.MetaObject], 0, len(s.ManagedMachinePools))
 		foundSystemPool = false
 	)
 	for _, pool := range s.ManagedMachinePools {

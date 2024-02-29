@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +44,7 @@ func TestManagedMachinePoolScope_Autoscaling(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without Autoscaling",
@@ -145,7 +146,7 @@ func TestManagedMachinePoolScope_NodeLabels(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without node labels",
@@ -248,7 +249,7 @@ func TestManagedMachinePoolScope_AdditionalTags(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without additional tags",
@@ -351,7 +352,7 @@ func TestManagedMachinePoolScope_MaxPods(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without MaxPods",
@@ -450,7 +451,7 @@ func TestManagedMachinePoolScope_Taints(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without taints",
@@ -556,7 +557,7 @@ func TestManagedMachinePoolScope_OSDiskType(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without OsDiskType",
@@ -655,7 +656,7 @@ func TestManagedMachinePoolScope_SubnetName(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without Vnet and SubnetName",
@@ -807,7 +808,7 @@ func TestManagedMachinePoolScope_KubeletDiskType(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without KubeletDiskType",
@@ -894,6 +895,117 @@ func TestManagedMachinePoolScope_KubeletDiskType(t *testing.T) {
 			if !reflect.DeepEqual(c.Expected, agentPool) {
 				t.Errorf("Got difference between expected result and result:\n%s", cmp.Diff(c.Expected, agentPool))
 			}
+		})
+	}
+}
+
+func TestManagedMachinePoolScope_EnablePreviewFeatures(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = expv1.AddToScheme(scheme)
+	_ = infrav1.AddToScheme(scheme)
+
+	cases := []struct {
+		Name     string
+		Input    ManagedMachinePoolScopeParams
+		Expected bool
+	}{
+		{
+			Name: "Without EnablePreviewFeatures",
+			Input: ManagedMachinePoolScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+				},
+				ControlPlane: &infrav1.AzureManagedControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+					Spec: infrav1.AzureManagedControlPlaneSpec{
+						AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
+							SubscriptionID: "00000000-0000-0000-0000-000000000000",
+						},
+					},
+				},
+				ManagedMachinePool: ManagedMachinePool{
+					MachinePool:      getMachinePool("pool1"),
+					InfraMachinePool: getAzureMachinePool("pool1", infrav1.NodePoolModeUser),
+				},
+			},
+			Expected: false,
+		},
+		{
+			Name: "With EnablePreviewFeatures false",
+			Input: ManagedMachinePoolScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+				},
+				ControlPlane: &infrav1.AzureManagedControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+					Spec: infrav1.AzureManagedControlPlaneSpec{
+						AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
+							SubscriptionID:        "00000000-0000-0000-0000-000000000000",
+							EnablePreviewFeatures: ptr.To(false),
+						},
+					},
+				},
+				ManagedMachinePool: ManagedMachinePool{
+					MachinePool:      getMachinePool("pool1"),
+					InfraMachinePool: getAzureMachinePool("pool1", infrav1.NodePoolModeUser),
+				},
+			},
+			Expected: false,
+		},
+		{
+			Name: "With EnablePreviewFeatures true",
+			Input: ManagedMachinePoolScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+				},
+				ControlPlane: &infrav1.AzureManagedControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+					Spec: infrav1.AzureManagedControlPlaneSpec{
+						AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
+							SubscriptionID:        "00000000-0000-0000-0000-000000000000",
+							EnablePreviewFeatures: ptr.To(true),
+						},
+					},
+				},
+				ManagedMachinePool: ManagedMachinePool{
+					MachinePool:      getMachinePool("pool1"),
+					InfraMachinePool: getAzureMachinePool("pool1", infrav1.NodePoolModeUser),
+				},
+			},
+			Expected: true,
+		},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.Name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(c.Input.MachinePool, c.Input.InfraMachinePool, c.Input.ControlPlane).Build()
+			c.Input.Client = fakeClient
+			s, err := NewManagedMachinePoolScope(context.TODO(), c.Input)
+			g.Expect(err).To(Succeed())
+			agentPoolGetter := s.AgentPoolSpec()
+			agentPool, ok := agentPoolGetter.(*agentpools.AgentPoolSpec)
+			g.Expect(ok).To(BeTrue())
+			g.Expect(agentPool.Preview).To(Equal(c.Expected))
+			g.Expect(s.IsPreviewEnabled()).To(Equal(c.Expected))
 		})
 	}
 }

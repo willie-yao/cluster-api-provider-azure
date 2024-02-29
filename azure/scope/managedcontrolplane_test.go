@@ -21,9 +21,9 @@ import (
 	"reflect"
 	"testing"
 
-	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
 	asokubernetesconfigurationv1 "github.com/Azure/azure-service-operator/v2/api/kubernetesconfiguration/v1api20230501"
 	asonetworkv1 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -139,7 +139,7 @@ func TestManagedControlPlaneScope_PoolVersion(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedControlPlaneScopeParams
-		Expected []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected []azure.ASOResourceSpecGetter[genruntime.MetaObject]
 		Err      string
 	}{
 		{
@@ -174,7 +174,7 @@ func TestManagedControlPlaneScope_PoolVersion(t *testing.T) {
 					},
 				},
 			},
-			Expected: []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]{
+			Expected: []azure.ASOResourceSpecGetter[genruntime.MetaObject]{
 				&agentpools.AgentPoolSpec{
 					Name:         "pool0",
 					AzureName:    "pool0",
@@ -219,7 +219,7 @@ func TestManagedControlPlaneScope_PoolVersion(t *testing.T) {
 					},
 				},
 			},
-			Expected: []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]{
+			Expected: []azure.ASOResourceSpecGetter[genruntime.MetaObject]{
 				&agentpools.AgentPoolSpec{
 					Name:         "pool0",
 					AzureName:    "pool0",
@@ -426,7 +426,7 @@ func TestManagedControlPlaneScope_OSType(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedControlPlaneScopeParams
-		Expected []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected []azure.ASOResourceSpecGetter[genruntime.MetaObject]
 		Err      string
 	}{
 		{
@@ -470,7 +470,7 @@ func TestManagedControlPlaneScope_OSType(t *testing.T) {
 					},
 				},
 			},
-			Expected: []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]{
+			Expected: []azure.ASOResourceSpecGetter[genruntime.MetaObject]{
 				&agentpools.AgentPoolSpec{
 					Name:         "pool0",
 					AzureName:    "pool0",
@@ -1616,6 +1616,101 @@ func TestManagedControlPlaneScope_AutoUpgradeProfile(t *testing.T) {
 			managedCluster, ok := managedClusterGetter.(*managedclusters.ManagedClusterSpec)
 			g.Expect(ok).To(BeTrue())
 			g.Expect(managedCluster.AutoUpgradeProfile).To(Equal(c.expected))
+		})
+	}
+}
+
+func TestManagedControlPlaneScope_EnablePreviewFeatures(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    ManagedControlPlaneScopeParams
+		expected bool
+	}{
+		{
+			name: "Without EnablePreviewFeatures",
+			input: ManagedControlPlaneScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+				},
+				ControlPlane: &infrav1.AzureManagedControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+					Spec: infrav1.AzureManagedControlPlaneSpec{
+						AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
+							SubscriptionID: "00000000-0000-0000-0000-000000000000",
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "With EnablePreviewFeatures false",
+			input: ManagedControlPlaneScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+				},
+				ControlPlane: &infrav1.AzureManagedControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+					Spec: infrav1.AzureManagedControlPlaneSpec{
+						AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
+							SubscriptionID:        "00000000-0000-0000-0000-000000000000",
+							EnablePreviewFeatures: ptr.To(false),
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "With EnablePreviewFeatures true",
+			input: ManagedControlPlaneScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+				},
+				ControlPlane: &infrav1.AzureManagedControlPlane{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster1",
+						Namespace: "default",
+					},
+					Spec: infrav1.AzureManagedControlPlaneSpec{
+						AzureManagedControlPlaneClassSpec: infrav1.AzureManagedControlPlaneClassSpec{
+							SubscriptionID:        "00000000-0000-0000-0000-000000000000",
+							EnablePreviewFeatures: ptr.To(true),
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			g := NewWithT(t)
+			s := &ManagedControlPlaneScope{
+				ControlPlane: c.input.ControlPlane,
+				Cluster:      c.input.Cluster,
+			}
+			managedClusterGetter := s.ManagedClusterSpec()
+			managedCluster, ok := managedClusterGetter.(*managedclusters.ManagedClusterSpec)
+			g.Expect(ok).To(BeTrue())
+			g.Expect(managedCluster.Preview).To(Equal(c.expected))
+			g.Expect(s.IsPreviewEnabled()).To(Equal(c.expected))
 		})
 	}
 }

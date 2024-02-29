@@ -218,3 +218,9 @@ func (m *AzureManagedControlPlane) setDefaultAKSExtensions() {
 		}
 	}
 }
+
+func (m *AzureManagedControlPlane) setDefaultEnablePreviewFeatures() {
+	if m.Spec.EnablePreviewFeatures == nil {
+		m.Spec.EnablePreviewFeatures = ptr.To(false)
+	}
+}

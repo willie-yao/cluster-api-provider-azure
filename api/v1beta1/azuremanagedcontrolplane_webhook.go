@@ -97,6 +97,7 @@ func (mw *azureManagedControlPlaneWebhook) Default(ctx context.Context, obj runt
 	m.setDefaultOIDCIssuerProfile()
 	m.setDefaultDNSPrefix()
 	m.setDefaultAKSExtensions()
+	m.setDefaultEnablePreviewFeatures()
 
 	return nil
 }
