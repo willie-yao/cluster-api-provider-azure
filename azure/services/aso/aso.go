@@ -223,6 +223,7 @@ func (r *reconciler[T]) CreateOrUpdateResource(ctx context.Context, spec azure.A
 		log.V(2).Info("resource up to date")
 		return existing, nil
 	}
+	fmt.Printf("WILLIE Diff exists: %v\n", diff)
 	log.V(2).Info("creating or updating resource", "diff", diff)
 	return r.createOrUpdateResource(ctx, existing, parameters, resourceExists, serviceName)
 }

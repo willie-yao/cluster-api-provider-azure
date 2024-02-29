@@ -19,6 +19,7 @@ package managedclusters
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 
@@ -408,10 +409,27 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 	// TODO(willie): existing could be a stable or preview API version.
 	var existing *asocontainerservicev1.ManagedCluster
 	if existingObj != nil {
-		existing = existingObj.(*asocontainerservicev1.ManagedCluster)
+		if s.Preview {
+			existingPreview := existingObj.(*asocontainerservicev1preview.ManagedCluster)
+			s, _ := json.MarshalIndent(existingPreview, "", "\t")
+			fmt.Printf("WILLIE existingPreview: %s\n", string(s))
+			hub := &asocontainerservicev1hub.ManagedCluster{}
+			err := existingPreview.ConvertTo(hub)
+			if err != nil {
+				return nil, err
+			}
+			stable := &asocontainerservicev1.ManagedCluster{}
+			err = stable.ConvertFrom(hub)
+			if err != nil {
+				return nil, err
+			}
+			existing = stable.DeepCopy()
+		} else {
+			existing = existingObj.(*asocontainerservicev1.ManagedCluster)
+		}
 	}
 
-	managedCluster := existing
+	managedCluster := existing.DeepCopy()
 	if managedCluster == nil {
 		managedCluster = &asocontainerservicev1.ManagedCluster{
 			Spec: asocontainerservicev1.ManagedCluster_Spec{
@@ -686,7 +704,8 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 	// Only include AgentPoolProfiles during initial cluster creation. Agent pools are managed solely by the
 	// AzureManagedMachinePool controller thereafter.
 	managedCluster.Spec.AgentPoolProfiles = nil
-	if managedCluster.Status.AgentPoolProfiles == nil {
+	prev.Spec.AgentPoolProfiles = nil
+	if (!s.Preview && managedCluster.Status.AgentPoolProfiles == nil) || (s.Preview && prev.Status.AgentPoolProfiles == nil) {
 		// Add all agent pools to cluster spec that will be submitted to the API
 		agentPoolSpecs, err := s.GetAllAgentPools()
 		if err != nil {
@@ -695,6 +714,9 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 
 		scheme := runtime.NewScheme()
 		if err := asocontainerservicev1.AddToScheme(scheme); err != nil {
+			return nil, errors.Wrap(err, "error constructing scheme")
+		}
+		if err := asocontainerservicev1preview.AddToScheme(scheme); err != nil {
 			return nil, errors.Wrap(err, "error constructing scheme")
 		}
 		for _, agentPoolSpec := range agentPoolSpecs {

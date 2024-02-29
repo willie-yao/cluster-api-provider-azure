@@ -200,7 +200,22 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 	// TODO(willie): existing could be a stable or preview API version.
 	var existing *asocontainerservicev1.ManagedClustersAgentPool
 	if existingObj != nil {
-		existing = existingObj.(*asocontainerservicev1.ManagedClustersAgentPool)
+		if s.Preview {
+			existingPreview := existingObj.(*asocontainerservicev1preview.ManagedClustersAgentPool)
+			hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
+			err := existingPreview.ConvertTo(hub)
+			if err != nil {
+				return nil, err
+			}
+			stable := &asocontainerservicev1.ManagedClustersAgentPool{}
+			err = stable.ConvertFrom(hub)
+			if err != nil {
+				return nil, err
+			}
+			existing = stable
+		} else {
+			existing = existingObj.(*asocontainerservicev1.ManagedClustersAgentPool)
+		}
 	}
 
 	agentPool := existing
