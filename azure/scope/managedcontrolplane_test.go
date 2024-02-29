@@ -21,9 +21,9 @@ import (
 	"reflect"
 	"testing"
 
-	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
 	asokubernetesconfigurationv1 "github.com/Azure/azure-service-operator/v2/api/kubernetesconfiguration/v1api20230501"
 	asonetworkv1 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -139,7 +139,7 @@ func TestManagedControlPlaneScope_PoolVersion(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedControlPlaneScopeParams
-		Expected []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected []azure.ASOResourceSpecGetter[genruntime.MetaObject]
 		Err      string
 	}{
 		{
@@ -174,7 +174,7 @@ func TestManagedControlPlaneScope_PoolVersion(t *testing.T) {
 					},
 				},
 			},
-			Expected: []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]{
+			Expected: []azure.ASOResourceSpecGetter[genruntime.MetaObject]{
 				&agentpools.AgentPoolSpec{
 					Name:         "pool0",
 					AzureName:    "pool0",
@@ -219,7 +219,7 @@ func TestManagedControlPlaneScope_PoolVersion(t *testing.T) {
 					},
 				},
 			},
-			Expected: []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]{
+			Expected: []azure.ASOResourceSpecGetter[genruntime.MetaObject]{
 				&agentpools.AgentPoolSpec{
 					Name:         "pool0",
 					AzureName:    "pool0",
@@ -426,7 +426,7 @@ func TestManagedControlPlaneScope_OSType(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedControlPlaneScopeParams
-		Expected []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected []azure.ASOResourceSpecGetter[genruntime.MetaObject]
 		Err      string
 	}{
 		{
@@ -470,7 +470,7 @@ func TestManagedControlPlaneScope_OSType(t *testing.T) {
 					},
 				},
 			},
-			Expected: []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]{
+			Expected: []azure.ASOResourceSpecGetter[genruntime.MetaObject]{
 				&agentpools.AgentPoolSpec{
 					Name:         "pool0",
 					AzureName:    "pool0",

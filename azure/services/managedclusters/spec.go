@@ -22,7 +22,9 @@ import (
 	"fmt"
 	"net"
 
+	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230202preview"
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	asocontainerservicev1hub "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001/storage"
 	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,7 +88,7 @@ type ManagedClusterSpec struct {
 	SSHPublicKey string
 
 	// GetAllAgentPools is a function that returns the list of agent pool specifications in this cluster.
-	GetAllAgentPools func() ([]azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool], error)
+	GetAllAgentPools func() ([]azure.ASOResourceSpecGetter[genruntime.MetaObject], error)
 
 	// PodCIDR is the CIDR block for IP addresses distributed to pods
 	PodCIDR string
@@ -141,6 +143,9 @@ type ManagedClusterSpec struct {
 
 	// Patches are extra patches to be applied to the ASO resource.
 	Patches []string
+
+	// Preview enables the preview API version.
+	Preview bool
 }
 
 // ManagedClusterAutoUpgradeProfile auto upgrade profile for a managed cluster.
@@ -379,6 +384,13 @@ func (s *ManagedClusterSpec) getManagedClusterVersion(existing *asocontainerserv
 func (s *ManagedClusterSpec) ResourceRef() genruntime.MetaObject {
 	// TODO(willie): this also needs to return a preview or stable object so the GET in aso.go gets the right
 	// version.
+	if s.Preview {
+		return &asocontainerservicev1preview.ManagedCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: s.Name,
+			},
+		}
+	}
 	return &asocontainerservicev1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.Name,
@@ -657,6 +669,20 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 		managedCluster.Spec.SecurityProfile = securityProfile
 	}
 
+	var prev *asocontainerservicev1preview.ManagedCluster
+	if s.Preview {
+		hub := &asocontainerservicev1hub.ManagedCluster{}
+		err := managedCluster.ConvertTo(hub)
+		if err != nil {
+			return nil, err
+		}
+		prev = &asocontainerservicev1preview.ManagedCluster{}
+		err = prev.ConvertFrom(hub)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Only include AgentPoolProfiles during initial cluster creation. Agent pools are managed solely by the
 	// AzureManagedMachinePool controller thereafter.
 	managedCluster.Spec.AgentPoolProfiles = nil
@@ -677,10 +703,22 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 				return nil, errors.Wrapf(err, "failed to get agent pool parameters for managed cluster %s", s.Name)
 			}
 			agentPoolSpecTyped := agentPoolSpec.(*agentpools.AgentPoolSpec)
-			agentPool.Spec.AzureName = agentPoolSpecTyped.AzureName
-			profile := converters.AgentPoolToManagedClusterAgentPoolProfile(agentPool)
-			managedCluster.Spec.AgentPoolProfiles = append(managedCluster.Spec.AgentPoolProfiles, profile)
+			if s.Preview {
+				agentPoolTyped := agentPool.(*asocontainerservicev1preview.ManagedClustersAgentPool)
+				agentPoolTyped.Spec.AzureName = agentPoolSpecTyped.AzureName
+				profile := converters.AgentPoolToManagedClusterAgentPoolPreviewProfile(agentPoolTyped)
+				prev.Spec.AgentPoolProfiles = append(prev.Spec.AgentPoolProfiles, profile)
+			} else {
+				agentPoolTyped := agentPool.(*asocontainerservicev1.ManagedClustersAgentPool)
+				agentPoolTyped.Spec.AzureName = agentPoolSpecTyped.AzureName
+				profile := converters.AgentPoolToManagedClusterAgentPoolProfile(agentPoolTyped)
+				managedCluster.Spec.AgentPoolProfiles = append(managedCluster.Spec.AgentPoolProfiles, profile)
+			}
 		}
+	}
+
+	if s.Preview {
+		return prev, nil
 	}
 
 	// TODO(willie): I think we still need to do the conversion dance here to avoid having to duplicate this
@@ -782,9 +820,49 @@ func (*ManagedClusterSpec) SetTags(resource *asocontainerservicev1.ManagedCluste
 	resource.Spec.Tags = tags
 }
 
-var _ aso.Patcher = (*ManagedClusterSpec)(nil)
+var _ aso.Converter[*asocontainerservicev1.ManagedCluster] = (*ManagedClusterSpec)(nil)
 
 // ExtraPatches implements aso.Patcher.
 func (s *ManagedClusterSpec) ExtraPatches() []string {
 	return s.Patches
+}
+
+// ConvertTo implements aso.Converter.
+func (s *ManagedClusterSpec) ConvertTo(stable *asocontainerservicev1.ManagedCluster) (genruntime.MetaObject, error) {
+	if !s.Preview || stable == nil {
+		return stable, nil
+	}
+
+	hub := &asocontainerservicev1hub.ManagedCluster{}
+	err := stable.ConvertTo(hub)
+	if err != nil {
+		return nil, err
+	}
+	preview := &asocontainerservicev1preview.ManagedCluster{}
+	err = preview.ConvertFrom(hub)
+	if err != nil {
+		return nil, err
+	}
+	return preview, nil
+}
+
+func (s *ManagedClusterSpec) ConvertFrom(preview genruntime.MetaObject) (*asocontainerservicev1.ManagedCluster, error) {
+	if !s.Preview {
+		return nil, errors.New("cannot convert from preview to stable if preview is not enabled")
+	}
+
+	hub := &asocontainerservicev1hub.ManagedCluster{}
+	previewTyped := preview.(*asocontainerservicev1preview.ManagedCluster)
+	err := previewTyped.ConvertTo(hub)
+	if err != nil {
+		return nil, err
+	}
+
+	stable := &asocontainerservicev1.ManagedCluster{}
+	err = stable.ConvertFrom(hub)
+	if err != nil {
+		return nil, err
+	}
+
+	return stable, nil
 }

@@ -24,7 +24,6 @@ import (
 	"time"
 
 	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230315preview"
-	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
 	asokubernetesconfigurationv1 "github.com/Azure/azure-service-operator/v2/api/kubernetesconfiguration/v1api20230501"
 	asonetworkv1api20201101 "github.com/Azure/azure-service-operator/v2/api/network/v1api20201101"
 	asonetworkv1api20220701 "github.com/Azure/azure-service-operator/v2/api/network/v1api20220701"
@@ -716,9 +715,9 @@ func (s *ManagedControlPlaneScope) getManagedClusterSecurityProfile() *managedcl
 }
 
 // GetAllAgentPoolSpecs gets a slice of azure.AgentPoolSpec for the list of agent pools.
-func (s *ManagedControlPlaneScope) GetAllAgentPoolSpecs() ([]azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool], error) {
+func (s *ManagedControlPlaneScope) GetAllAgentPoolSpecs() ([]azure.ASOResourceSpecGetter[genruntime.MetaObject], error) {
 	var (
-		ammps           = make([]azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool], 0, len(s.ManagedMachinePools))
+		ammps           = make([]azure.ASOResourceSpecGetter[genruntime.MetaObject], 0, len(s.ManagedMachinePools))
 		foundSystemPool = false
 	)
 	for _, pool := range s.ManagedMachinePools {

@@ -19,7 +19,9 @@ package agentpools
 import (
 	"context"
 
+	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230202preview"
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	asocontainerservicev1hub "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001/storage"
 	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -154,10 +156,20 @@ type AgentPoolSpec struct {
 
 	// Patches are extra patches to be applied to the ASO resource.
 	Patches []string
+
+	// Preview indicates whether the agent pool is using a preview version of ASO.
+	Preview bool
 }
 
 // ResourceRef implements azure.ASOResourceSpecGetter.
-func (s *AgentPoolSpec) ResourceRef() *asocontainerservicev1.ManagedClustersAgentPool {
+func (s *AgentPoolSpec) ResourceRef() genruntime.MetaObject {
+	if s.Preview {
+		return &asocontainerservicev1preview.ManagedClustersAgentPool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: s.Name,
+			},
+		}
+	}
 	return &asocontainerservicev1.ManagedClustersAgentPool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.Name,
@@ -181,9 +193,15 @@ func (s *AgentPoolSpec) getManagedMachinePoolVersion(existing *asocontainerservi
 }
 
 // Parameters returns the parameters for the agent pool.
-func (s *AgentPoolSpec) Parameters(ctx context.Context, existing *asocontainerservicev1.ManagedClustersAgentPool) (params *asocontainerservicev1.ManagedClustersAgentPool, err error) {
+func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.MetaObject) (params genruntime.MetaObject, err error) {
 	_, _, done := tele.StartSpanWithLogger(ctx, "agentpools.Service.Parameters")
 	defer done()
+
+	// TODO(willie): existing could be a stable or preview API version.
+	var existing *asocontainerservicev1.ManagedClustersAgentPool
+	if existingObj != nil {
+		existing = existingObj.(*asocontainerservicev1.ManagedClustersAgentPool)
+	}
 
 	agentPool := existing
 	if agentPool == nil {
@@ -302,11 +320,25 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existing *asocontainerse
 		agentPool.Spec.Count = agentPool.Status.Count
 	}
 
+	if s.Preview {
+		hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
+		err := agentPool.ConvertTo(hub)
+		if err != nil {
+			return nil, err
+		}
+		prev := &asocontainerservicev1preview.ManagedClustersAgentPool{}
+		err = prev.ConvertFrom(hub)
+		if err != nil {
+			return nil, err
+		}
+		return prev, nil
+	}
+
 	return agentPool, nil
 }
 
 // WasManaged implements azure.ASOResourceSpecGetter.
-func (s *AgentPoolSpec) WasManaged(resource *asocontainerservicev1.ManagedClustersAgentPool) bool {
+func (s *AgentPoolSpec) WasManaged(resource genruntime.MetaObject) bool {
 	// CAPZ has never supported BYO agent pools.
 	return true
 }

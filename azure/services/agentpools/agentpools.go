@@ -20,6 +20,7 @@ import (
 	"context"
 
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-azure/azure"
@@ -35,7 +36,7 @@ type AgentPoolScope interface {
 
 	Name() string
 	NodeResourceGroup() string
-	AgentPoolSpec() azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+	AgentPoolSpec() azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	SetAgentPoolProviderIDList([]string)
 	SetAgentPoolReplicas(int32)
 	SetAgentPoolReady(bool)
@@ -43,25 +44,27 @@ type AgentPoolScope interface {
 	SetCAPIMachinePoolAnnotation(key, value string)
 	RemoveCAPIMachinePoolAnnotation(key string)
 	SetSubnetName()
+	GetEnablePreviewFeatures() bool
 }
 
 // New creates a new service.
-func New(scope AgentPoolScope) *aso.Service[*asocontainerservicev1.ManagedClustersAgentPool, AgentPoolScope] {
-	svc := aso.NewService[*asocontainerservicev1.ManagedClustersAgentPool](serviceName, scope)
-	svc.Specs = []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]{scope.AgentPoolSpec()}
+func New(scope AgentPoolScope) *aso.Service[genruntime.MetaObject, AgentPoolScope] {
+	svc := aso.NewService[genruntime.MetaObject](serviceName, scope)
+	svc.Specs = []azure.ASOResourceSpecGetter[genruntime.MetaObject]{scope.AgentPoolSpec()}
 	svc.ConditionType = infrav1.AgentPoolsReadyCondition
 	svc.PostCreateOrUpdateResourceHook = postCreateOrUpdateResourceHook
 	return svc
 }
 
-func postCreateOrUpdateResourceHook(ctx context.Context, scope AgentPoolScope, agentPool *asocontainerservicev1.ManagedClustersAgentPool, err error) error {
+func postCreateOrUpdateResourceHook(ctx context.Context, scope AgentPoolScope, agentPool genruntime.MetaObject, err error) error {
 	if err != nil {
 		return err
 	}
+	agentPoolTyped := agentPool.(*asocontainerservicev1.ManagedClustersAgentPool)
 	// When autoscaling is set, add the annotation to the machine pool and update the replica count.
-	if ptr.Deref(agentPool.Status.EnableAutoScaling, false) {
+	if ptr.Deref(agentPoolTyped.Status.EnableAutoScaling, false) {
 		scope.SetCAPIMachinePoolAnnotation(clusterv1.ReplicasManagedByAnnotation, "true")
-		scope.SetCAPIMachinePoolReplicas(agentPool.Status.Count)
+		scope.SetCAPIMachinePoolReplicas(agentPoolTyped.Status.Count)
 	} else { // Otherwise, remove the annotation.
 		scope.RemoveCAPIMachinePoolAnnotation(clusterv1.ReplicasManagedByAnnotation)
 	}

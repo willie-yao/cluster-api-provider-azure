@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +44,7 @@ func TestManagedMachinePoolScope_Autoscaling(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without Autoscaling",
@@ -145,7 +146,7 @@ func TestManagedMachinePoolScope_NodeLabels(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without node labels",
@@ -248,7 +249,7 @@ func TestManagedMachinePoolScope_AdditionalTags(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without additional tags",
@@ -351,7 +352,7 @@ func TestManagedMachinePoolScope_MaxPods(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without MaxPods",
@@ -450,7 +451,7 @@ func TestManagedMachinePoolScope_Taints(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without taints",
@@ -556,7 +557,7 @@ func TestManagedMachinePoolScope_OSDiskType(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without OsDiskType",
@@ -655,7 +656,7 @@ func TestManagedMachinePoolScope_SubnetName(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without Vnet and SubnetName",
@@ -807,7 +808,7 @@ func TestManagedMachinePoolScope_KubeletDiskType(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Input    ManagedMachinePoolScopeParams
-		Expected azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]
+		Expected azure.ASOResourceSpecGetter[genruntime.MetaObject]
 	}{
 		{
 			Name: "Without KubeletDiskType",

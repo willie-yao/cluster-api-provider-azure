@@ -29,7 +29,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	v1api20231001 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	genruntime "github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	gomock "go.uber.org/mock/gomock"
 	v1beta1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
 	azure "sigs.k8s.io/cluster-api-provider-azure/azure"
@@ -75,10 +75,10 @@ func (mr *MockAgentPoolScopeMockRecorder) ASOOwner() *gomock.Call {
 }
 
 // AgentPoolSpec mocks base method.
-func (m *MockAgentPoolScope) AgentPoolSpec() azure.ASOResourceSpecGetter[*v1api20231001.ManagedClustersAgentPool] {
+func (m *MockAgentPoolScope) AgentPoolSpec() azure.ASOResourceSpecGetter[genruntime.MetaObject] {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AgentPoolSpec")
-	ret0, _ := ret[0].(azure.ASOResourceSpecGetter[*v1api20231001.ManagedClustersAgentPool])
+	ret0, _ := ret[0].(azure.ASOResourceSpecGetter[genruntime.MetaObject])
 	return ret0
 }
 
@@ -168,6 +168,20 @@ func (m *MockAgentPoolScope) GetClient() client.Client {
 func (mr *MockAgentPoolScopeMockRecorder) GetClient() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClient", reflect.TypeOf((*MockAgentPoolScope)(nil).GetClient))
+}
+
+// GetEnablePreviewFeatures mocks base method.
+func (m *MockAgentPoolScope) GetEnablePreviewFeatures() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEnablePreviewFeatures")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// GetEnablePreviewFeatures indicates an expected call of GetEnablePreviewFeatures.
+func (mr *MockAgentPoolScopeMockRecorder) GetEnablePreviewFeatures() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnablePreviewFeatures", reflect.TypeOf((*MockAgentPoolScope)(nil).GetEnablePreviewFeatures))
 }
 
 // GetLongRunningOperationState mocks base method.

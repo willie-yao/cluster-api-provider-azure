@@ -51,8 +51,8 @@ func TestParameters(t *testing.T) {
 			NetworkPolicy:     "network policy",
 			OutboundType:      ptr.To(infrav1.ManagedControlPlaneOutboundType("outbound type")),
 			SSHPublicKey:      base64.StdEncoding.EncodeToString([]byte("ssh")),
-			GetAllAgentPools: func() ([]azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool], error) {
-				return []azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool]{
+			GetAllAgentPools: func() ([]azure.ASOResourceSpecGetter[genruntime.MetaObject], error) {
+				return []azure.ASOResourceSpecGetter[genruntime.MetaObject]{
 					&agentpools.AgentPoolSpec{
 						Replicas:  5,
 						Mode:      "mode",

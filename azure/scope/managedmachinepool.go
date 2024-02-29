@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-azure/api/v1beta1"
@@ -146,7 +146,7 @@ func (s *ManagedMachinePoolScope) SetSubnetName() {
 }
 
 // AgentPoolSpec returns an azure.ResourceSpecGetter for currently reconciled AzureManagedMachinePool.
-func (s *ManagedMachinePoolScope) AgentPoolSpec() azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool] {
+func (s *ManagedMachinePoolScope) AgentPoolSpec() azure.ASOResourceSpecGetter[genruntime.MetaObject] {
 	return buildAgentPoolSpec(s.ControlPlane, s.MachinePool, s.InfraMachinePool)
 }
 
@@ -159,7 +159,7 @@ func getAgentPoolSubnet(controlPlane *infrav1.AzureManagedControlPlane, infraMac
 
 func buildAgentPoolSpec(managedControlPlane *infrav1.AzureManagedControlPlane,
 	machinePool *expv1.MachinePool,
-	managedMachinePool *infrav1.AzureManagedMachinePool) azure.ASOResourceSpecGetter[*asocontainerservicev1.ManagedClustersAgentPool] {
+	managedMachinePool *infrav1.AzureManagedMachinePool) azure.ASOResourceSpecGetter[genruntime.MetaObject] {
 	normalizedVersion := getManagedMachinePoolVersion(managedControlPlane, machinePool)
 
 	replicas := int32(1)
@@ -240,7 +240,19 @@ func buildAgentPoolSpec(managedControlPlane *infrav1.AzureManagedControlPlane,
 		}
 	}
 
+	if managedControlPlane.Spec.EnablePreviewFeatures != nil {
+		agentPoolSpec.Preview = *managedControlPlane.Spec.EnablePreviewFeatures
+	}
+
 	return agentPoolSpec
+}
+
+// GetEnablePreviewFeatures returns the value of the EnablePreviewFeatures field from the AzureManagedControlPlane.
+func (s *ManagedMachinePoolScope) GetEnablePreviewFeatures() bool {
+	if s.ControlPlane.Spec.EnablePreviewFeatures == nil {
+		return false
+	}
+	return *s.ControlPlane.Spec.EnablePreviewFeatures
 }
 
 // SetAgentPoolProviderIDList sets a list of agent pool's Azure VM IDs.
