@@ -200,7 +200,9 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 	// Build parameters in the preview version, then convert to the stable version if necessary.
 	var existing *asocontainerservicev1preview.ManagedClustersAgentPool
 	if existingObj != nil {
-		if !s.Preview {
+		if s.Preview {
+			existing = existingObj.(*asocontainerservicev1preview.ManagedClustersAgentPool)
+		} else {
 			existingStable := existingObj.(*asocontainerservicev1.ManagedClustersAgentPool)
 			hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
 			err := existingStable.ConvertTo(hub)
@@ -213,8 +215,6 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 				return nil, err
 			}
 			existing = prev
-		} else {
-			existing = existingObj.(*asocontainerservicev1preview.ManagedClustersAgentPool)
 		}
 	}
 
@@ -335,21 +335,21 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 		agentPool.Spec.Count = agentPool.Status.Count
 	}
 
-	if !s.Preview {
-		hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
-		err := agentPool.ConvertTo(hub)
-		if err != nil {
-			return nil, err
-		}
-		stable := &asocontainerservicev1.ManagedClustersAgentPool{}
-		err = stable.ConvertFrom(hub)
-		if err != nil {
-			return nil, err
-		}
-		return stable, nil
+	if s.Preview {
+		return agentPool, nil
 	}
 
-	return agentPool, nil
+	hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
+	err = agentPool.ConvertTo(hub)
+	if err != nil {
+		return nil, err
+	}
+	stable := &asocontainerservicev1.ManagedClustersAgentPool{}
+	err = stable.ConvertFrom(hub)
+	if err != nil {
+		return nil, err
+	}
+	return stable, nil
 }
 
 // WasManaged implements azure.ASOResourceSpecGetter.

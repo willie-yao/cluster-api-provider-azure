@@ -408,7 +408,9 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 	// Build parameters in the preview version, then convert to the stable version if necessary.
 	var existing *asocontainerservicev1preview.ManagedCluster
 	if existingObj != nil {
-		if !s.Preview {
+		if s.Preview {
+			existing = existingObj.(*asocontainerservicev1preview.ManagedCluster)
+		} else {
 			existingStable := existingObj.(*asocontainerservicev1.ManagedCluster)
 			hub := &asocontainerservicev1hub.ManagedCluster{}
 			err := existingStable.ConvertTo(hub)
@@ -421,8 +423,6 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 				return nil, err
 			}
 			existing = prev.DeepCopy()
-		} else {
-			existing = existingObj.(*asocontainerservicev1preview.ManagedCluster)
 		}
 	}
 
@@ -685,7 +685,7 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 	}
 
 	var stable *asocontainerservicev1.ManagedCluster
-	if s.Preview {
+	if !s.Preview {
 		hub := &asocontainerservicev1hub.ManagedCluster{}
 		err := managedCluster.ConvertTo(hub)
 		if err != nil {
@@ -722,27 +722,25 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 				return nil, errors.Wrapf(err, "failed to get agent pool parameters for managed cluster %s", s.Name)
 			}
 			agentPoolSpecTyped := agentPoolSpec.(*agentpools.AgentPoolSpec)
-			if !s.Preview {
-				agentPoolTyped := agentPool.(*asocontainerservicev1.ManagedClustersAgentPool)
-				agentPoolTyped.Spec.AzureName = agentPoolSpecTyped.AzureName
-				profile := converters.AgentPoolToManagedClusterAgentPoolProfile(agentPoolTyped)
-				stable.Spec.AgentPoolProfiles = append(stable.Spec.AgentPoolProfiles, profile)
-			} else {
+			if s.Preview {
 				agentPoolTyped := agentPool.(*asocontainerservicev1preview.ManagedClustersAgentPool)
 				agentPoolTyped.Spec.AzureName = agentPoolSpecTyped.AzureName
 				profile := converters.AgentPoolToManagedClusterAgentPoolPreviewProfile(agentPoolTyped)
 				managedCluster.Spec.AgentPoolProfiles = append(managedCluster.Spec.AgentPoolProfiles, profile)
+			} else {
+				agentPoolTyped := agentPool.(*asocontainerservicev1.ManagedClustersAgentPool)
+				agentPoolTyped.Spec.AzureName = agentPoolSpecTyped.AzureName
+				profile := converters.AgentPoolToManagedClusterAgentPoolProfile(agentPoolTyped)
+				stable.Spec.AgentPoolProfiles = append(stable.Spec.AgentPoolProfiles, profile)
 			}
 		}
 	}
 
-	if !s.Preview {
-		return stable, nil
+	if s.Preview {
+		return managedCluster, nil
 	}
 
-	// TODO(willie): I think we still need to do the conversion dance here to avoid having to duplicate this
-	// whole function.
-	return managedCluster, nil
+	return stable, nil
 }
 
 // GetLoadBalancerProfile returns an asocontainerservicev1.ManagedClusterLoadBalancerProfile from the
