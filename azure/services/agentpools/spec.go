@@ -181,7 +181,7 @@ func (s *AgentPoolSpec) ResourceRef() genruntime.MetaObject {
 // If the auto upgrade channel is set to patch, stable or rapid, clusters can be upgraded to a higher version by AKS.
 // If auto upgrade is triggered, the existing Kubernetes version will be higher than the user's desired Kubernetes version.
 // CAPZ should honour the upgrade and it should not downgrade to the lower desired version.
-func (s *AgentPoolSpec) getManagedMachinePoolVersion(existing *asocontainerservicev1.ManagedClustersAgentPool) *string {
+func (s *AgentPoolSpec) getManagedMachinePoolVersion(existing *asocontainerservicev1preview.ManagedClustersAgentPool) *string {
 	if existing == nil || existing.Spec.OrchestratorVersion == nil {
 		return s.Version
 	}
@@ -197,30 +197,30 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 	_, _, done := tele.StartSpanWithLogger(ctx, "agentpools.Service.Parameters")
 	defer done()
 
-	// TODO(willie): existing could be a stable or preview API version.
-	var existing *asocontainerservicev1.ManagedClustersAgentPool
+	// Build parameters in the preview version, then convert to the stable version if necessary.
+	var existing *asocontainerservicev1preview.ManagedClustersAgentPool
 	if existingObj != nil {
-		if s.Preview {
-			existingPreview := existingObj.(*asocontainerservicev1preview.ManagedClustersAgentPool)
+		if !s.Preview {
+			existingStable := existingObj.(*asocontainerservicev1.ManagedClustersAgentPool)
 			hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
-			err := existingPreview.ConvertTo(hub)
+			err := existingStable.ConvertTo(hub)
 			if err != nil {
 				return nil, err
 			}
-			stable := &asocontainerservicev1.ManagedClustersAgentPool{}
-			err = stable.ConvertFrom(hub)
+			prev := &asocontainerservicev1preview.ManagedClustersAgentPool{}
+			err = prev.ConvertFrom(hub)
 			if err != nil {
 				return nil, err
 			}
-			existing = stable
+			existing = prev
 		} else {
-			existing = existingObj.(*asocontainerservicev1.ManagedClustersAgentPool)
+			existing = existingObj.(*asocontainerservicev1preview.ManagedClustersAgentPool)
 		}
 	}
 
 	agentPool := existing
 	if agentPool == nil {
-		agentPool = &asocontainerservicev1.ManagedClustersAgentPool{}
+		agentPool = &asocontainerservicev1preview.ManagedClustersAgentPool{}
 	}
 
 	agentPool.Spec.AzureName = s.AzureName
@@ -231,19 +231,19 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 	agentPool.Spec.Count = &s.Replicas
 	agentPool.Spec.EnableAutoScaling = ptr.To(s.EnableAutoScaling)
 	agentPool.Spec.EnableUltraSSD = s.EnableUltraSSD
-	agentPool.Spec.KubeletDiskType = azure.AliasOrNil[asocontainerservicev1.KubeletDiskType]((*string)(s.KubeletDiskType))
+	agentPool.Spec.KubeletDiskType = azure.AliasOrNil[asocontainerservicev1preview.KubeletDiskType]((*string)(s.KubeletDiskType))
 	agentPool.Spec.MaxCount = s.MaxCount
 	agentPool.Spec.MaxPods = s.MaxPods
 	agentPool.Spec.MinCount = s.MinCount
-	agentPool.Spec.Mode = ptr.To(asocontainerservicev1.AgentPoolMode(s.Mode))
+	agentPool.Spec.Mode = ptr.To(asocontainerservicev1preview.AgentPoolMode(s.Mode))
 	agentPool.Spec.NodeLabels = s.NodeLabels
 	agentPool.Spec.NodeTaints = s.NodeTaints
-	agentPool.Spec.OsDiskSizeGB = ptr.To(asocontainerservicev1.ContainerServiceOSDisk(s.OSDiskSizeGB))
-	agentPool.Spec.OsDiskType = azure.AliasOrNil[asocontainerservicev1.OSDiskType](s.OsDiskType)
-	agentPool.Spec.OsType = azure.AliasOrNil[asocontainerservicev1.OSType](s.OSType)
-	agentPool.Spec.ScaleSetPriority = azure.AliasOrNil[asocontainerservicev1.ScaleSetPriority](s.ScaleSetPriority)
-	agentPool.Spec.ScaleDownMode = azure.AliasOrNil[asocontainerservicev1.ScaleDownMode](s.ScaleDownMode)
-	agentPool.Spec.Type = ptr.To(asocontainerservicev1.AgentPoolType_VirtualMachineScaleSets)
+	agentPool.Spec.OsDiskSizeGB = ptr.To(asocontainerservicev1preview.ContainerServiceOSDisk(s.OSDiskSizeGB))
+	agentPool.Spec.OsDiskType = azure.AliasOrNil[asocontainerservicev1preview.OSDiskType](s.OsDiskType)
+	agentPool.Spec.OsType = azure.AliasOrNil[asocontainerservicev1preview.OSType](s.OSType)
+	agentPool.Spec.ScaleSetPriority = azure.AliasOrNil[asocontainerservicev1preview.ScaleSetPriority](s.ScaleSetPriority)
+	agentPool.Spec.ScaleDownMode = azure.AliasOrNil[asocontainerservicev1preview.ScaleDownMode](s.ScaleDownMode)
+	agentPool.Spec.Type = ptr.To(asocontainerservicev1preview.AgentPoolType_VirtualMachineScaleSets)
 	agentPool.Spec.EnableNodePublicIP = s.EnableNodePublicIP
 	agentPool.Spec.Tags = s.AdditionalTags
 	agentPool.Spec.EnableFIPS = s.EnableFIPS
@@ -253,7 +253,7 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 	}
 
 	if s.KubeletConfig != nil {
-		agentPool.Spec.KubeletConfig = &asocontainerservicev1.KubeletConfig{
+		agentPool.Spec.KubeletConfig = &asocontainerservicev1preview.KubeletConfig{
 			CpuManagerPolicy:      s.KubeletConfig.CPUManagerPolicy,
 			CpuCfsQuota:           s.KubeletConfig.CPUCfsQuota,
 			CpuCfsQuotaPeriod:     s.KubeletConfig.CPUCfsQuotaPeriod,
@@ -289,13 +289,13 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 	}
 
 	if s.LinuxOSConfig != nil {
-		agentPool.Spec.LinuxOSConfig = &asocontainerservicev1.LinuxOSConfig{
+		agentPool.Spec.LinuxOSConfig = &asocontainerservicev1preview.LinuxOSConfig{
 			SwapFileSizeMB:             s.LinuxOSConfig.SwapFileSizeMB,
 			TransparentHugePageEnabled: (*string)(s.LinuxOSConfig.TransparentHugePageEnabled),
 			TransparentHugePageDefrag:  (*string)(s.LinuxOSConfig.TransparentHugePageDefrag),
 		}
 		if s.LinuxOSConfig.Sysctls != nil {
-			agentPool.Spec.LinuxOSConfig.Sysctls = &asocontainerservicev1.SysctlConfig{
+			agentPool.Spec.LinuxOSConfig.Sysctls = &asocontainerservicev1preview.SysctlConfig{
 				FsAioMaxNr:                     s.LinuxOSConfig.Sysctls.FsAioMaxNr,
 				FsFileMax:                      s.LinuxOSConfig.Sysctls.FsFileMax,
 				FsInotifyMaxUserWatches:        s.LinuxOSConfig.Sysctls.FsInotifyMaxUserWatches,
@@ -335,18 +335,18 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 		agentPool.Spec.Count = agentPool.Status.Count
 	}
 
-	if s.Preview {
+	if !s.Preview {
 		hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
 		err := agentPool.ConvertTo(hub)
 		if err != nil {
 			return nil, err
 		}
-		prev := &asocontainerservicev1preview.ManagedClustersAgentPool{}
-		err = prev.ConvertFrom(hub)
+		stable := &asocontainerservicev1.ManagedClustersAgentPool{}
+		err = stable.ConvertFrom(hub)
 		if err != nil {
 			return nil, err
 		}
-		return prev, nil
+		return stable, nil
 	}
 
 	return agentPool, nil

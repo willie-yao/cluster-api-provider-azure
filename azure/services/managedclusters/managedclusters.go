@@ -20,7 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	asocontainerservicev1preview "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20230202preview"
 	asocontainerservicev1 "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001"
+	asocontainerservicev1hub "github.com/Azure/azure-service-operator/v2/api/containerservice/v1api20231001/storage"
 	"github.com/Azure/azure-service-operator/v2/pkg/genruntime"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -66,6 +68,7 @@ type ManagedClusterScope interface {
 	SetAutoUpgradeVersionStatus(version string)
 	SetVersionStatus(version string)
 	IsManagedVersionUpgrade() bool
+	IsPreviewEnabled() bool
 }
 
 // New creates a new service.
@@ -85,7 +88,24 @@ func postCreateOrUpdateResourceHook(ctx context.Context, scope ManagedClusterSco
 	}
 
 	// TODO(willie): this could be a preview or stable version object.
-	managedCluster := obj.(*asocontainerservicev1.ManagedCluster)
+	var existing *asocontainerservicev1preview.ManagedCluster
+	if !scope.IsPreviewEnabled() {
+		existingStable := obj.(*asocontainerservicev1.ManagedCluster)
+		hub := &asocontainerservicev1hub.ManagedCluster{}
+		err := existingStable.ConvertTo(hub)
+		if err != nil {
+			return err
+		}
+		prev := &asocontainerservicev1preview.ManagedCluster{}
+		err = prev.ConvertFrom(hub)
+		if err != nil {
+			return err
+		}
+		existing = prev.DeepCopy()
+	} else {
+		existing = obj.(*asocontainerservicev1preview.ManagedCluster)
+	}
+	managedCluster := existing.DeepCopy()
 
 	// Update control plane endpoint.
 	endpoint := clusterv1.APIEndpoint{
