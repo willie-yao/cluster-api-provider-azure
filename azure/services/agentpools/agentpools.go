@@ -66,12 +66,11 @@ func postCreateOrUpdateResourceHook(ctx context.Context, scope AgentPoolScope, o
 	if scope.IsPreviewEnabled() {
 		existingPreview := obj.(*asocontainerservicev1preview.ManagedClustersAgentPool)
 		hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
-		err := existingPreview.ConvertTo(hub)
-		if err != nil {
+		if err := existingPreview.ConvertTo(hub); err != nil {
 			return err
 		}
 		stable := &asocontainerservicev1.ManagedClustersAgentPool{}
-		if err = stable.ConvertFrom(hub); err != nil {
+		if err := stable.ConvertFrom(hub); err != nil {
 			return err
 		}
 		existing = stable

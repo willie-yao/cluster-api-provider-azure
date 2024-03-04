@@ -415,7 +415,7 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 				return nil, err
 			}
 			stable := &asocontainerservicev1.ManagedCluster{}
-			if err = stable.ConvertFrom(hub); err != nil {
+			if err := stable.ConvertFrom(hub); err != nil {
 				return nil, err
 			}
 			existing = stable.DeepCopy()
@@ -726,7 +726,7 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 			return nil, err
 		}
 		prev := &asocontainerservicev1preview.ManagedCluster{}
-		if err = prev.ConvertFrom(hub); err != nil {
+		if err := prev.ConvertFrom(hub); err != nil {
 			return nil, err
 		}
 		if existing != nil {

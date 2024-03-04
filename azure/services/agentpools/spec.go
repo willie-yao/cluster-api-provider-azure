@@ -209,7 +209,7 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 				return nil, err
 			}
 			stable := &asocontainerservicev1.ManagedClustersAgentPool{}
-			if err = stable.ConvertFrom(hub); err != nil {
+			if err := stable.ConvertFrom(hub); err != nil {
 				return nil, err
 			}
 			existing = stable
@@ -341,7 +341,7 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 			return nil, err
 		}
 		prev := &asocontainerservicev1preview.ManagedClustersAgentPool{}
-		if err = prev.ConvertFrom(hub); err != nil {
+		if err := prev.ConvertFrom(hub); err != nil {
 			return nil, err
 		}
 		if existing != nil {

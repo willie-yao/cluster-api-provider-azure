@@ -96,7 +96,7 @@ func postCreateOrUpdateResourceHook(ctx context.Context, scope ManagedClusterSco
 			return err
 		}
 		prev := &asocontainerservicev1.ManagedCluster{}
-		if err = prev.ConvertFrom(hub); err != nil {
+		if err := prev.ConvertFrom(hub); err != nil {
 			return err
 		}
 		existing = prev
