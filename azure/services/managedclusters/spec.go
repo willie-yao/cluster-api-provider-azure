@@ -411,13 +411,11 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 			existingPreview := existingObj.(*asocontainerservicev1preview.ManagedCluster)
 			existingStatus = existingPreview.Status
 			hub := &asocontainerservicev1hub.ManagedCluster{}
-			err := existingPreview.ConvertTo(hub)
-			if err != nil {
+			if err := existingPreview.ConvertTo(hub); err != nil {
 				return nil, err
 			}
 			stable := &asocontainerservicev1.ManagedCluster{}
-			err = stable.ConvertFrom(hub)
-			if err != nil {
+			if err = stable.ConvertFrom(hub); err != nil {
 				return nil, err
 			}
 			existing = stable.DeepCopy()
@@ -724,13 +722,11 @@ func (s *ManagedClusterSpec) Parameters(ctx context.Context, existingObj genrunt
 
 	if s.Preview {
 		hub := &asocontainerservicev1hub.ManagedCluster{}
-		err := managedCluster.ConvertTo(hub)
-		if err != nil {
+		if err := managedCluster.ConvertTo(hub); err != nil {
 			return nil, err
 		}
 		prev := &asocontainerservicev1preview.ManagedCluster{}
-		err = prev.ConvertFrom(hub)
-		if err != nil {
+		if err = prev.ConvertFrom(hub); err != nil {
 			return nil, err
 		}
 		if existing != nil {

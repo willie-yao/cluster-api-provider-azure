@@ -71,8 +71,7 @@ func postCreateOrUpdateResourceHook(ctx context.Context, scope AgentPoolScope, o
 			return err
 		}
 		stable := &asocontainerservicev1.ManagedClustersAgentPool{}
-		err = stable.ConvertFrom(hub)
-		if err != nil {
+		if err = stable.ConvertFrom(hub); err != nil {
 			return err
 		}
 		existing = stable

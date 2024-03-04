@@ -61,7 +61,7 @@ func AgentPoolToManagedClusterAgentPoolProfile(pool *asocontainerservicev1.Manag
 	return agentPool
 }
 
-// AgentPoolToManagedClusterAgentPoolPreviewProfile converts a AgentPoolSpec to an Azure SDK ManagedClusterAgentPoolPreviewProfile used in managedcluster reconcile.
+// AgentPoolToManagedClusterAgentPoolPreviewProfile converts an AgentPoolSpec to an Azure SDK ManagedClusterAgentPoolPreviewProfile used in managedcluster reconcile.
 func AgentPoolToManagedClusterAgentPoolPreviewProfile(pool *asocontainerservicev1preview.ManagedClustersAgentPool) asocontainerservicev1preview.ManagedClusterAgentPoolProfile {
 	properties := pool.Spec
 

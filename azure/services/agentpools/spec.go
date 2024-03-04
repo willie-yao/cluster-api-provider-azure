@@ -205,13 +205,11 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 			existingPreview := existingObj.(*asocontainerservicev1preview.ManagedClustersAgentPool)
 			existingStatus = existingPreview.Status
 			hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
-			err := existingPreview.ConvertTo(hub)
-			if err != nil {
+			if err := existingPreview.ConvertTo(hub); err != nil {
 				return nil, err
 			}
 			stable := &asocontainerservicev1.ManagedClustersAgentPool{}
-			err = stable.ConvertFrom(hub)
-			if err != nil {
+			if err = stable.ConvertFrom(hub); err != nil {
 				return nil, err
 			}
 			existing = stable
@@ -339,13 +337,11 @@ func (s *AgentPoolSpec) Parameters(ctx context.Context, existingObj genruntime.M
 
 	if s.Preview {
 		hub := &asocontainerservicev1hub.ManagedClustersAgentPool{}
-		err := agentPool.ConvertTo(hub)
-		if err != nil {
+		if err := agentPool.ConvertTo(hub); err != nil {
 			return nil, err
 		}
 		prev := &asocontainerservicev1preview.ManagedClustersAgentPool{}
-		err = prev.ConvertFrom(hub)
-		if err != nil {
+		if err = prev.ConvertFrom(hub); err != nil {
 			return nil, err
 		}
 		if existing != nil {

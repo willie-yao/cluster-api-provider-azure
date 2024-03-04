@@ -92,13 +92,11 @@ func postCreateOrUpdateResourceHook(ctx context.Context, scope ManagedClusterSco
 	if scope.IsPreviewEnabled() {
 		existingPreview := obj.(*asocontainerservicev1preview.ManagedCluster)
 		hub := &asocontainerservicev1hub.ManagedCluster{}
-		err := existingPreview.ConvertTo(hub)
-		if err != nil {
+		if err := existingPreview.ConvertTo(hub); err != nil {
 			return err
 		}
 		prev := &asocontainerservicev1.ManagedCluster{}
-		err = prev.ConvertFrom(hub)
-		if err != nil {
+		if err = prev.ConvertFrom(hub); err != nil {
 			return err
 		}
 		existing = prev

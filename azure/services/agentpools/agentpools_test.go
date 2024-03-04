@@ -94,7 +94,6 @@ func TestPostCreateOrUpdateResourceHook(t *testing.T) {
 			},
 		}
 
-		err := postCreateOrUpdateResourceHook(context.Background(), scope, managedCluster, nil)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(postCreateOrUpdateResourceHook(context.Background(), scope, managedCluster, nil)).To(Succeed())
 	})
 }

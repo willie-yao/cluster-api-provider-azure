@@ -519,10 +519,7 @@ func (s *ManagedControlPlaneScope) IsManagedVersionUpgrade() bool {
 
 // IsPreviewEnabled checks if the preview feature is enabled.
 func (s *ManagedControlPlaneScope) IsPreviewEnabled() bool {
-	if s.ControlPlane.Spec.EnablePreviewFeatures == nil {
-		return false
-	}
-	return *s.ControlPlane.Spec.EnablePreviewFeatures
+	return ptr.Deref(s.ControlPlane.Spec.EnablePreviewFeatures, false)
 }
 
 func isManagedVersionUpgrade(managedControlPlane *infrav1.AzureManagedControlPlane) bool {
