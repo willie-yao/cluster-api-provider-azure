@@ -250,7 +250,7 @@ func applyPatches[T genruntime.MetaObject](scheme *runtime.Scheme, spec azure.AS
 	if err != nil {
 		return zero, errors.Wrap(err, "failed to get GroupVersionKind for object")
 	}
-	// TODO(willie): help me lol
+
 	(genruntime.MetaObject)(parameters).(interface{ SetGroupVersionKind(schema.GroupVersionKind) }).SetGroupVersionKind(gvk)
 	paramData, err := json.Marshal(parameters)
 	if err != nil {

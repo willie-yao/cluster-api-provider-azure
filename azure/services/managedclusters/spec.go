@@ -839,51 +839,7 @@ func (*ManagedClusterSpec) SetTags(resource *asocontainerservicev1.ManagedCluste
 	resource.Spec.Tags = tags
 }
 
-var _ aso.Converter[*asocontainerservicev1.ManagedCluster] = (*ManagedClusterSpec)(nil)
-
 // ExtraPatches implements aso.Patcher.
 func (s *ManagedClusterSpec) ExtraPatches() []string {
 	return s.Patches
-}
-
-// ConvertTo implements aso.Converter.
-// Converts a stable ManagedCluster to a preview ManagedCluster.
-func (s *ManagedClusterSpec) ConvertTo(stable *asocontainerservicev1.ManagedCluster) (genruntime.MetaObject, error) {
-	if !s.Preview || stable == nil {
-		return stable, nil
-	}
-
-	hub := &asocontainerservicev1hub.ManagedCluster{}
-	err := stable.ConvertTo(hub)
-	if err != nil {
-		return nil, err
-	}
-	preview := &asocontainerservicev1preview.ManagedCluster{}
-	err = preview.ConvertFrom(hub)
-	if err != nil {
-		return nil, err
-	}
-	return preview, nil
-}
-
-// ConvertFrom converts a preview ManagedCluster to a stable ManagedCluster.
-func (s *ManagedClusterSpec) ConvertFrom(preview genruntime.MetaObject) (*asocontainerservicev1.ManagedCluster, error) {
-	if !s.Preview {
-		return nil, errors.New("cannot convert from preview to stable if preview is not enabled")
-	}
-
-	hub := &asocontainerservicev1hub.ManagedCluster{}
-	previewTyped := preview.(*asocontainerservicev1preview.ManagedCluster)
-	err := previewTyped.ConvertTo(hub)
-	if err != nil {
-		return nil, err
-	}
-
-	stable := &asocontainerservicev1.ManagedCluster{}
-	err = stable.ConvertFrom(hub)
-	if err != nil {
-		return nil, err
-	}
-
-	return stable, nil
 }
