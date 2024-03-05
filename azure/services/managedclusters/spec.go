@@ -835,6 +835,8 @@ func (*ManagedClusterSpec) SetTags(resource *asocontainerservicev1.ManagedCluste
 	resource.Spec.Tags = tags
 }
 
+var _ aso.Patcher = (*ManagedClusterSpec)(nil)
+
 // ExtraPatches implements aso.Patcher.
 func (s *ManagedClusterSpec) ExtraPatches() []string {
 	return s.Patches
