@@ -35,6 +35,7 @@ spec:
   version: "${KUBERNETES_VERSION}"
   oidcIssuerProfile:
     enabled: true
+  enablePreviewFeatures: true
 ---
 # Due to the nature of managed Kubernetes and the control plane implementation,
 # the infrastructure provider for AKS cluster is basically a no-op.
