@@ -818,7 +818,7 @@ func (s *ManagedClusterSpec) WasManaged(resource genruntime.MetaObject) bool {
 	return true
 }
 
-var _ aso.TagsGetterSetter[*asocontainerservicev1.ManagedCluster] = (*ManagedClusterSpec)(nil)
+var _ aso.TagsGetterSetter[genruntime.MetaObject] = (*ManagedClusterSpec)(nil)
 
 // GetAdditionalTags implements aso.TagsGetterSetter.
 func (s *ManagedClusterSpec) GetAdditionalTags() infrav1.Tags {
@@ -826,13 +826,20 @@ func (s *ManagedClusterSpec) GetAdditionalTags() infrav1.Tags {
 }
 
 // GetDesiredTags implements aso.TagsGetterSetter.
-func (*ManagedClusterSpec) GetDesiredTags(resource *asocontainerservicev1.ManagedCluster) infrav1.Tags {
-	return resource.Spec.Tags
+func (s *ManagedClusterSpec) GetDesiredTags(resource genruntime.MetaObject) infrav1.Tags {
+	if s.Preview {
+		return resource.(*asocontainerservicev1preview.ManagedCluster).Spec.Tags
+	}
+	return resource.(*asocontainerservicev1.ManagedCluster).Spec.Tags
 }
 
 // SetTags implements aso.TagsGetterSetter.
-func (*ManagedClusterSpec) SetTags(resource *asocontainerservicev1.ManagedCluster, tags infrav1.Tags) {
-	resource.Spec.Tags = tags
+func (s *ManagedClusterSpec) SetTags(resource genruntime.MetaObject, tags infrav1.Tags) {
+	if s.Preview {
+		resource.(*asocontainerservicev1preview.ManagedCluster).Spec.Tags = tags
+		return
+	}
+	resource.(*asocontainerservicev1.ManagedCluster).Spec.Tags = tags
 }
 
 var _ aso.Patcher = (*ManagedClusterSpec)(nil)
