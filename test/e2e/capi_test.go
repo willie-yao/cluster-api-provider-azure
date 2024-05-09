@@ -48,6 +48,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 		identityNamespace *corev1.Namespace
 		specTimes         = map[string]time.Time{}
 		err               error
+		kubernetesVersion string
 	)
 	BeforeEach(func() {
 		Expect(e2eConfig.Variables).To(HaveKey(capi_e2e.CNIPath))
@@ -210,7 +211,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 	})
 
 	if os.Getenv("USE_LOCAL_KIND_REGISTRY") != "true" {
-		Context("API Version Upgrade", func() {
+		Context("API Version Upgrade for self-managed cluster", func() {
 			BeforeEach(func() {
 				// Unset resource group and vnet env variables, since the upgrade test creates 2 clusters,
 				// and will result in both the clusters using the same vnet and resource group.
@@ -267,6 +268,50 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 						InitWithControlPlaneProviders:   []string{"kubeadm:" + e2eConfig.GetVariable(LatestCAPIUpgradeVersion)},
 						InitWithInfrastructureProviders: []string{"azure:" + e2eConfig.GetVariable(LatestProviderUpgradeVersion)},
 						InitWithAddonProviders:          []string{"helm:" + e2eConfig.GetVariable(LatestAddonProviderUpgradeVersion)},
+					}
+				})
+			})
+		})
+
+		Context("API Version Upgrade for managed cluster", func() {
+			BeforeEach(func() {
+				// Unset resource group and vnet env variables, since the upgrade test creates 2 clusters,
+				// and will result in both the clusters using the same vnet and resource group.
+				Expect(os.Unsetenv(AzureResourceGroup)).To(Succeed())
+				Expect(os.Unsetenv(AzureVNetName)).To(Succeed())
+
+				// Unset windows specific variables
+				Expect(os.Unsetenv("WINDOWS_WORKER_MACHINE_COUNT")).To(Succeed())
+
+				Expect(os.Setenv("K8S_FEATURE_GATES", "WindowsHostProcessContainers=true")).To(Succeed())
+
+				kubernetesVersion, err = GetAKSKubernetesVersion(ctx, e2eConfig, AKSKubernetesVersion)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("upgrade managed cluster from the latest version of v1beta1 to current, and scale workload clusters created in the old version", func() {
+				capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+					return capi_e2e.ClusterctlUpgradeSpecInput{
+						E2EConfig:                 e2eConfig,
+						ClusterctlConfigPath:      clusterctlConfigPath,
+						BootstrapClusterProxy:     bootstrapClusterProxy,
+						ArtifactFolder:            artifactFolder,
+						SkipCleanup:               skipCleanup,
+						PreInit:                   getPreInitFunc(ctx),
+						InitWithProvidersContract: "v1beta1",
+						ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
+							WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+						},
+						InitWithKubernetesVersion:       e2eConfig.GetVariable(KubernetesVersionAPIUpgradeFrom),
+						InitWithBinary:                  fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/download/%s/clusterctl-{OS}-{ARCH}", e2eConfig.GetVariable(LatestCAPIUpgradeVersion)),
+						InitWithCoreProvider:            "cluster-api:" + e2eConfig.GetVariable(LatestCAPIUpgradeVersion),
+						InitWithBootstrapProviders:      []string{"kubeadm:" + e2eConfig.GetVariable(LatestCAPIUpgradeVersion)},
+						InitWithControlPlaneProviders:   []string{"kubeadm:" + e2eConfig.GetVariable(LatestCAPIUpgradeVersion)},
+						InitWithInfrastructureProviders: []string{"azure:" + e2eConfig.GetVariable(LatestProviderUpgradeVersion)},
+						InitWithAddonProviders:          []string{"helm:" + e2eConfig.GetVariable(LatestAddonProviderUpgradeVersion)},
+						WorkloadFlavor:                  "aks",
+						WorkloadKubernetesVersion:       kubernetesVersion,
+						ControlPlaneMachineCount:        ptr.To[int64](0),
 					}
 				})
 			})
