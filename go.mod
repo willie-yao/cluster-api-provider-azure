@@ -222,6 +222,8 @@ require (
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.8.3
 
+// replace sigs.k8s.io/cluster-api/test => github.com/willie-yao/cluster-api/test v0.0.0-20240911215540-880e54c8c481
+
 replace (
 	github.com/google/cel-go => github.com/google/cel-go v0.17.8
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.18.0

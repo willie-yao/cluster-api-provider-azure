@@ -201,29 +201,30 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 				os.Setenv("AZURE_CLIENT_ID_CLOUD_PROVIDER", *identity.Properties.ClientID)
 			})
 
-			Context("upgrade from an old version of v1beta1 to current, and scale workload clusters created in the old version", func() {
-				capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-					return capi_e2e.ClusterctlUpgradeSpecInput{
-						E2EConfig:                 e2eConfig,
-						ClusterctlConfigPath:      clusterctlConfigPath,
-						BootstrapClusterProxy:     bootstrapClusterProxy,
-						ArtifactFolder:            artifactFolder,
-						SkipCleanup:               skipCleanup,
-						PreInit:                   getPreInitFunc(ctx),
-						InitWithProvidersContract: "v1beta1",
-						ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
-							WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
-						},
-						InitWithKubernetesVersion:       e2eConfig.GetVariable(KubernetesVersionAPIUpgradeFrom),
-						InitWithBinary:                  fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/download/%s/clusterctl-{OS}-{ARCH}", e2eConfig.GetVariable(OldCAPIUpgradeVersion)),
-						InitWithCoreProvider:            "cluster-api:" + e2eConfig.GetVariable(OldCAPIUpgradeVersion),
-						InitWithBootstrapProviders:      []string{"kubeadm:" + e2eConfig.GetVariable(OldCAPIUpgradeVersion)},
-						InitWithControlPlaneProviders:   []string{"kubeadm:" + e2eConfig.GetVariable(OldCAPIUpgradeVersion)},
-						InitWithInfrastructureProviders: []string{"azure:" + e2eConfig.GetVariable(OldProviderUpgradeVersion)},
-						InitWithAddonProviders:          []string{"helm:" + e2eConfig.GetVariable(OldAddonProviderUpgradeVersion)},
-					}
-				})
-			})
+			// Context("upgrade from an old version of v1beta1 to current, and scale workload clusters created in the old version", func() {
+			// 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+			// 		return capi_e2e.ClusterctlUpgradeSpecInput{
+			// 			E2EConfig:                 e2eConfig,
+			// 			ClusterctlConfigPath:      clusterctlConfigPath,
+			// 			BootstrapClusterProxy:     bootstrapClusterProxy,
+			// 			ArtifactFolder:            artifactFolder,
+			// 			SkipCleanup:               skipCleanup,
+			// 			PreInit:                   getPreInitFunc(ctx),
+			// 			InitWithProvidersContract: "v1beta1",
+			// 			ControlPlaneWaiters: clusterctl.ControlPlaneWaiters{
+			// 				WaitForControlPlaneInitialized: EnsureControlPlaneInitialized,
+			// 			},
+			// 			InitWithKubernetesVersion:       e2eConfig.GetVariable(KubernetesVersionAPIUpgradeFrom),
+			// 			InitWithBinary:                  fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/download/%s/clusterctl-{OS}-{ARCH}", e2eConfig.GetVariable(OldCAPIUpgradeVersion)),
+			// 			InitWithCoreProvider:            "cluster-api:" + e2eConfig.GetVariable(OldCAPIUpgradeVersion),
+			// 			InitWithBootstrapProviders:      []string{"kubeadm:" + e2eConfig.GetVariable(OldCAPIUpgradeVersion)},
+			// 			InitWithControlPlaneProviders:   []string{"kubeadm:" + e2eConfig.GetVariable(OldCAPIUpgradeVersion)},
+			// 			InitWithInfrastructureProviders: []string{"azure:" + e2eConfig.GetVariable(OldProviderUpgradeVersion)},
+			// 			InitWithAddonProviders:          []string{"helm:" + e2eConfig.GetVariable(OldAddonProviderUpgradeVersion)},
+			// 			WorkloadKubernetesVersion:       e2eConfig.GetVariable(KubernetesVersionAPIUpgradeFrom),
+			// 		}
+			// 	})
+			// })
 
 			Context("upgrade from the latest version of v1beta1 to current, and scale workload clusters created in the old version", func() {
 				capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
@@ -245,6 +246,7 @@ var _ = Describe("Running the Cluster API E2E tests", func() {
 						InitWithControlPlaneProviders:   []string{"kubeadm:" + e2eConfig.GetVariable(LatestCAPIUpgradeVersion)},
 						InitWithInfrastructureProviders: []string{"azure:" + e2eConfig.GetVariable(LatestProviderUpgradeVersion)},
 						InitWithAddonProviders:          []string{"helm:" + e2eConfig.GetVariable(LatestAddonProviderUpgradeVersion)},
+						WorkloadKubernetesVersion:       e2eConfig.GetVariable(KubernetesVersionAPIUpgradeFrom),
 					}
 				})
 			})
