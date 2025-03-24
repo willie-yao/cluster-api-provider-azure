@@ -26,6 +26,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
 	"github.com/Azure/azure-sdk-for-go/sdk/tracing/azotel"
 
 	"sigs.k8s.io/cluster-api-provider-azure/pkg/ot"
@@ -64,9 +65,9 @@ const (
 
 const (
 	// BootstrappingExtensionLinux is the name of the Linux CAPZ bootstrapping VM extension.
-	BootstrappingExtensionLinux = "CustomScript"
+	BootstrappingExtensionLinux = "CAPZ.Linux.Bootstrapping"
 	// BootstrappingExtensionWindows is the name of the Windows CAPZ bootstrapping VM extension.
-	BootstrappingExtensionWindows = "CustomScriptExtension"
+	BootstrappingExtensionWindows = "CAPZ.Windows.Bootstrapping"
 )
 
 const (
@@ -111,7 +112,7 @@ const (
 
 var (
 	// LinuxBootstrapExtensionCommand is the command the VM bootstrap extension will execute to verify Linux nodes bootstrap completes successfully.
-	LinuxBootstrapExtensionCommand = fmt.Sprintf("for i in $(seq 1 %d); do test -f %s && break; if [ $i -eq %d ]; then exit 1; else sleep %d; fi; done", bootstrapExtensionRetries, bootstrapSentinelFile, bootstrapExtensionRetries, bootstrapExtensionSleep)
+	LinuxBootstrapExtensionCommand = fmt.Sprintf("for i in $(seq 1 %d); do test -f %s && break; if [ $i -eq %d ]; then echo 'Error joining node to cluster: kubeadm init failed. To debug, check the cloud-init, kubelet, or other bootstrap logs: https://capz.sigs.k8s.io/self-managed/troubleshooting.html?highlight=kubeadmcontrolplane#checking-cloud-init-logs-ubuntu.'; exit 1; else sleep %d; fi; done", bootstrapExtensionRetries, bootstrapSentinelFile, bootstrapExtensionRetries, bootstrapExtensionSleep)
 	// WindowsBootstrapExtensionCommand is the command the VM bootstrap extension will execute to verify Windows nodes bootstrap completes successfully.
 	WindowsBootstrapExtensionCommand = fmt.Sprintf("powershell.exe -Command \"for ($i = 0; $i -lt %d; $i++) {if (Test-Path '%s') {exit 0} else {Start-Sleep -Seconds %d}} exit -2\"",
 		bootstrapExtensionRetries, bootstrapSentinelFile, bootstrapExtensionSleep)
@@ -317,11 +318,19 @@ func GetBootstrappingVMExtension(osType string, cloud string, vmName string, cpu
 	// currently, the bootstrap extension is only available in AzurePublicCloud.
 	if osType == LinuxOS && cloud == PublicCloudName {
 		// The command checks for the existence of the bootstrapSentinelFile on the machine, with retries and sleep between retries.
+		// We set the version to 1.1 (will target 1.1.1) for arm64 machines and 1.0 for x64. This is due to a known issue with newer versions of
+		// Go on Ubuntu 20.04. The issue is being tracked here: https://github.com/golang/go/issues/58550
+		// TODO: Remove this once the issue is fixed, or when Ubuntu 20.04 is no longer supported.
+		// We are using 1.1 instead of 1.1.1 for Arm64 as AzureAPI do not allow us to specify the full version.
+		extensionVersion := "1.0"
+		if cpuArchitectureType == string(armcompute.ArchitectureTypesArm64) {
+			extensionVersion = "1.1"
+		}
 		return &ExtensionSpec{
 			Name:      BootstrappingExtensionLinux,
 			VMName:    vmName,
-			Publisher: "Microsoft.Azure.Extensions",
-			Version:   "2.0",
+			Publisher: "Microsoft.Azure.ContainerUpstream",
+			Version:   extensionVersion,
 			ProtectedSettings: map[string]string{
 				"commandToExecute": LinuxBootstrapExtensionCommand,
 			},
@@ -332,8 +341,8 @@ func GetBootstrappingVMExtension(osType string, cloud string, vmName string, cpu
 		return &ExtensionSpec{
 			Name:      BootstrappingExtensionWindows,
 			VMName:    vmName,
-			Publisher: "Microsoft.Compute",
-			Version:   "1.10",
+			Publisher: "Microsoft.Azure.ContainerUpstream",
+			Version:   "1.0",
 			ProtectedSettings: map[string]string{
 				"commandToExecute": WindowsBootstrapExtensionCommand,
 			},
