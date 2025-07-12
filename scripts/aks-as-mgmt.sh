@@ -191,7 +191,7 @@ create_aks_cluster() {
     --enable-managed-identity \
     --assign-identity "${AKS_MI_RESOURCE_ID}" \
     --assign-kubelet-identity "${AKS_MI_RESOURCE_ID}" \
-    --output none --only-show-errors --yes
+    --yes --verbose
 
   else
     # echo "fetching Client ID for ${MGMT_CLUSTER_NAME}"
