@@ -192,7 +192,8 @@ create_aks_cluster() {
     --assign-identity "${AKS_MI_RESOURCE_ID}" \
     --assign-kubelet-identity "${AKS_MI_RESOURCE_ID}" \
     --yes --verbose
-
+    
+    echo "user-assigned managed identity assigned to the AKS cluster"
   else
     # echo "fetching Client ID for ${MGMT_CLUSTER_NAME}"
     AKS_MI_CLIENT_ID=$(az aks show -n "${MGMT_CLUSTER_NAME}" -g "${AKS_RESOURCE_GROUP}" --output json \
