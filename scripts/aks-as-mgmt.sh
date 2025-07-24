@@ -141,7 +141,9 @@ create_aks_cluster() {
     --dns-service-ip "${AKS_MGMT_DNS_SERVICE_IP}" \
     --max-pods 60 \
     --tags creationTimestamp="${TIMESTAMP}" jobName="${JOB_NAME}" buildProvenance="${BUILD_PROVENANCE}" \
-    --output none --only-show-errors;
+    --assign-identity "${AZURE_USER_ASSIGNED_IDENTITY_RESOURCE_ID}" \
+    --assign-kubelet-identity "${AZURE_USER_ASSIGNED_IDENTITY_RESOURCE_ID}" \
+    --verbose ;
   elif echo "$aks_exists" | grep -q "${MGMT_CLUSTER_NAME}"; then
     echo "cluster ${MGMT_CLUSTER_NAME} already exists in RG ${AKS_RESOURCE_GROUP}, moving on"
   else
@@ -185,15 +187,15 @@ create_aks_cluster() {
     USER_IDENTITY=$MANAGED_IDENTITY_NAME
     export USER_IDENTITY
 
-    echo "assigning user-assigned managed identity to the AKS cluster"
-    az aks update --resource-group "${AKS_RESOURCE_GROUP}" \
-    --name "${MGMT_CLUSTER_NAME}" \
-    --enable-managed-identity \
-    --assign-identity "${AKS_MI_RESOURCE_ID}" \
-    --assign-kubelet-identity "${AKS_MI_RESOURCE_ID}" \
-    --yes --verbose
+    # echo "assigning user-assigned managed identity to the AKS cluster"
+    # az aks update --resource-group "${AKS_RESOURCE_GROUP}" \
+    # --name "${MGMT_CLUSTER_NAME}" \
+    # --enable-managed-identity \
+    # --assign-identity "${AKS_MI_RESOURCE_ID}" \
+    # --assign-kubelet-identity "${AKS_MI_RESOURCE_ID}" \
+    # --yes --verbose
     
-    echo "user-assigned managed identity assigned to the AKS cluster"
+    # echo "user-assigned managed identity assigned to the AKS cluster"
   else
     # echo "fetching Client ID for ${MGMT_CLUSTER_NAME}"
     AKS_MI_CLIENT_ID=$(az aks show -n "${MGMT_CLUSTER_NAME}" -g "${AKS_RESOURCE_GROUP}" --output json \
