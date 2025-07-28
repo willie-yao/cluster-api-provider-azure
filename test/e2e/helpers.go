@@ -774,12 +774,45 @@ func getVersionsInCommunityGallery(ctx context.Context, location, galleryName, i
 
 	client := newCommunityGalleryImageVersionsClient()
 	pager := client.NewListPager(location, galleryName, image, nil)
+
+	pageCount := 0
+	totalVersionsFound := 0
+
 	for pager.More() {
+		pageCount++
+		Logf("Processing page %d for image %q", pageCount, image)
+
 		resp, err := pager.NextPage(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		for _, version := range resp.Value {
-			versions[*version.Name] = semver.MustParse(*version.Name)
+
+		Logf("Page %d returned %d versions for image %q", pageCount, len(resp.Value), image)
+
+		for i, version := range resp.Value {
+			if version.Name == nil {
+				Logf("Warning: version at index %d has nil Name", i)
+				continue
+			}
+
+			versionName := *version.Name
+			Logf("Found version: %q for image %q", versionName, image)
+
+			parsedVersion := semver.MustParse(versionName)
+			versions[versionName] = parsedVersion
+			totalVersionsFound++
 		}
+	}
+
+	Logf("Processed %d pages and found %d total versions for image %q", pageCount, totalVersionsFound, image)
+	Logf("Final versions map has %d entries for image %q", len(versions), image)
+
+	// Log all the versions we collected
+	if len(versions) > 0 {
+		Logf("All versions found for image %q:", image)
+		for versionName, semverVersion := range versions {
+			Logf("  - %q -> %s", versionName, semverVersion.String())
+		}
+	} else {
+		Logf("No versions found for image %q", image)
 	}
 
 	return versions
