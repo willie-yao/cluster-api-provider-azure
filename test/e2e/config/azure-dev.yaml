@@ -148,8 +148,6 @@ providers:
         targetName: "cluster-template-conformance-presubmit-artifacts-dra.yaml"
       - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-ci-version-dra.yaml"
         targetName: "cluster-template-conformance-ci-artifacts-dra.yaml"
-      - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-ci-version-apiserver-ilb.yaml"
-        targetName: "cluster-template-conformance-ci-artifacts-apiserver-ilb.yaml"
       - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-machine-pool-flex.yaml"
         targetName: "cluster-template-machine-pool-flex.yaml"
       - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-aks.yaml"
@@ -184,6 +182,8 @@ providers:
         targetName: "cluster-template-spot.yaml"
       - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-apiserver-ilb.yaml"
         targetName: "cluster-template-apiserver-ilb.yaml"
+      - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-apiserver-ilb-custom-images.yaml"
+        targetName: "cluster-template-apiserver-ilb-custom-images.yaml"
       replacements:
       - old: "--v=0"
         new: "--v=2"
