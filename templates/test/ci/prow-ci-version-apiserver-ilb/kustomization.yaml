@@ -24,14 +24,14 @@ patches:
       kind: KubeadmControlPlane
       name: .*-control-plane
       version: v1beta1
-  - path: ../prow-ci-version/patches/kubeadm-bootstrap.yaml
+  - path: ../patches/kubeadm-bootstrap-custom-k8s.yaml
     target:
       group: bootstrap.cluster.x-k8s.io
       kind: KubeadmConfigTemplate
       name: .*-md-0
       namespace: default
       version: v1beta1
-  - path: ../patches/control-plane-kubeadm-boostrap-ci-version.yaml
+  - path: ../patches/control-plane-kubeadm-bootstrap-custom-k8s.yaml
     target:
       group: controlplane.cluster.x-k8s.io
       kind: KubeadmControlPlane
@@ -48,6 +48,7 @@ patches:
   - path: ../patches/cluster-label-calico.yaml
   - path: ../patches/cluster-label-cloud-provider-azure.yaml
   - path: ../patches/metrics-server-enabled-cluster.yaml
+
 
   - target:
       kind: KubeadmConfigTemplate

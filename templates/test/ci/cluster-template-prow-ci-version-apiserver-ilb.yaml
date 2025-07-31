@@ -83,7 +83,6 @@ spec:
           dataDir: /var/lib/etcddisk/etcd
           extraArgs:
             quota-backend-bytes: "8589934592"
-      kubernetesVersion: ci/${CI_VERSION}
     diskSetup:
       filesystems:
       - device: /dev/disk/azure/scsi1/lun0
@@ -102,7 +101,74 @@ spec:
         overwrite: false
         tableType: gpt
     files:
-    - contentFrom:
+    - content:
+        content: "#!/bin/bash\n\nset -o nounset\nset -o pipefail\nset -o errexit\n[[
+          $(id -u) != 0 ]] && SUDO=\"sudo\" || SUDO=\"\"\n\n# This test installs release
+          packages or binaries that are a result of the CI and release builds.\n#
+          It runs '... --version' commands to verify that the binaries are correctly
+          installed\n# and finally uninstalls the packages.\n# For the release packages
+          it tests all versions in the support skew.\nLINE_SEPARATOR=\"*************************************************\"\necho
+          \"$$LINE_SEPARATOR\"\nCI_VERSION=${CI_VERSION}\nif [[ \"$${CI_VERSION}\"
+          != \"\" ]]; then\n  CI_DIR=/tmp/k8s-ci\n  mkdir -p $$CI_DIR\n  declare -a
+          PACKAGES_TO_TEST=(\"kubectl\" \"kubelet\" \"kubeadm\")\n  declare -a CONTAINERS_TO_TEST=(\"kube-apiserver\"
+          \"kube-controller-manager\" \"kube-proxy\" \"kube-scheduler\")\n  CONTAINER_EXT=\"tar\"\n
+          \ echo \"* testing CI version $$CI_VERSION\"\n  \n  # Add custom image handling\n
+          \ if [[ -n \"${KUBE_APISERVER_IMAGE:-}\" ]] && [[ -n \"${KUBE_CONTROLLER_MANAGER_IMAGE:-}\"
+          ]] && [[ -n \"${KUBE_SCHEDULER_IMAGE:-}\" ]] && [[ -n \"${KUBE_PROXY_IMAGE:-}\"
+          ]]; then\n    echo \"* Using custom Kubernetes images\"\n    \n    # Pull
+          and tag custom images\n    echo \"* Pulling kube-apiserver: ${KUBE_APISERVER_IMAGE}\"\n
+          \   $${SUDO} ctr -n k8s.io images pull \"${KUBE_APISERVER_IMAGE}\"\n    $${SUDO}
+          ctr -n k8s.io images tag \"${KUBE_APISERVER_IMAGE}\" \"registry.k8s.io/kube-apiserver:$${CI_VERSION//+/_}\"\n
+          \   \n    echo \"* Pulling kube-controller-manager: ${KUBE_CONTROLLER_MANAGER_IMAGE}\"\n
+          \   $${SUDO} ctr -n k8s.io images pull \"${KUBE_CONTROLLER_MANAGER_IMAGE}\"\n
+          \   $${SUDO} ctr -n k8s.io images tag \"${KUBE_CONTROLLER_MANAGER_IMAGE}\"
+          \"registry.k8s.io/kube-controller-manager:$${CI_VERSION//+/_}\"\n    \n
+          \   echo \"* Pulling kube-scheduler: ${KUBE_SCHEDULER_IMAGE}\"\n    $${SUDO}
+          ctr -n k8s.io images pull \"${KUBE_SCHEDULER_IMAGE}\"\n    $${SUDO} ctr
+          -n k8s.io images tag \"${KUBE_SCHEDULER_IMAGE}\" \"registry.k8s.io/kube-scheduler:$${CI_VERSION//+/_}\"\n
+          \   \n    echo \"* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}\"\n    $${SUDO}
+          ctr -n k8s.io images pull \"${KUBE_PROXY_IMAGE}\"\n    $${SUDO} ctr -n k8s.io
+          images tag \"${KUBE_PROXY_IMAGE}\" \"registry.k8s.io/kube-proxy:$${CI_VERSION//+/_}\"\n
+          \   \n    # Still need to install the binaries for kubectl, kubelet, kubeadm\n
+          \   CI_URL=\"https://storage.googleapis.com/k8s-release-dev/ci/$${CI_VERSION}/bin/linux/amd64\"\n
+          \   for CI_PACKAGE in \"$${PACKAGES_TO_TEST[@]}\"; do\n      echo \"* downloading
+          binary: $$CI_URL/$$CI_PACKAGE\"\n      wget --inet4-only \"$$CI_URL/$$CI_PACKAGE\"
+          -nv -O \"$$CI_DIR/$$CI_PACKAGE\"\n      chmod +x \"$$CI_DIR/$$CI_PACKAGE\"\n
+          \     mv \"$$CI_DIR/$$CI_PACKAGE\" \"/usr/bin/$$CI_PACKAGE\"\n    done\n
+          \ # Check for semver\n  elif [[ \"$${CI_VERSION}\" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$
+          ]]; then\n    VERSION_WITHOUT_PREFIX=\"${CI_VERSION#v}\"\n    DEBIAN_FRONTEND=noninteractive
+          apt-get install -y apt-transport-https curl\n    curl -fsSL https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/Release.key
+          | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg\n    echo
+          \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/
+          /\" | tee /etc/apt/sources.list.d/kubernetes.list\n    apt-get update\n
+          \   # replace . with \\.\n    VERSION_REGEX=\"${VERSION_WITHOUT_PREFIX//./\\\\.}\"\n
+          \   PACKAGE_VERSION=\"$(apt-cache madison kubelet|grep $${VERSION_REGEX}-
+          | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')\"\n    for CI_PACKAGE
+          in \"$${PACKAGES_TO_TEST[@]}\"; do\n      echo \"* installing package: $$CI_PACKAGE
+          $${PACKAGE_VERSION}\"\n      DEBIAN_FRONTEND=noninteractive apt-get install
+          -y $$CI_PACKAGE=$$PACKAGE_VERSION\n    done\n  else\n    CI_URL=\"https://storage.googleapis.com/k8s-release-dev/ci/$${CI_VERSION}/bin/linux/amd64\"\n
+          \   for CI_PACKAGE in \"$${PACKAGES_TO_TEST[@]}\"; do\n      echo \"* downloading
+          binary: $$CI_URL/$$CI_PACKAGE\"\n      wget --inet4-only \"$$CI_URL/$$CI_PACKAGE\"
+          -nv -O \"$$CI_DIR/$$CI_PACKAGE\"\n      chmod +x \"$$CI_DIR/$$CI_PACKAGE\"\n
+          \     mv \"$$CI_DIR/$$CI_PACKAGE\" \"/usr/bin/$$CI_PACKAGE\"\n    done\n
+          \   IMAGE_REGISTRY_PREFIX=registry.k8s.io\n    for CI_CONTAINER in \"$${CONTAINERS_TO_TEST[@]}\";
+          do\n      echo \"* downloading package: $$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT\"\n
+          \     wget --inet4-only \"$$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT\" -nv
+          -O \"$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT\"\n      $${SUDO} ctr -n k8s.io
+          images import \"$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT\" || echo \"* ignoring
+          expected 'ctr images import' result\"\n      $${SUDO} ctr -n k8s.io images
+          tag $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER-amd64:\"$${CI_VERSION//+/_}\"
+          $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER:\"$${CI_VERSION//+/_}\"\n      $${SUDO}
+          ctr -n k8s.io images tag $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER-amd64:\"$${CI_VERSION//+/_}\"
+          gcr.io/k8s-staging-ci-images/$$CI_CONTAINER:\"$${CI_VERSION//+/_}\"\n    done\n
+          \ fi\n  systemctl restart kubelet\nfi\necho \"* checking binary versions\"\necho
+          \"ctr version: \" $(ctr version)\necho \"kubeadm version: \" $(kubeadm version
+          -o=short)\necho \"kubectl version: \" $(kubectl version --client=true)\necho
+          \"kubelet version: \" $(kubelet --version)\necho \"$$LINE_SEPARATOR\"\n"
+        owner: root:root
+        path: /tmp/kubeadm-bootstrap.sh
+        permissions: "0744"
+      contentFrom:
         secret:
           key: control-plane-azure.json
           name: ${CLUSTER_NAME}-control-plane-azure-json
@@ -137,70 +203,6 @@ spec:
       owner: root:root
       path: /tmp/oot-cred-provider.sh
       permissions: "0744"
-    - content: |
-        #!/bin/bash
-
-        set -o nounset
-        set -o pipefail
-        set -o errexit
-        [[ $(id -u) != 0 ]] && SUDO="sudo" || SUDO=""
-
-        # This test installs release packages or binaries that are a result of the CI and release builds.
-        # It runs '... --version' commands to verify that the binaries are correctly installed
-        # and finally uninstalls the packages.
-        # For the release packages it tests all versions in the support skew.
-        LINE_SEPARATOR="*************************************************"
-        echo "$$LINE_SEPARATOR"
-        CI_VERSION=${CI_VERSION}
-        if [[ "$${CI_VERSION}" != "" ]]; then
-          CI_DIR=/tmp/k8s-ci
-          mkdir -p $$CI_DIR
-          declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
-          declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
-          CONTAINER_EXT="tar"
-          echo "* testing CI version $$CI_VERSION"
-          # Check for semver
-          if [[ "$${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            VERSION_WITHOUT_PREFIX="${CI_VERSION#v}"
-            DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl
-            curl -fsSL https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-            echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
-            apt-get update
-            # replace . with \.
-            VERSION_REGEX="${VERSION_WITHOUT_PREFIX//./\\.}"
-            PACKAGE_VERSION="$(apt-cache madison kubelet|grep $${VERSION_REGEX}- | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')"
-            for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-              echo "* installing package: $$CI_PACKAGE $${PACKAGE_VERSION}"
-              DEBIAN_FRONTEND=noninteractive apt-get install -y $$CI_PACKAGE=$$PACKAGE_VERSION
-            done
-          else
-            CI_URL="https://storage.googleapis.com/k8s-release-dev/ci/$${CI_VERSION}/bin/linux/amd64"
-            for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-              echo "* downloading binary: $$CI_URL/$$CI_PACKAGE"
-              wget --inet4-only "$$CI_URL/$$CI_PACKAGE" -nv -O "$$CI_DIR/$$CI_PACKAGE"
-              chmod +x "$$CI_DIR/$$CI_PACKAGE"
-              mv "$$CI_DIR/$$CI_PACKAGE" "/usr/bin/$$CI_PACKAGE"
-            done
-            IMAGE_REGISTRY_PREFIX=registry.k8s.io
-            for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do
-              echo "* downloading package: $$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT"
-              wget --inet4-only "$$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT" -nv -O "$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT"
-              $${SUDO} ctr -n k8s.io images import "$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT" || echo "* ignoring expected 'ctr images import' result"
-              $${SUDO} ctr -n k8s.io images tag $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER-amd64:"$${CI_VERSION//+/_}" $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER:"$${CI_VERSION//+/_}"
-              $${SUDO} ctr -n k8s.io images tag $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER-amd64:"$${CI_VERSION//+/_}" gcr.io/k8s-staging-ci-images/$$CI_CONTAINER:"$${CI_VERSION//+/_}"
-            done
-          fi
-          systemctl restart kubelet
-        fi
-        echo "* checking binary versions"
-        echo "ctr version: " $(ctr version)
-        echo "kubeadm version: " $(kubeadm version -o=short)
-        echo "kubectl version: " $(kubectl version --client=true)
-        echo "kubelet version: " $(kubelet --version)
-        echo "$$LINE_SEPARATOR"
-      owner: root:root
-      path: /tmp/kubeadm-bootstrap.sh
-      permissions: "0744"
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
@@ -221,8 +223,7 @@ spec:
     postKubeadmCommands: []
     preKubeadmCommands:
     - bash -c /tmp/oot-cred-provider.sh
-    - bash -c /tmp/kubeadm-bootstrap.sh
-    verbosity: 5
+    verbosity: 10
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -314,7 +315,77 @@ spec:
   template:
     spec:
       files:
-      - contentFrom:
+      - content:
+        - content: "#!/bin/bash\n\nset -o nounset\nset -o pipefail\nset -o errexit\n[[
+            $(id -u) != 0 ]] && SUDO=\"sudo\" || SUDO=\"\"\n\n# This test installs
+            release packages or binaries that are a result of the CI and release builds.\n#
+            It runs '... --version' commands to verify that the binaries are correctly
+            installed\n# and finally uninstalls the packages.\n# For the release packages
+            it tests all versions in the support skew.\nLINE_SEPARATOR=\"*************************************************\"\necho
+            \"$$LINE_SEPARATOR\"\nCI_VERSION=${CI_VERSION}\nif [[ \"$${CI_VERSION}\"
+            != \"\" ]]; then\n  CI_DIR=/tmp/k8s-ci\n  mkdir -p $$CI_DIR\n  declare
+            -a PACKAGES_TO_TEST=(\"kubectl\" \"kubelet\" \"kubeadm\")\n  declare -a
+            CONTAINERS_TO_TEST=(\"kube-apiserver\" \"kube-controller-manager\" \"kube-proxy\"
+            \"kube-scheduler\")\n  CONTAINER_EXT=\"tar\"\n  echo \"* testing CI version
+            $$CI_VERSION\"\n  \n  # Add custom image handling\n  if [[ -n \"${KUBE_APISERVER_IMAGE:-}\"
+            ]] && [[ -n \"${KUBE_CONTROLLER_MANAGER_IMAGE:-}\" ]] && [[ -n \"${KUBE_SCHEDULER_IMAGE:-}\"
+            ]] && [[ -n \"${KUBE_PROXY_IMAGE:-}\" ]]; then\n    echo \"* Using custom
+            Kubernetes images\"\n    \n    # Pull and tag custom images\n    echo
+            \"* Pulling kube-apiserver: ${KUBE_APISERVER_IMAGE}\"\n    $${SUDO} ctr
+            -n k8s.io images pull \"${KUBE_APISERVER_IMAGE}\"\n    $${SUDO} ctr -n
+            k8s.io images tag \"${KUBE_APISERVER_IMAGE}\" \"registry.k8s.io/kube-apiserver:$${CI_VERSION//+/_}\"\n
+            \   \n    echo \"* Pulling kube-controller-manager: ${KUBE_CONTROLLER_MANAGER_IMAGE}\"\n
+            \   $${SUDO} ctr -n k8s.io images pull \"${KUBE_CONTROLLER_MANAGER_IMAGE}\"\n
+            \   $${SUDO} ctr -n k8s.io images tag \"${KUBE_CONTROLLER_MANAGER_IMAGE}\"
+            \"registry.k8s.io/kube-controller-manager:$${CI_VERSION//+/_}\"\n    \n
+            \   echo \"* Pulling kube-scheduler: ${KUBE_SCHEDULER_IMAGE}\"\n    $${SUDO}
+            ctr -n k8s.io images pull \"${KUBE_SCHEDULER_IMAGE}\"\n    $${SUDO} ctr
+            -n k8s.io images tag \"${KUBE_SCHEDULER_IMAGE}\" \"registry.k8s.io/kube-scheduler:$${CI_VERSION//+/_}\"\n
+            \   \n    echo \"* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}\"\n    $${SUDO}
+            ctr -n k8s.io images pull \"${KUBE_PROXY_IMAGE}\"\n    $${SUDO} ctr -n
+            k8s.io images tag \"${KUBE_PROXY_IMAGE}\" \"registry.k8s.io/kube-proxy:$${CI_VERSION//+/_}\"\n
+            \   \n    # Still need to install the binaries for kubectl, kubelet, kubeadm\n
+            \   CI_URL=\"https://storage.googleapis.com/k8s-release-dev/ci/$${CI_VERSION}/bin/linux/amd64\"\n
+            \   for CI_PACKAGE in \"$${PACKAGES_TO_TEST[@]}\"; do\n      echo \"*
+            downloading binary: $$CI_URL/$$CI_PACKAGE\"\n      wget --inet4-only \"$$CI_URL/$$CI_PACKAGE\"
+            -nv -O \"$$CI_DIR/$$CI_PACKAGE\"\n      chmod +x \"$$CI_DIR/$$CI_PACKAGE\"\n
+            \     mv \"$$CI_DIR/$$CI_PACKAGE\" \"/usr/bin/$$CI_PACKAGE\"\n    done\n
+            \ # Check for semver\n  elif [[ \"$${CI_VERSION}\" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+$
+            ]]; then\n    VERSION_WITHOUT_PREFIX=\"${CI_VERSION#v}\"\n    DEBIAN_FRONTEND=noninteractive
+            apt-get install -y apt-transport-https curl\n    curl -fsSL https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/Release.key
+            | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg\n    echo
+            \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/
+            /\" | tee /etc/apt/sources.list.d/kubernetes.list\n    apt-get update\n
+            \   # replace . with \\.\n    VERSION_REGEX=\"${VERSION_WITHOUT_PREFIX//./\\\\.}\"\n
+            \   PACKAGE_VERSION=\"$(apt-cache madison kubelet|grep $${VERSION_REGEX}-
+            | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')\"\n    for CI_PACKAGE
+            in \"$${PACKAGES_TO_TEST[@]}\"; do\n      echo \"* installing package:
+            $$CI_PACKAGE $${PACKAGE_VERSION}\"\n      DEBIAN_FRONTEND=noninteractive
+            apt-get install -y $$CI_PACKAGE=$$PACKAGE_VERSION\n    done\n  else\n
+            \   CI_URL=\"https://storage.googleapis.com/k8s-release-dev/ci/$${CI_VERSION}/bin/linux/amd64\"\n
+            \   for CI_PACKAGE in \"$${PACKAGES_TO_TEST[@]}\"; do\n      echo \"*
+            downloading binary: $$CI_URL/$$CI_PACKAGE\"\n      wget --inet4-only \"$$CI_URL/$$CI_PACKAGE\"
+            -nv -O \"$$CI_DIR/$$CI_PACKAGE\"\n      chmod +x \"$$CI_DIR/$$CI_PACKAGE\"\n
+            \     mv \"$$CI_DIR/$$CI_PACKAGE\" \"/usr/bin/$$CI_PACKAGE\"\n    done\n
+            \   IMAGE_REGISTRY_PREFIX=registry.k8s.io\n    for CI_CONTAINER in \"$${CONTAINERS_TO_TEST[@]}\";
+            do\n      echo \"* downloading package: $$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT\"\n
+            \     wget --inet4-only \"$$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT\" -nv
+            -O \"$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT\"\n      $${SUDO} ctr -n
+            k8s.io images import \"$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT\" || echo
+            \"* ignoring expected 'ctr images import' result\"\n      $${SUDO} ctr
+            -n k8s.io images tag $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER-amd64:\"$${CI_VERSION//+/_}\"
+            $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER:\"$${CI_VERSION//+/_}\"\n      $${SUDO}
+            ctr -n k8s.io images tag $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER-amd64:\"$${CI_VERSION//+/_}\"
+            gcr.io/k8s-staging-ci-images/$$CI_CONTAINER:\"$${CI_VERSION//+/_}\"\n
+            \   done\n  fi\n  systemctl restart kubelet\nfi\necho \"* checking binary
+            versions\"\necho \"ctr version: \" $(ctr version)\necho \"kubeadm version:
+            \" $(kubeadm version -o=short)\necho \"kubectl version: \" $(kubectl version
+            --client=true)\necho \"kubelet version: \" $(kubelet --version)\necho
+            \"$$LINE_SEPARATOR\"\n"
+          owner: root:root
+          path: /tmp/kubeadm-bootstrap.sh
+          permissions: "0744"
+        contentFrom:
           secret:
             key: worker-node-azure.json
             name: ${CLUSTER_NAME}-md-0-azure-json
@@ -349,70 +420,6 @@ spec:
         owner: root:root
         path: /tmp/oot-cred-provider.sh
         permissions: "0744"
-      - content: |
-          #!/bin/bash
-
-          set -o nounset
-          set -o pipefail
-          set -o errexit
-          [[ $(id -u) != 0 ]] && SUDO="sudo" || SUDO=""
-
-          # This test installs release packages or binaries that are a result of the CI and release builds.
-          # It runs '... --version' commands to verify that the binaries are correctly installed
-          # and finally uninstalls the packages.
-          # For the release packages it tests all versions in the support skew.
-          LINE_SEPARATOR="*************************************************"
-          echo "$$LINE_SEPARATOR"
-          CI_VERSION=${CI_VERSION}
-          if [[ "$${CI_VERSION}" != "" ]]; then
-            CI_DIR=/tmp/k8s-ci
-            mkdir -p $$CI_DIR
-            declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
-            declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
-            CONTAINER_EXT="tar"
-            echo "* testing CI version $$CI_VERSION"
-            # Check for semver
-            if [[ "$${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              VERSION_WITHOUT_PREFIX="${CI_VERSION#v}"
-              DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl
-              curl -fsSL https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-              echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
-              apt-get update
-              # replace . with \.
-              VERSION_REGEX="${VERSION_WITHOUT_PREFIX//./\\.}"
-              PACKAGE_VERSION="$(apt-cache madison kubelet|grep $${VERSION_REGEX}- | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')"
-              for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-                echo "* installing package: $$CI_PACKAGE $${PACKAGE_VERSION}"
-                DEBIAN_FRONTEND=noninteractive apt-get install -y $$CI_PACKAGE=$$PACKAGE_VERSION
-              done
-            else
-              CI_URL="https://storage.googleapis.com/k8s-release-dev/ci/$${CI_VERSION}/bin/linux/amd64"
-              for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
-                echo "* downloading binary: $$CI_URL/$$CI_PACKAGE"
-                wget --inet4-only "$$CI_URL/$$CI_PACKAGE" -nv -O "$$CI_DIR/$$CI_PACKAGE"
-                chmod +x "$$CI_DIR/$$CI_PACKAGE"
-                mv "$$CI_DIR/$$CI_PACKAGE" "/usr/bin/$$CI_PACKAGE"
-              done
-              IMAGE_REGISTRY_PREFIX=registry.k8s.io
-              for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do
-                echo "* downloading package: $$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT"
-                wget --inet4-only "$$CI_URL/$$CI_CONTAINER.$$CONTAINER_EXT" -nv -O "$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT"
-                $${SUDO} ctr -n k8s.io images import "$$CI_DIR/$$CI_CONTAINER.$$CONTAINER_EXT" || echo "* ignoring expected 'ctr images import' result"
-                $${SUDO} ctr -n k8s.io images tag $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER-amd64:"$${CI_VERSION//+/_}" $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER:"$${CI_VERSION//+/_}"
-                $${SUDO} ctr -n k8s.io images tag $$IMAGE_REGISTRY_PREFIX/$$CI_CONTAINER-amd64:"$${CI_VERSION//+/_}" gcr.io/k8s-staging-ci-images/$$CI_CONTAINER:"$${CI_VERSION//+/_}"
-              done
-            fi
-            systemctl restart kubelet
-          fi
-          echo "* checking binary versions"
-          echo "ctr version: " $(ctr version)
-          echo "kubeadm version: " $(kubeadm version -o=short)
-          echo "kubectl version: " $(kubectl version --client=true)
-          echo "kubelet version: " $(kubelet --version)
-          echo "$$LINE_SEPARATOR"
-        owner: root:root
-        path: /tmp/kubeadm-bootstrap.sh
-        permissions: "0744"
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
@@ -424,8 +431,6 @@ spec:
       - echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
         >> /etc/hosts
       - bash -c /tmp/oot-cred-provider.sh
-      - bash -c /tmp/kubeadm-bootstrap.sh
-      verbosity: 5
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureClusterIdentity
