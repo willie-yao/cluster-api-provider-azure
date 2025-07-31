@@ -11,7 +11,9 @@ CONFORMANCE_E2E_ARGS += $(E2E_ARGS)
 
 .PHONY: test-conformance
 test-conformance: ## Run conformance test on workload cluster.
-ifeq ($(CUSTOM_MANAGER_IMAGE),)
+ifeq ($(DONT_SKIP_BUILD_AND_PUSH),true)
+	$(MAKE) test-e2e GINKGO_FOCUS="Conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' CONFORMANCE_FLAVOR='$(CONFORMANCE_FLAVOR)'
+else ifeq ($(CUSTOM_MANAGER_IMAGE),)
 	$(MAKE) test-e2e-skip-push GINKGO_FOCUS="Conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' CONFORMANCE_FLAVOR='$(CONFORMANCE_FLAVOR)'
 else
 	$(MAKE) test-e2e-custom-image-skip-build-and-push MANAGER_IMAGE=$(CUSTOM_MANAGER_IMAGE) GINKGO_FOCUS="Conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' CONFORMANCE_FLAVOR='$(CONFORMANCE_FLAVOR)'
