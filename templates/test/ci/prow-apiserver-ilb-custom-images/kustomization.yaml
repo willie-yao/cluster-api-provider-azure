@@ -4,14 +4,14 @@ namespace: default
 resources:
 - ../prow-apiserver-ilb
 patches:
-- path: ../patches/kubeadm-bootstrap-custom-images.yaml
+- path: patches/kubeadm-bootstrap-custom-images.yaml
   target:
     group: bootstrap.cluster.x-k8s.io
     kind: KubeadmConfigTemplate
     name: .*-md-0
     namespace: default
     version: v1beta1
-- path: ../patches/control-plane-kubeadm-bootstrap-custom-images.yaml
+- path: patches/control-plane-kubeadm-bootstrap-custom-images.yaml
   target:
     group: controlplane.cluster.x-k8s.io
     kind: KubeadmControlPlane
