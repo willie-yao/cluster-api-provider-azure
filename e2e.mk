@@ -33,6 +33,16 @@ test-e2e-skip-push: ## Run "docker-build" rule then run e2e tests.
 	$(MAKE) docker-build \
 	test-e2e-run
 
+.PHONY: test-e2e-skip-push-custom-image
+test-e2e-skip-push-custom-image: ## Run "docker-build" rule then run e2e tests.
+	@if [ -z "$(MANAGER_IMAGE)" ]; then \
+		echo "MANAGER_IMAGE must be set"; \
+		exit 1; \
+	fi
+	PULL_POLICY=IfNotPresent \
+	$(MAKE) docker-build \
+	test-e2e-run
+
 .PHONY: test-e2e-skip-build-and-push
 test-e2e-skip-build-and-push:
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/capz/manager_image_patch.yaml"
