@@ -14,7 +14,7 @@ test-conformance: ## Run conformance test on workload cluster.
 ifeq ($(MANAGER_IMAGE),)
 	$(MAKE) test-e2e-skip-push GINKGO_FOCUS="Conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' CONFORMANCE_FLAVOR='$(CONFORMANCE_FLAVOR)'
 else
-	$(MAKE) test-e2e-skip-push-custom-image GINKGO_FOCUS="Conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' CONFORMANCE_FLAVOR='$(CONFORMANCE_FLAVOR)'
+	$(MAKE) test-e2e-custom-image-skip-build-and-push GINKGO_FOCUS="Conformance" E2E_ARGS='$(CONFORMANCE_E2E_ARGS)' CONFORMANCE_FLAVOR='$(CONFORMANCE_FLAVOR)'
 endif
 
 test-conformance-fast: ## Run conformance test on workload cluster using a subset of the conformance suite in parallel.
