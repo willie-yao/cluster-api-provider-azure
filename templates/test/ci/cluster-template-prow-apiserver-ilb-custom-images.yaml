@@ -69,18 +69,23 @@ spec:
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
-        image: ${KUBE_APISERVER_IMAGE}
+        extraArgs: {}
+        timeoutForControlPlane: 20m
       controllerManager:
-        image: ${KUBE_CONTROLLER_MANAGER_IMAGE}
+        extraArgs:
+          allocate-node-cidrs: "false"
+          cloud-provider: external
+          cluster-name: ${CLUSTER_NAME}
+          v: "4"
+      dns:
+        imageRepository: upstream.azurecr.io/oss/v2/kubernetes
+        imageTag: coredns-1.11.3
       etcd:
         local:
           dataDir: /var/lib/etcddisk/etcd
           extraArgs:
             quota-backend-bytes: "8589934592"
-      proxy:
-        image: ${KUBE_PROXY_IMAGE}
-      scheduler:
-        image: ${KUBE_SCHEDULER_IMAGE}
+      imageRepository: upstream.azurecr.io/oss/v2/kubernetes
     diskSetup:
       filesystems:
       - device: /dev/disk/azure/scsi1/lun0
@@ -118,21 +123,38 @@ spec:
         echo "$$LINE_SEPARATOR"
 
         # Custom image handling
-        if [[ -n "${KUBE_APISERVER_IMAGE:-}" ]] && [[ -n "${KUBE_CONTROLLER_MANAGER_IMAGE:-}" ]] && [[ -n "${KUBE_SCHEDULER_IMAGE:-}" ]]; then
-          echo "* Using custom Kubernetes control plane images"
-
-          # Pull custom images (no retagging needed)
+        if [[ -n "${KUBE_APISERVER_IMAGE:-}" ]]; then
+          echo "* Using custom kube-apiserver image: ${KUBE_APISERVER_IMAGE}"
           echo "* Pulling kube-apiserver: ${KUBE_APISERVER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_APISERVER_IMAGE}"
+        else
+          echo "* Custom kube-apiserver image environment variable not set, using default"
+        fi
 
+        if [[ -n "${KUBE_CONTROLLER_MANAGER_IMAGE:-}" ]]; then
+          echo "* Using custom kube-controller-manager image: ${KUBE_CONTROLLER_MANAGER_IMAGE}"
           echo "* Pulling kube-controller-manager: ${KUBE_CONTROLLER_MANAGER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_CONTROLLER_MANAGER_IMAGE}"
+        else
+          echo "* Custom kube-controller-manager image environment variable not set, using default"
+        fi
 
+        if [[ -n "${KUBE_SCHEDULER_IMAGE:-}" ]]; then
+          echo "* Using custom kube-scheduler image: ${KUBE_SCHEDULER_IMAGE}"
           echo "* Pulling kube-scheduler: ${KUBE_SCHEDULER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_SCHEDULER_IMAGE}"
         else
-          echo "* Custom control plane image environment variables not set, using defaults"
+          echo "* Custom kube-scheduler image environment variable not set, using default"
         fi
+
+        if [[ -n "${KUBE_PROXY_IMAGE:-}" ]]; then
+          echo "* Using custom kube-proxy image: ${KUBE_PROXY_IMAGE}"
+          echo "* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}"
+          $${SUDO} ctr -n k8s.io images pull "${KUBE_PROXY_IMAGE}"
+        else
+          echo "* Custom kube-proxy image environment variable not set, using default"
+        fi
+
         echo "* checking binary versions"
         echo "ctr version: " $(ctr version)
         echo "kubeadm version: " $(kubeadm version -o=short)
@@ -275,6 +297,7 @@ spec:
         permissions: "0744"
       joinConfiguration:
         nodeRegistration:
+          imageRepository: upstream.azurecr.io/oss/v2/kubernetes
           kubeletExtraArgs:
             cloud-provider: external
           name: '{{ ds.meta_data["local_hostname"] }}'
