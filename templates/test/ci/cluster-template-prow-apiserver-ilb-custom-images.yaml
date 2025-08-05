@@ -69,19 +69,18 @@ spec:
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
-        extraArgs: {}
-        timeoutForControlPlane: 20m
+        image: ${KUBE_APISERVER_IMAGE}
       controllerManager:
-        extraArgs:
-          allocate-node-cidrs: "false"
-          cloud-provider: external
-          cluster-name: ${CLUSTER_NAME}
-          v: "4"
+        image: ${KUBE_CONTROLLER_MANAGER_IMAGE}
       etcd:
         local:
           dataDir: /var/lib/etcddisk/etcd
           extraArgs:
             quota-backend-bytes: "8589934592"
+      proxy:
+        image: ${KUBE_PROXY_IMAGE}
+      scheduler:
+        image: ${KUBE_SCHEDULER_IMAGE}
     diskSetup:
       filesystems:
       - device: /dev/disk/azure/scsi1/lun0
@@ -119,29 +118,20 @@ spec:
         echo "$$LINE_SEPARATOR"
 
         # Custom image handling
-        if [[ -n "${KUBE_APISERVER_IMAGE:-}" ]] && [[ -n "${KUBE_CONTROLLER_MANAGER_IMAGE:-}" ]] && [[ -n "${KUBE_SCHEDULER_IMAGE:-}" ]] && [[ -n "${KUBE_PROXY_IMAGE:-}" ]]; then
-          echo "* Using custom Kubernetes images"
+        if [[ -n "${KUBE_APISERVER_IMAGE:-}" ]] && [[ -n "${KUBE_CONTROLLER_MANAGER_IMAGE:-}" ]] && [[ -n "${KUBE_SCHEDULER_IMAGE:-}" ]]; then
+          echo "* Using custom Kubernetes control plane images"
 
-          # Pull and tag custom images
+          # Pull custom images (no retagging needed)
           echo "* Pulling kube-apiserver: ${KUBE_APISERVER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_APISERVER_IMAGE}"
-          $${SUDO} ctr -n k8s.io images tag "${KUBE_APISERVER_IMAGE}" "registry.k8s.io/kube-apiserver:${KUBERNETES_VERSION}"
 
           echo "* Pulling kube-controller-manager: ${KUBE_CONTROLLER_MANAGER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_CONTROLLER_MANAGER_IMAGE}"
-          $${SUDO} ctr -n k8s.io images tag "${KUBE_CONTROLLER_MANAGER_IMAGE}" "registry.k8s.io/kube-controller-manager:${KUBERNETES_VERSION}"
 
           echo "* Pulling kube-scheduler: ${KUBE_SCHEDULER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_SCHEDULER_IMAGE}"
-          $${SUDO} ctr -n k8s.io images tag "${KUBE_SCHEDULER_IMAGE}" "registry.k8s.io/kube-scheduler:${KUBERNETES_VERSION}"
-
-          echo "* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}"
-          $${SUDO} ctr -n k8s.io images pull "${KUBE_PROXY_IMAGE}"
-          $${SUDO} ctr -n k8s.io images tag "${KUBE_PROXY_IMAGE}" "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}"
-
-          systemctl restart kubelet
         else
-          echo "* Custom image environment variables not set, skipping custom image handling"
+          echo "* Custom control plane image environment variables not set, using defaults"
         fi
         echo "* checking binary versions"
         echo "ctr version: " $(ctr version)
@@ -267,29 +257,12 @@ spec:
           echo "$$LINE_SEPARATOR"
 
           # Custom image handling
-          if [[ -n "${KUBE_APISERVER_IMAGE:-}" ]] && [[ -n "${KUBE_CONTROLLER_MANAGER_IMAGE:-}" ]] && [[ -n "${KUBE_SCHEDULER_IMAGE:-}" ]] && [[ -n "${KUBE_PROXY_IMAGE:-}" ]]; then
-            echo "* Using custom Kubernetes images"
-
-            # Pull and tag custom images
-            echo "* Pulling kube-apiserver: ${KUBE_APISERVER_IMAGE}"
-            $${SUDO} ctr -n k8s.io images pull "${KUBE_APISERVER_IMAGE}"
-            $${SUDO} ctr -n k8s.io images tag "${KUBE_APISERVER_IMAGE}" "registry.k8s.io/kube-apiserver:${KUBERNETES_VERSION}"
-
-            echo "* Pulling kube-controller-manager: ${KUBE_CONTROLLER_MANAGER_IMAGE}"
-            $${SUDO} ctr -n k8s.io images pull "${KUBE_CONTROLLER_MANAGER_IMAGE}"
-            $${SUDO} ctr -n k8s.io images tag "${KUBE_CONTROLLER_MANAGER_IMAGE}" "registry.k8s.io/kube-controller-manager:${KUBERNETES_VERSION}"
-
-            echo "* Pulling kube-scheduler: ${KUBE_SCHEDULER_IMAGE}"
-            $${SUDO} ctr -n k8s.io images pull "${KUBE_SCHEDULER_IMAGE}"
-            $${SUDO} ctr -n k8s.io images tag "${KUBE_SCHEDULER_IMAGE}" "registry.k8s.io/kube-scheduler:${KUBERNETES_VERSION}"
-
+          if [[ -n "${KUBE_PROXY_IMAGE:-}" ]]; then
+            echo "* Using custom kube-proxy image: ${KUBE_PROXY_IMAGE}"
             echo "* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}"
             $${SUDO} ctr -n k8s.io images pull "${KUBE_PROXY_IMAGE}"
-            $${SUDO} ctr -n k8s.io images tag "${KUBE_PROXY_IMAGE}" "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}"
-
-            systemctl restart kubelet
           else
-            echo "* Custom image environment variables not set, skipping custom image handling"
+            echo "* Custom kube-proxy image environment variable not set, using default"
           fi
           echo "* checking binary versions"
           echo "ctr version: " $(ctr version)
