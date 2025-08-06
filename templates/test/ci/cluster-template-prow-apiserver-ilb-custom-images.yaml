@@ -77,9 +77,6 @@ spec:
           cloud-provider: external
           cluster-name: ${CLUSTER_NAME}
           v: "4"
-      dns:
-        imageRepository: upstream.azurecr.io/oss/v2/kubernetes
-        imageTag: v1.11.3
       etcd:
         local:
           dataDir: /var/lib/etcddisk/etcd
