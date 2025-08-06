@@ -65,7 +65,7 @@
   path: /spec/kubeadmConfigSpec/clusterConfiguration/dns
   value:
     imageRepository: upstream.azurecr.io/oss/v2/kubernetes
-    imageTag: coredns-1.11.3
+    imageTag: v1.11.3
 - op: add
   path: /spec/kubeadmConfigSpec/verbosity
   value: 5

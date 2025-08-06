@@ -79,7 +79,7 @@ spec:
           v: "4"
       dns:
         imageRepository: upstream.azurecr.io/oss/v2/kubernetes
-        imageTag: coredns-1.11.3
+        imageTag: v1.11.3
       etcd:
         local:
           dataDir: /var/lib/etcddisk/etcd
