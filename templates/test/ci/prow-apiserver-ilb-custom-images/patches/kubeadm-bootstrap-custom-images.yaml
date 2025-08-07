@@ -34,5 +34,8 @@
   value:
     bash -c /tmp/kubeadm-bootstrap.sh
 - op: add
+  path: /spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/image-pull-policy
+  value: Never
+- op: add
   path: /spec/template/spec/verbosity
   value: 5

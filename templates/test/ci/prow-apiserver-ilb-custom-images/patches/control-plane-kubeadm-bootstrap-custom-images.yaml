@@ -62,5 +62,22 @@
   path: /spec/kubeadmConfigSpec/clusterConfiguration/imageRepository
   value: upstream.azurecr.io/oss/v2/kubernetes
 - op: add
+  path: /spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/image-pull-policy
+  value: Never
+- op: add
+  path: /spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/image-pull-policy
+  value: Never
+- op: add
+  path: /spec/kubeadmConfigSpec/clusterConfiguration/scheduler
+  value:
+    extraArgs:
+      image-pull-policy: Never
+- op: add
+  path: /spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/image-pull-policy
+  value: Never
+- op: add
+  path: /spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/image-pull-policy
+  value: Never
+- op: add
   path: /spec/kubeadmConfigSpec/verbosity
   value: 5

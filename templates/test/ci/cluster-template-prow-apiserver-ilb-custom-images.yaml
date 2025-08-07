@@ -69,13 +69,15 @@ spec:
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
-        extraArgs: {}
+        extraArgs:
+          image-pull-policy: Never
         timeoutForControlPlane: 20m
       controllerManager:
         extraArgs:
           allocate-node-cidrs: "false"
           cloud-provider: external
           cluster-name: ${CLUSTER_NAME}
+          image-pull-policy: Never
           v: "4"
       etcd:
         local:
@@ -83,6 +85,9 @@ spec:
           extraArgs:
             quota-backend-bytes: "8589934592"
       imageRepository: upstream.azurecr.io/oss/v2/kubernetes
+      scheduler:
+        extraArgs:
+          image-pull-policy: Never
     diskSetup:
       filesystems:
       - device: /dev/disk/azure/scsi1/lun0
@@ -165,11 +170,13 @@ spec:
       nodeRegistration:
         kubeletExtraArgs:
           cloud-provider: external
+          image-pull-policy: Never
         name: '{{ ds.meta_data["local_hostname"] }}'
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
           cloud-provider: external
+          image-pull-policy: Never
         name: '{{ ds.meta_data["local_hostname"] }}'
     mounts:
     - - LABEL=etcd_disk
@@ -296,6 +303,7 @@ spec:
         nodeRegistration:
           kubeletExtraArgs:
             cloud-provider: external
+            image-pull-policy: Never
           name: '{{ ds.meta_data["local_hostname"] }}'
       preKubeadmCommands:
       - echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
