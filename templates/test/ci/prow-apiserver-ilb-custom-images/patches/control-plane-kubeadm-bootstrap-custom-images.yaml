@@ -17,6 +17,7 @@
         echo "* Using custom kube-apiserver image: ${KUBE_APISERVER_IMAGE}"
         echo "* Pulling kube-apiserver: ${KUBE_APISERVER_IMAGE}"
         $${SUDO} ctr -n k8s.io images pull "${KUBE_APISERVER_IMAGE}"
+        $${SUDO} ctr -n k8s.io images tag "${KUBE_APISERVER_IMAGE}" "registry.k8s.io/kube-apiserver:${KUBERNETES_VERSION}"
       else
         echo "* Custom kube-apiserver image environment variable not set, using default"
       fi
@@ -25,6 +26,7 @@
         echo "* Using custom kube-controller-manager image: ${KUBE_CONTROLLER_MANAGER_IMAGE}"
         echo "* Pulling kube-controller-manager: ${KUBE_CONTROLLER_MANAGER_IMAGE}"
         $${SUDO} ctr -n k8s.io images pull "${KUBE_CONTROLLER_MANAGER_IMAGE}"
+        $${SUDO} ctr -n k8s.io images tag "${KUBE_CONTROLLER_MANAGER_IMAGE}" "registry.k8s.io/kube-controller-manager:${KUBERNETES_VERSION}"
       else
         echo "* Custom kube-controller-manager image environment variable not set, using default"
       fi
@@ -33,6 +35,7 @@
         echo "* Using custom kube-scheduler image: ${KUBE_SCHEDULER_IMAGE}"
         echo "* Pulling kube-scheduler: ${KUBE_SCHEDULER_IMAGE}"
         $${SUDO} ctr -n k8s.io images pull "${KUBE_SCHEDULER_IMAGE}"
+        $${SUDO} ctr -n k8s.io images tag "${KUBE_SCHEDULER_IMAGE}" "registry.k8s.io/kube-scheduler:${KUBERNETES_VERSION}"
       else
         echo "* Custom kube-scheduler image environment variable not set, using default"
       fi
@@ -41,6 +44,7 @@
         echo "* Using custom kube-proxy image: ${KUBE_PROXY_IMAGE}"
         echo "* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}"
         $${SUDO} ctr -n k8s.io images pull "${KUBE_PROXY_IMAGE}"
+        $${SUDO} ctr -n k8s.io images tag "${KUBE_PROXY_IMAGE}" "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}"
       else
         echo "* Custom kube-proxy image environment variable not set, using default"
       fi
@@ -58,9 +62,6 @@
   path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
   value:
     bash -c /tmp/kubeadm-bootstrap.sh
-- op: add
-  path: /spec/kubeadmConfigSpec/clusterConfiguration/imageRepository
-  value: upstream.azurecr.io/oss/v2/kubernetes
 - op: add
   path: /spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/image-pull-policy
   value: Never
