@@ -121,6 +121,9 @@ spec:
         # Custom image handling
         if [[ -n "${KUBE_APISERVER_IMAGE:-}" ]]; then
           echo "* Using custom kube-apiserver image: ${KUBE_APISERVER_IMAGE}"
+          # Remove existing image if present
+          echo "* Removing existing kube-apiserver image if present"
+          $${SUDO} ctr -n k8s.io images rm "registry.k8s.io/kube-apiserver:${KUBERNETES_VERSION}" 2>/dev/null || true
           echo "* Pulling kube-apiserver: ${KUBE_APISERVER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_APISERVER_IMAGE}"
           $${SUDO} ctr -n k8s.io images tag "${KUBE_APISERVER_IMAGE}" "registry.k8s.io/kube-apiserver:${KUBERNETES_VERSION}"
@@ -130,6 +133,9 @@ spec:
 
         if [[ -n "${KUBE_CONTROLLER_MANAGER_IMAGE:-}" ]]; then
           echo "* Using custom kube-controller-manager image: ${KUBE_CONTROLLER_MANAGER_IMAGE}"
+          # Remove existing image if present
+          echo "* Removing existing kube-controller-manager image if present"
+          $${SUDO} ctr -n k8s.io images rm "registry.k8s.io/kube-controller-manager:${KUBERNETES_VERSION}" 2>/dev/null || true
           echo "* Pulling kube-controller-manager: ${KUBE_CONTROLLER_MANAGER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_CONTROLLER_MANAGER_IMAGE}"
           $${SUDO} ctr -n k8s.io images tag "${KUBE_CONTROLLER_MANAGER_IMAGE}" "registry.k8s.io/kube-controller-manager:${KUBERNETES_VERSION}"
@@ -139,6 +145,9 @@ spec:
 
         if [[ -n "${KUBE_SCHEDULER_IMAGE:-}" ]]; then
           echo "* Using custom kube-scheduler image: ${KUBE_SCHEDULER_IMAGE}"
+          # Remove existing image if present
+          echo "* Removing existing kube-scheduler image if present"
+          $${SUDO} ctr -n k8s.io images rm "registry.k8s.io/kube-scheduler:${KUBERNETES_VERSION}" 2>/dev/null || true
           echo "* Pulling kube-scheduler: ${KUBE_SCHEDULER_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_SCHEDULER_IMAGE}"
           $${SUDO} ctr -n k8s.io images tag "${KUBE_SCHEDULER_IMAGE}" "registry.k8s.io/kube-scheduler:${KUBERNETES_VERSION}"
@@ -148,6 +157,9 @@ spec:
 
         if [[ -n "${KUBE_PROXY_IMAGE:-}" ]]; then
           echo "* Using custom kube-proxy image: ${KUBE_PROXY_IMAGE}"
+          # Remove existing image if present
+          echo "* Removing existing kube-proxy image if present"
+          $${SUDO} ctr -n k8s.io images rm "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}" 2>/dev/null || true
           echo "* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}"
           $${SUDO} ctr -n k8s.io images pull "${KUBE_PROXY_IMAGE}"
           $${SUDO} ctr -n k8s.io images tag "${KUBE_PROXY_IMAGE}" "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}"
@@ -166,13 +178,11 @@ spec:
       permissions: "0744"
     initConfiguration:
       nodeRegistration:
-        imagePullPolicy: Never
         kubeletExtraArgs:
           cloud-provider: external
         name: '{{ ds.meta_data["local_hostname"] }}'
     joinConfiguration:
       nodeRegistration:
-        imagePullPolicy: Never
         kubeletExtraArgs:
           cloud-provider: external
         name: '{{ ds.meta_data["local_hostname"] }}'
@@ -283,6 +293,9 @@ spec:
           # Custom image handling
           if [[ -n "${KUBE_PROXY_IMAGE:-}" ]]; then
             echo "* Using custom kube-proxy image: ${KUBE_PROXY_IMAGE}"
+            # Remove existing image if present
+            echo "* Removing existing kube-proxy image if present"
+            $${SUDO} ctr -n k8s.io images rm "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}" 2>/dev/null || true
             echo "* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}"
             $${SUDO} ctr -n k8s.io images pull "${KUBE_PROXY_IMAGE}"
             $${SUDO} ctr -n k8s.io images tag "${KUBE_PROXY_IMAGE}" "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}"
@@ -300,7 +313,6 @@ spec:
         permissions: "0744"
       joinConfiguration:
         nodeRegistration:
-          imagePullPolicy: Never
           kubeletExtraArgs:
             cloud-provider: external
           name: '{{ ds.meta_data["local_hostname"] }}'
