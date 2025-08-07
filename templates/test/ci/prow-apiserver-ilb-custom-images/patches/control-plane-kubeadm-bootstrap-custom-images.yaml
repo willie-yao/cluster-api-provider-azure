@@ -63,21 +63,10 @@
   value:
     bash -c /tmp/kubeadm-bootstrap.sh
 - op: add
-  path: /spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/image-pull-policy
+  path: /spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/imagePullPolicy
   value: Never
 - op: add
-  path: /spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/image-pull-policy
-  value: Never
-- op: add
-  path: /spec/kubeadmConfigSpec/clusterConfiguration/scheduler
-  value:
-    extraArgs:
-      image-pull-policy: Never
-- op: add
-  path: /spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/image-pull-policy
-  value: Never
-- op: add
-  path: /spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/image-pull-policy
+  path: /spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/imagePullPolicy
   value: Never
 - op: add
   path: /spec/kubeadmConfigSpec/verbosity
