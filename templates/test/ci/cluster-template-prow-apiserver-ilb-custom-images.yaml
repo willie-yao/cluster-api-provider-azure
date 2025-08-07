@@ -294,7 +294,6 @@ spec:
         permissions: "0744"
       joinConfiguration:
         nodeRegistration:
-          imageRepository: upstream.azurecr.io/oss/v2/kubernetes
           kubeletExtraArgs:
             cloud-provider: external
           name: '{{ ds.meta_data["local_hostname"] }}'
