@@ -20,6 +20,7 @@
         $${SUDO} ctr -n k8s.io images rm "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}" 2>/dev/null || true
         echo "* Pulling kube-proxy: ${KUBE_PROXY_IMAGE}"
         $${SUDO} ctr -n k8s.io images pull "${KUBE_PROXY_IMAGE}"
+        echo "* Tagging kube-proxy: ${KUBE_PROXY_IMAGE} as registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}"
         $${SUDO} ctr -n k8s.io images tag "${KUBE_PROXY_IMAGE}" "registry.k8s.io/kube-proxy:${KUBERNETES_VERSION}"
       else
         echo "* Custom kube-proxy image environment variable not set, using default"
