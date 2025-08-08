@@ -185,20 +185,6 @@ create_aks_cluster() {
     USER_IDENTITY=$MANAGED_IDENTITY_NAME
     export USER_IDENTITY
 
-    # Scale up metrics-server replicas first (try to fix pdb issue)
-    kubectl scale deployment metrics-server -n kube-system --replicas=3
-
-    # Wait for the new replicas to be ready
-    kubectl wait --for=condition=ready pod -l k8s-app=metrics-server -n kube-system --timeout=300s
-
-    if kubectl get pdb -n kube-system metrics-server &>/dev/null; then
-        echo "Adjusting metrics-server PDB to allow disruptions with 3 replicas..."
-        kubectl patch pdb metrics-server-pdb -n kube-system --type='json' \
-            -p='[{"op": "remove", "path": "/spec/minAvailable"},{"op": "add", "path": "/spec/maxUnavailable", "value": 2}]' 2>/dev/null || \
-        kubectl patch pdb metrics-server-pdb -n kube-system --type='json' \
-            -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 1}]' || true
-    fi
-
     echo "assigning user-assigned managed identity to the AKS cluster"
     az aks update --resource-group "${AKS_RESOURCE_GROUP}" \
     --name "${MGMT_CLUSTER_NAME}" \
