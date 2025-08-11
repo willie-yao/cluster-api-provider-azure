@@ -185,6 +185,9 @@ create_aks_cluster() {
     USER_IDENTITY=$MANAGED_IDENTITY_NAME
     export USER_IDENTITY
 
+    echo "Adjusting metrics-server PDB for upgrade..."
+    kubectl --kubeconfig "${REPO_ROOT}/${MGMT_CLUSTER_KUBECONFIG}" patch pdb metrics-server-pdb -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 0}]' 2>/dev/null || true
+
     echo "assigning user-assigned managed identity to the AKS cluster"
     az aks update --resource-group "${AKS_RESOURCE_GROUP}" \
     --name "${MGMT_CLUSTER_NAME}" \
@@ -192,8 +195,10 @@ create_aks_cluster() {
     --assign-identity "${AKS_MI_RESOURCE_ID}" \
     --assign-kubelet-identity "${AKS_MI_RESOURCE_ID}" \
     --yes --verbose
-    
-    echo "user-assigned managed identity assigned to the AKS cluster"
+
+    echo "Restoring metrics-server PDB..."
+    kubectl --kubeconfig "${REPO_ROOT}/${MGMT_CLUSTER_KUBECONFIG}" patch pdb metrics-server-pdb -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 1}]' 2>/dev/null || true
+
   else
     # echo "fetching Client ID for ${MGMT_CLUSTER_NAME}"
     AKS_MI_CLIENT_ID=$(az aks show -n "${MGMT_CLUSTER_NAME}" -g "${AKS_RESOURCE_GROUP}" --output json \
