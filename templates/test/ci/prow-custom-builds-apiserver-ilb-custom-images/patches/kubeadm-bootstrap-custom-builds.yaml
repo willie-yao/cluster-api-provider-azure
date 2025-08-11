@@ -1,0 +1,45 @@
+- op: add
+  path: /spec/template/spec/files/-
+  value:
+    content: |
+      #!/bin/bash
+
+      set -o nounset
+      set -o pipefail
+      set -o errexit
+
+      systemctl stop kubelet
+
+      # Only testing kubelet for now
+      declare -a BINARIES=("kubelet")
+
+      # Define the base URL and version
+      BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+      VERSION="${KUBERNETES_VERSION}"
+      OS_VERSION="ubuntu24.04"
+      ARCH="amd64"
+      DEB_VERSION="ubuntu24.04u1"
+
+      for BINARY in "$${BINARIES[@]}"; do
+        echo "* downloading and installing package: $${BINARY} $${VERSION}"
+        DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+        DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+
+        echo "Downloading from: $${DEB_URL}"
+        curl --retry 10 --retry-delay 5 -w "response status code is %{http_code}\n" "$${DEB_URL}" --output "$${DEB_FILE}"
+
+        echo "Installing $${DEB_FILE}"
+        dpkg -i "$${DEB_FILE}"
+
+        # Clean up the downloaded deb file
+        rm -f "$${DEB_FILE}"
+      done
+
+      systemctl restart kubelet
+    path: /tmp/replace-k8s-binaries.sh
+    owner: "root:root"
+    permissions: "0744"
+- op: add
+  path: /spec/template/spec/preKubeadmCommands/-
+  value:
+    bash -c /tmp/replace-k8s-binaries.sh

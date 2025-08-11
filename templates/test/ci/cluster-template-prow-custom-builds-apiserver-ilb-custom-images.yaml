@@ -180,6 +180,44 @@ spec:
       owner: root:root
       path: /tmp/kubeadm-bootstrap.sh
       permissions: "0744"
+    - content: |
+        #!/bin/bash
+
+        set -o nounset
+        set -o pipefail
+        set -o errexit
+
+        systemctl stop kubelet
+
+        # Only testing kubelet for now
+        declare -a BINARIES=("kubelet")
+
+        # Define the base URL and version
+        BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+        VERSION="${KUBERNETES_VERSION}"
+        OS_VERSION="ubuntu24.04"
+        ARCH="amd64"
+        DEB_VERSION="ubuntu24.04u1"
+
+        for BINARY in "$${BINARIES[@]}"; do
+          echo "* downloading and installing package: $${BINARY} $${VERSION}"
+          DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+          DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+
+          echo "Downloading from: $${DEB_URL}"
+          curl --retry 10 --retry-delay 5 -w "response status code is %{http_code}\n" "$${DEB_URL}" --output "$${DEB_FILE}"lokpi
+
+          echo "Installing $${DEB_FILE}"
+          dpkg -i "$${DEB_FILE}"
+
+          # Clean up the downloaded deb file
+          rm -f "$${DEB_FILE}"
+        done
+
+        systemctl restart kubelet
+      owner: root:root
+      path: /tmp/replace-k8s-binaries.sh
+      permissions: "0744"
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
@@ -196,6 +234,7 @@ spec:
     postKubeadmCommands: []
     preKubeadmCommands:
     - bash -c /tmp/kubeadm-bootstrap.sh
+    - bash -c /tmp/replace-k8s-binaries.sh
     verbosity: 5
   machineTemplate:
     infrastructureRef:
@@ -316,6 +355,44 @@ spec:
         owner: root:root
         path: /tmp/kubeadm-bootstrap.sh
         permissions: "0744"
+      - content: |
+          #!/bin/bash
+
+          set -o nounset
+          set -o pipefail
+          set -o errexit
+
+          systemctl stop kubelet
+
+          # Only testing kubelet for now
+          declare -a BINARIES=("kubelet")
+
+          # Define the base URL and version
+          BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+          VERSION="${KUBERNETES_VERSION}"
+          OS_VERSION="ubuntu24.04"
+          ARCH="amd64"
+          DEB_VERSION="ubuntu24.04u1"
+
+          for BINARY in "$${BINARIES[@]}"; do
+            echo "* downloading and installing package: $${BINARY} $${VERSION}"
+            DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+            DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+
+            echo "Downloading from: $${DEB_URL}"
+            curl --retry 10 --retry-delay 5 -w "response status code is %{http_code}\n" "$${DEB_URL}" --output "$${DEB_FILE}"
+
+            echo "Installing $${DEB_FILE}"
+            dpkg -i "$${DEB_FILE}"
+
+            # Clean up the downloaded deb file
+            rm -f "$${DEB_FILE}"
+          done
+
+          systemctl restart kubelet
+        owner: root:root
+        path: /tmp/replace-k8s-binaries.sh
+        permissions: "0744"
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
@@ -325,6 +402,7 @@ spec:
       - echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
         >> /etc/hosts
       - bash -c /tmp/kubeadm-bootstrap.sh
+      - bash -c /tmp/replace-k8s-binaries.sh
       verbosity: 5
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
