@@ -15,6 +15,7 @@
       # Define the base URL and version
       BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
       VERSION="${KUBERNETES_VERSION}"
+      VERSION=$${VERSION#v}
       OS_VERSION="ubuntu24.04"
       ARCH="amd64"
       DEB_VERSION="ubuntu24.04u1"
@@ -30,7 +31,8 @@
         DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
 
         echo "Downloading from: $${DEB_URL}"
-        curl --retry 10 --retry-delay 5 -w "response status code is %{http_code}\n" "$${DEB_URL}" --output "$${DEB_FILE}"lokpi
+        curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
+        chmod 644 "$${DEB_FILE}"
 
         echo "Installing $${DEB_FILE}"
         dpkg -i "$${DEB_FILE}"
