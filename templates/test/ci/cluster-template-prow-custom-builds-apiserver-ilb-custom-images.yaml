@@ -189,7 +189,7 @@ spec:
 
         systemctl stop kubelet
 
-        declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+        declare -a BINARIES=("kubelet")
 
         # Define the base URL and version
         BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
@@ -221,6 +221,10 @@ spec:
         done
 
         systemctl restart kubelet
+
+        # Print kubelet logs to verify it's working
+        echo "Kubelet logs after restart:"
+        journalctl -u kubelet --no-pager -l --since "1 minute ago" || echo "Failed to get kubelet logs"
       owner: root:root
       path: /tmp/replace-k8s-binaries.sh
       permissions: "0744"
@@ -370,7 +374,7 @@ spec:
 
           systemctl stop kubelet
 
-          declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+          declare -a BINARIES=("kubelet")
 
           # Define the base URL and version
           BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
@@ -401,6 +405,10 @@ spec:
           done
 
           systemctl restart kubelet
+
+          # Print kubelet logs to verify it's working
+          echo "Kubelet logs after restart:"
+          journalctl -u kubelet --no-pager -l --since "1 minute ago" || echo "Failed to get kubelet logs"
         owner: root:root
         path: /tmp/replace-k8s-binaries.sh
         permissions: "0744"
