@@ -10,7 +10,7 @@
 
       systemctl stop kubelet
 
-      declare -a BINARIES=("kubectl" "kubelet")
+      declare -a BINARIES=("kubectl" "kubelet" "kubeadm")
 
       # Define the base URL and version
       BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
