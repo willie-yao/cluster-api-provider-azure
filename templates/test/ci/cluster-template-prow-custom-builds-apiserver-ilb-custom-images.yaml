@@ -189,7 +189,7 @@ spec:
 
         systemctl stop kubelet
 
-        declare -a BINARIES=("kubectl" "kubelet" "kubeadm")
+        declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
 
         # Define the base URL and version
         BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
@@ -220,11 +220,12 @@ spec:
           rm -f "$${DEB_FILE}"
         done
 
-        systemctl restart kubelet
+        # Reload systemd to pick up any changes from the new packages
+        systemctl daemon-reload
 
-        # Print kubelet logs to verify it's working
-        echo "Kubelet logs after restart:"
-        journalctl -u kubelet --no-pager -l --since "1 minute ago" || echo "Failed to get kubelet logs"
+        echo "kubeadm version: $(kubeadm version -o=short)"
+        echo "kubectl version: $(kubectl version --client=true)"
+        echo "kubelet version: $(kubelet --version)"
       owner: root:root
       path: /tmp/replace-k8s-binaries.sh
       permissions: "0744"
@@ -374,7 +375,7 @@ spec:
 
           systemctl stop kubelet
 
-          declare -a BINARIES=("kubectl" "kubelet" "kubeadm")
+          declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
 
           # Define the base URL and version
           BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
@@ -382,6 +383,7 @@ spec:
           VERSION=$${VERSION#v}
           OS_VERSION="ubuntu24.04"
           ARCH="amd64"
+          DEB_VERSION="ubuntu24.04u1"
 
           for BINARY in "$${BINARIES[@]}"; do
             if [[ "$${BINARY}" == "kubelet" ]]; then
@@ -404,11 +406,12 @@ spec:
             rm -f "$${DEB_FILE}"
           done
 
-          systemctl restart kubelet
+          # Reload systemd to pick up any changes from the new packages
+          systemctl daemon-reload
 
-          # Print kubelet logs to verify it's working
-          echo "Kubelet logs after restart:"
-          journalctl -u kubelet --no-pager -l --since "1 minute ago" || echo "Failed to get kubelet logs"
+          echo "kubeadm version: $(kubeadm version -o=short)"
+          echo "kubectl version: $(kubectl version --client=true)"
+          echo "kubelet version: $(kubelet --version)"
         owner: root:root
         path: /tmp/replace-k8s-binaries.sh
         permissions: "0744"
