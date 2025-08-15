@@ -43,6 +43,7 @@
 
       # Reload systemd to pick up any changes from the new packages
       systemctl daemon-reload
+      systemctl restart kubelet
 
       echo "kubeadm version: $(kubeadm version -o=short)"
       echo "kubectl version: $(kubectl version --client=true)"
