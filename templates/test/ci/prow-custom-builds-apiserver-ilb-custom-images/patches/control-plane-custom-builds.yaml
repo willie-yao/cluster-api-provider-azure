@@ -10,7 +10,7 @@
 
       systemctl stop kubelet
 
-      declare -a BINARIES=("kubectl" "kubelet")
+      declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
 
       # Define the base URL and version
       BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
@@ -51,6 +51,10 @@
     path: /tmp/replace-k8s-binaries.sh
     owner: "root:root"
     permissions: "0744"
+- op: add
+  path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
+  value:
+    echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com' >> /etc/hosts
 - op: add
   path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
   value:
