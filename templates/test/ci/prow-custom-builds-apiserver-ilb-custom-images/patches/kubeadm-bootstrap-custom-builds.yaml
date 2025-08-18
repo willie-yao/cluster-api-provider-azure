@@ -8,7 +8,9 @@
       set -o pipefail
       set -o errexit
 
+      # Stop and disable kubelet to prevent auto-restart
       systemctl stop kubelet
+      systemctl disable kubelet
 
       declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
 
@@ -43,6 +45,9 @@
 
       # Reload systemd to pick up any changes from the new packages
       systemctl daemon-reload
+
+      # Disable kubelet again since the package installation re-enables it
+      systemctl disable kubelet
       
       echo "kubeadm version: $(kubeadm version -o=short)"
       echo "kubectl version: $(kubectl version --client=true)"
