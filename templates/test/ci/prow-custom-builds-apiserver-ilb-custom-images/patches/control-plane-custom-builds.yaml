@@ -8,16 +8,15 @@
       set -o pipefail
       set -o errexit
 
-      # Stop and disable kubelet to prevent auto-restart
+      # Stop kubelet to prevent conflicts during package installation
       systemctl stop kubelet
-      systemctl disable kubelet
 
       declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
 
       # Define the base URL and version
       BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
       VERSION="${KUBERNETES_VERSION}"
-      VERSION=$${VERSION#v}
+      VERSION=$${VERSION#v}  # Remove 'v' prefix if present
       OS_VERSION="ubuntu24.04"
       ARCH="amd64"
       DEB_VERSION="ubuntu24.04u1"
@@ -31,7 +30,7 @@
         echo "* downloading and installing package: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
         DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
         DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
-
+        
         echo "Downloading from: $${DEB_URL}"
         curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
         chmod 644 "$${DEB_FILE}"
@@ -43,11 +42,10 @@
         rm -f "$${DEB_FILE}"
       done
 
-      # Reload systemd to pick up any changes from the new packages
-      systemctl daemon-reload
-
-      # Disable kubelet again since the package installation re-enables it
+      # The kubelet package installation will have re-enabled the service
+      # Disable it again and ensure it's stopped before kubeadm init
       systemctl disable kubelet
+      systemctl stop kubelet
 
       echo "kubeadm version: $(kubeadm version -o=short)"
       echo "kubectl version: $(kubectl version --client=true)"

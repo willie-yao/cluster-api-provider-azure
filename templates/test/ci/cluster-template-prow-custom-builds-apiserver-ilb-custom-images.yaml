@@ -107,57 +107,25 @@ spec:
       owner: root:root
       path: /etc/kubernetes/azure.json
       permissions: "0644"
-    - content: |
-        #!/bin/bash
-
-        set -o nounset
-        set -o pipefail
-        set -o errexit
-
-        # Stop and disable kubelet to prevent auto-restart
-        systemctl stop kubelet
-        systemctl disable kubelet
-
-        declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
-
-        # Define the base URL and version
-        BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
-        VERSION="${KUBERNETES_VERSION}"
-        VERSION=$${VERSION#v}
-        OS_VERSION="ubuntu24.04"
-        ARCH="amd64"
-        DEB_VERSION="ubuntu24.04u1"
-
-        for BINARY in "$${BINARIES[@]}"; do
-          if [[ "$${BINARY}" == "kubelet" ]]; then
-            DEB_VERSION="ubuntu24.04u1"
-          else
-            DEB_VERSION="ubuntu24.04u2"
-          fi
-          echo "* downloading and installing package: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
-          DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
-          DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
-
-          echo "Downloading from: $${DEB_URL}"
-          curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
-          chmod 644 "$${DEB_FILE}"
-
-          echo "Installing $${DEB_FILE}"
-          dpkg -i "$${DEB_FILE}"
-
-          # Clean up the downloaded deb file
-          rm -f "$${DEB_FILE}"
-        done
-
-        # Reload systemd to pick up any changes from the new packages
-        systemctl daemon-reload
-
-        # Disable kubelet again since the package installation re-enables it
-        systemctl disable kubelet
-
-        echo "kubeadm version: $(kubeadm version -o=short)"
-        echo "kubectl version: $(kubectl version --client=true)"
-        echo "kubelet version: $(kubelet --version)"
+    - content: "#!/bin/bash\n\nset -o nounset\nset -o pipefail\nset -o errexit\n\n#
+        Stop kubelet to prevent conflicts during package installation\nsystemctl stop
+        kubelet\n\ndeclare -a BINARIES=(\"kubeadm\" \"kubectl\" \"kubelet\")\n\n#
+        Define the base URL and version\nBASE_URL=\"https://kubernetesreleases.blob.core.windows.net/dalec-packages\"\nVERSION=\"${KUBERNETES_VERSION}\"\nVERSION=$${VERSION#v}
+        \ # Remove 'v' prefix if present\nOS_VERSION=\"ubuntu24.04\"\nARCH=\"amd64\"\nDEB_VERSION=\"ubuntu24.04u1\"\n\nfor
+        BINARY in \"$${BINARIES[@]}\"; do\n  if [[ \"$${BINARY}\" == \"kubelet\" ]];
+        then\n    DEB_VERSION=\"ubuntu24.04u1\"\n  else\n    DEB_VERSION=\"ubuntu24.04u2\"\n
+        \ fi\n  echo \"* downloading and installing package: $${BINARY} $${VERSION}
+        with deb version $${DEB_VERSION}\"\n  DEB_FILE=\"/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
+        \ DEB_URL=\"$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
+        \ \n  echo \"Downloading from: $${DEB_URL}\"\n  curl -L --retry 10 --retry-delay
+        5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n  chmod 644 \"$${DEB_FILE}\"\n\n
+        \ echo \"Installing $${DEB_FILE}\"\n  dpkg -i \"$${DEB_FILE}\"\n\n  # Clean
+        up the downloaded deb file\n  rm -f \"$${DEB_FILE}\"\ndone\n\n# The kubelet
+        package installation will have re-enabled the service\n# Disable it again
+        and ensure it's stopped before kubeadm init\nsystemctl disable kubelet\nsystemctl
+        stop kubelet\n\necho \"kubeadm version: $(kubeadm version -o=short)\"\necho
+        \"kubectl version: $(kubectl version --client=true)\"\necho \"kubelet version:
+        $(kubelet --version)\"\n"
       owner: root:root
       path: /tmp/replace-k8s-binaries.sh
       permissions: "0744"
@@ -266,57 +234,25 @@ spec:
         owner: root:root
         path: /etc/kubernetes/azure.json
         permissions: "0644"
-      - content: |
-          #!/bin/bash
-
-          set -o nounset
-          set -o pipefail
-          set -o errexit
-
-          # Stop and disable kubelet to prevent auto-restart
-          systemctl stop kubelet
-          systemctl disable kubelet
-
-          declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
-
-          # Define the base URL and version
-          BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
-          VERSION="${KUBERNETES_VERSION}"
-          VERSION=$${VERSION#v}
-          OS_VERSION="ubuntu24.04"
-          ARCH="amd64"
-          DEB_VERSION="ubuntu24.04u1"
-
-          for BINARY in "$${BINARIES[@]}"; do
-            if [[ "$${BINARY}" == "kubelet" ]]; then
-              DEB_VERSION="ubuntu24.04u1"
-            else
-              DEB_VERSION="ubuntu24.04u2"
-            fi
-            echo "* downloading and installing package: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
-            DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
-            DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
-
-            echo "Downloading from: $${DEB_URL}"
-            curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
-            chmod 644 "$${DEB_FILE}"
-
-            echo "Installing $${DEB_FILE}"
-            dpkg -i "$${DEB_FILE}"
-
-            # Clean up the downloaded deb file
-            rm -f "$${DEB_FILE}"
-          done
-
-          # Reload systemd to pick up any changes from the new packages
-          systemctl daemon-reload
-
-          # Disable kubelet again since the package installation re-enables it
-          systemctl disable kubelet
-
-          echo "kubeadm version: $(kubeadm version -o=short)"
-          echo "kubectl version: $(kubectl version --client=true)"
-          echo "kubelet version: $(kubelet --version)"
+      - content: "#!/bin/bash\n\nset -o nounset\nset -o pipefail\nset -o errexit\n\n#
+          Stop kubelet to prevent conflicts during package installation\nsystemctl
+          stop kubelet\n\ndeclare -a BINARIES=(\"kubeadm\" \"kubectl\" \"kubelet\")\n\n#
+          Define the base URL and version\nBASE_URL=\"https://kubernetesreleases.blob.core.windows.net/dalec-packages\"\nVERSION=\"${KUBERNETES_VERSION}\"\nVERSION=$${VERSION#v}
+          \ # Remove 'v' prefix if present\nOS_VERSION=\"ubuntu24.04\"\nARCH=\"amd64\"\nDEB_VERSION=\"ubuntu24.04u1\"\n\nfor
+          BINARY in \"$${BINARIES[@]}\"; do\n  if [[ \"$${BINARY}\" == \"kubelet\"
+          ]]; then\n    DEB_VERSION=\"ubuntu24.04u1\"\n  else\n    DEB_VERSION=\"ubuntu24.04u2\"\n
+          \ fi\n  echo \"* downloading and installing package: $${BINARY} $${VERSION}
+          with deb version $${DEB_VERSION}\"\n  DEB_FILE=\"/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
+          \ DEB_URL=\"$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
+          \ \n  echo \"Downloading from: $${DEB_URL}\"\n  curl -L --retry 10 --retry-delay
+          5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n  chmod 644 \"$${DEB_FILE}\"\n\n
+          \ echo \"Installing $${DEB_FILE}\"\n  dpkg -i \"$${DEB_FILE}\"\n\n  # Clean
+          up the downloaded deb file\n  rm -f \"$${DEB_FILE}\"\ndone\n\n# The kubelet
+          package installation will have re-enabled the service\n# Disable it again
+          and ensure it's stopped before kubeadm init\nsystemctl disable kubelet\nsystemctl
+          stop kubelet\n\necho \"kubeadm version: $(kubeadm version -o=short)\"\necho
+          \"kubectl version: $(kubectl version --client=true)\"\necho \"kubelet version:
+          $(kubelet --version)\"\n"
         owner: root:root
         path: /tmp/replace-k8s-binaries.sh
         permissions: "0744"
