@@ -40,16 +40,69 @@
 
         # Clean up the downloaded deb file
         rm -f "$${DEB_FILE}"
+        
+        # Validate binary installation
+        echo "Installed $${BINARY}: $(which $${BINARY})"
+        case $${BINARY} in
+          kubeadm)
+            echo "kubeadm version: $(kubeadm version -o=short)"
+            ;;
+          kubectl)
+            echo "kubectl version: $(kubectl version --client=true --output=short)"
+            ;;
+          kubelet)
+            echo "kubelet version: $(kubelet --version)"
+            ;;
+        esac
       done
 
-      # The kubelet package installation will have re-enabled the service
-      # Disable it again and ensure it's stopped before kubeadm init
-      systemctl disable kubelet
+      # Ensure kubelet is stopped before kubeadm init (but keep it enabled for kubeadm to start)
       systemctl stop kubelet
 
-      echo "kubeadm version: $(kubeadm version -o=short)"
-      echo "kubectl version: $(kubectl version --client=true)"
-      echo "kubelet version: $(kubelet --version)"
+      # kubeadm-specific validation
+      echo "=== kubeadm Validation ==="
+      
+      # Test kubeadm configuration functionality
+      echo "Testing kubeadm config functionality..."
+      kubeadm config print init-defaults > /tmp/kubeadm-test.yaml
+      if [ $? -ne 0 ]; then
+        echo "ERROR: kubeadm config print failed"
+        exit 1
+      fi
+      
+      # Validate the configuration
+      echo "Validating kubeadm configuration..."
+      kubeadm config validate --config /tmp/kubeadm-test.yaml
+      if [ $? -ne 0 ]; then
+        echo "ERROR: kubeadm config validation failed"
+        exit 1
+      fi
+      
+      # Check kubeadm dependencies
+      echo "Checking kubeadm binary dependencies..."
+      ldd $(which kubeadm) | grep "not found" && {
+        echo "ERROR: kubeadm has missing dependencies"
+        exit 1
+      } || echo "kubeadm dependencies OK"
+      
+      # Verify kubeadm can detect container runtime
+      echo "Testing container runtime detection..."
+      kubeadm config images list > /dev/null 2>&1
+      if [ $? -ne 0 ]; then
+        echo "WARNING: kubeadm cannot detect container runtime properly"
+      else
+        echo "Container runtime detection OK"
+      fi
+      
+      # Check systemd service status
+      echo "=== Service Status ==="
+      echo "kubelet service status: $(systemctl is-enabled kubelet)"
+      echo "kubelet active status: $(systemctl is-active kubelet)"
+      
+      # Clean up test files
+      rm -f /tmp/kubeadm-test.yaml
+      
+      echo "=== Binary Installation Complete ==="
     path: /tmp/replace-k8s-binaries.sh
     owner: "root:root"
     permissions: "0744"

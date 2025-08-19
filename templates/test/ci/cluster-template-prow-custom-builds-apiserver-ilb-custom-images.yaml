@@ -120,12 +120,31 @@ spec:
         \ \n  echo \"Downloading from: $${DEB_URL}\"\n  curl -L --retry 10 --retry-delay
         5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n  chmod 644 \"$${DEB_FILE}\"\n\n
         \ echo \"Installing $${DEB_FILE}\"\n  dpkg -i \"$${DEB_FILE}\"\n\n  # Clean
-        up the downloaded deb file\n  rm -f \"$${DEB_FILE}\"\ndone\n\n# The kubelet
-        package installation will have re-enabled the service\n# Disable it again
-        and ensure it's stopped before kubeadm init\nsystemctl disable kubelet\nsystemctl
-        stop kubelet\n\necho \"kubeadm version: $(kubeadm version -o=short)\"\necho
-        \"kubectl version: $(kubectl version --client=true)\"\necho \"kubelet version:
-        $(kubelet --version)\"\n"
+        up the downloaded deb file\n  rm -f \"$${DEB_FILE}\"\n  \n  # Validate binary
+        installation\n  echo \"Installed $${BINARY}: $(which $${BINARY})\"\n  case
+        $${BINARY} in\n    kubeadm)\n      echo \"kubeadm version: $(kubeadm version
+        -o=short)\"\n      ;;\n    kubectl)\n      echo \"kubectl version: $(kubectl
+        version --client=true --output=short)\"\n      ;;\n    kubelet)\n      echo
+        \"kubelet version: $(kubelet --version)\"\n      ;;\n  esac\ndone\n\n# Ensure
+        kubelet is stopped before kubeadm init (but keep it enabled for kubeadm to
+        start)\nsystemctl stop kubelet\n\n# kubeadm-specific validation\necho \"===
+        kubeadm Validation ===\"\n\n# Test kubeadm configuration functionality\necho
+        \"Testing kubeadm config functionality...\"\nkubeadm config print init-defaults
+        > /tmp/kubeadm-test.yaml\nif [ $? -ne 0 ]; then\n  echo \"ERROR: kubeadm config
+        print failed\"\n  exit 1\nfi\n\n# Validate the configuration\necho \"Validating
+        kubeadm configuration...\"\nkubeadm config validate --config /tmp/kubeadm-test.yaml\nif
+        [ $? -ne 0 ]; then\n  echo \"ERROR: kubeadm config validation failed\"\n  exit
+        1\nfi\n\n# Check kubeadm dependencies\necho \"Checking kubeadm binary dependencies...\"\nldd
+        $(which kubeadm) | grep \"not found\" && {\n  echo \"ERROR: kubeadm has missing
+        dependencies\"\n  exit 1\n} || echo \"kubeadm dependencies OK\"\n\n# Verify
+        kubeadm can detect container runtime\necho \"Testing container runtime detection...\"\nkubeadm
+        config images list > /dev/null 2>&1\nif [ $? -ne 0 ]; then\n  echo \"WARNING:
+        kubeadm cannot detect container runtime properly\"\nelse\n  echo \"Container
+        runtime detection OK\"\nfi\n\n# Check systemd service status\necho \"=== Service
+        Status ===\"\necho \"kubelet service status: $(systemctl is-enabled kubelet)\"\necho
+        \"kubelet active status: $(systemctl is-active kubelet)\"\n\n# Clean up test
+        files\nrm -f /tmp/kubeadm-test.yaml\n\necho \"=== Binary Installation Complete
+        ===\"\n"
       owner: root:root
       path: /tmp/replace-k8s-binaries.sh
       permissions: "0744"
@@ -247,12 +266,29 @@ spec:
           \ \n  echo \"Downloading from: $${DEB_URL}\"\n  curl -L --retry 10 --retry-delay
           5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n  chmod 644 \"$${DEB_FILE}\"\n\n
           \ echo \"Installing $${DEB_FILE}\"\n  dpkg -i \"$${DEB_FILE}\"\n\n  # Clean
-          up the downloaded deb file\n  rm -f \"$${DEB_FILE}\"\ndone\n\n# The kubelet
-          package installation will have re-enabled the service\n# Disable it again
-          and ensure it's stopped before kubeadm init\nsystemctl disable kubelet\nsystemctl
-          stop kubelet\n\necho \"kubeadm version: $(kubeadm version -o=short)\"\necho
-          \"kubectl version: $(kubectl version --client=true)\"\necho \"kubelet version:
-          $(kubelet --version)\"\n"
+          up the downloaded deb file\n  rm -f \"$${DEB_FILE}\"\n  \n  # Validate binary
+          installation\n  echo \"Installed $${BINARY}: $(which $${BINARY})\"\n  case
+          $${BINARY} in\n    kubeadm)\n      echo \"kubeadm version: $(kubeadm version
+          -o=short)\"\n      ;;\n    kubectl)\n      echo \"kubectl version: $(kubectl
+          version --client=true --output=short)\"\n      ;;\n    kubelet)\n      echo
+          \"kubelet version: $(kubelet --version)\"\n      ;;\n  esac\ndone\n\n# Ensure
+          kubelet is stopped before kubeadm join (but keep it enabled for kubeadm
+          to start)\nsystemctl stop kubelet\n\n# kubeadm-specific validation for worker
+          nodes\necho \"=== Worker Node kubeadm Validation ===\"\n\n# Test kubeadm
+          configuration functionality\necho \"Testing kubeadm config functionality...\"\nkubeadm
+          config print join-defaults > /tmp/kubeadm-join-test.yaml\nif [ $? -ne 0
+          ]; then\n  echo \"ERROR: kubeadm config print join-defaults failed\"\n  exit
+          1\nfi\n\n# Check kubeadm dependencies\necho \"Checking kubeadm binary dependencies...\"\nldd
+          $(which kubeadm) | grep \"not found\" && {\n  echo \"ERROR: kubeadm has
+          missing dependencies\"\n  exit 1\n} || echo \"kubeadm dependencies OK\"\n\n#
+          Verify kubeadm can detect container runtime\necho \"Testing container runtime
+          detection...\"\nkubeadm config images list > /dev/null 2>&1\nif [ $? -ne
+          0 ]; then\n  echo \"WARNING: kubeadm cannot detect container runtime properly\"\nelse\n
+          \ echo \"Container runtime detection OK\"\nfi\n\n# Check systemd service
+          status\necho \"=== Service Status ===\"\necho \"kubelet service status:
+          $(systemctl is-enabled kubelet)\"\necho \"kubelet active status: $(systemctl
+          is-active kubelet)\"\n\n# Clean up test files\nrm -f /tmp/kubeadm-join-test.yaml\n\necho
+          \"=== Worker Node Binary Installation Complete ===\"\n"
         owner: root:root
         path: /tmp/replace-k8s-binaries.sh
         permissions: "0744"
