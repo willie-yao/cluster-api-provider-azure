@@ -227,8 +227,10 @@ spec:
     postKubeadmCommands: []
     preKubeadmCommands:
     - bash -c /tmp/containerd-config.sh
-    - bash -c /tmp/oot-cred-provider.sh
-    - bash -c /tmp/kubeadm-bootstrap.sh
+    - |
+      # Install ca-certificates packages for Azure Linux
+      tdnf install -y ca-certificates ca-certificates-legacy
+      update-ca-trust
     verbosity: 5
   machineTemplate:
     infrastructureRef:
@@ -805,6 +807,7 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}
       logVerbosity: 4
 ---
@@ -824,6 +827,7 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       cloudConfig: ${CLOUD_CONFIG:-"/etc/kubernetes/azure.json"}
       cloudConfigSecretName: ${CONFIG_SECRET_NAME:-""}
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}

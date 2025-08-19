@@ -225,6 +225,10 @@ spec:
     - bash -c /tmp/replace-k8s-components.sh
     preKubeadmCommands:
     - bash -c /tmp/containerd-config.sh
+    - |
+      # Install ca-certificates packages for Azure Linux
+      tdnf install -y ca-certificates ca-certificates-legacy
+      update-ca-trust
     - bash -c /tmp/oot-cred-provider.sh
     - bash -c /tmp/replace-k8s-binaries.sh
     verbosity: 5
@@ -410,6 +414,10 @@ spec:
           name: '{{ ds.meta_data["local_hostname"] }}'
       preKubeadmCommands:
       - bash -c /tmp/containerd-config.sh
+      - |-
+        # Install ca-certificates packages for Azure Linux
+        tdnf install -y ca-certificates ca-certificates-legacy
+        update-ca-trust
       - bash -c /tmp/oot-cred-provider.sh
       - bash -c /tmp/replace-k8s-binaries.sh
 ---
@@ -825,6 +833,7 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}
       logVerbosity: 4
 ---
@@ -844,6 +853,7 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       cloudConfig: ${CLOUD_CONFIG:-"/etc/kubernetes/azure.json"}
       cloudConfigSecretName: ${CONFIG_SECRET_NAME:-""}
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}

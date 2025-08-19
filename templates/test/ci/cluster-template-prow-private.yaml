@@ -142,8 +142,10 @@ spec:
       ]; then echo '127.0.0.1   apiserver.${CLUSTER_NAME}.capz.io apiserver' >> /etc/hosts;
       fi
     preKubeadmCommands:
-    - if [ -f /tmp/kubeadm.yaml ] || [ -f /run/kubeadm/kubeadm.yaml ]; then echo '127.0.0.1   apiserver.${CLUSTER_NAME}.capz.io
-      apiserver' >> /etc/hosts; fi
+    - |
+      # Install ca-certificates packages for Azure Linux
+      tdnf install -y ca-certificates ca-certificates-legacy
+      update-ca-trust
     verbosity: 10
   machineTemplate:
     infrastructureRef:
@@ -373,6 +375,7 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}
       logVerbosity: 4
 ---
@@ -392,6 +395,7 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       cloudConfig: ${CLOUD_CONFIG:-"/etc/kubernetes/azure.json"}
       cloudConfigSecretName: ${CONFIG_SECRET_NAME:-""}
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}

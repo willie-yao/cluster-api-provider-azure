@@ -1,0 +1,12 @@
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-md-0
+spec:
+  template:
+    spec:
+      preKubeadmCommands:
+      - |
+        # Install ca-certificates packages for Azure Linux
+        tdnf install -y ca-certificates ca-certificates-legacy
+        update-ca-trust
