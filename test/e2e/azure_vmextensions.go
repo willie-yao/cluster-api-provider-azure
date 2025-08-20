@@ -115,7 +115,17 @@ func AzureVMExtensionsSpec(ctx context.Context, inputGetter func() AzureVMExtens
 				vmExtensionNames = append(vmExtensionNames, *vmExtension.Name)
 			}
 			osName := string(*machine.Properties.StorageProfile.OSDisk.OSType)
-			Expect(vmExtensionNames).To(ContainElements("CAPZ." + osName + ".Bootstrapping"))
+			// Only check for bootstrapping extension if DisableVMBootstrapExtension is not true
+			disableBootstrap := false
+			for _, m := range machineList.Items {
+				if m.Spec.ProviderID != nil && *m.Spec.ProviderID == *machine.ID && m.Spec.DisableExtensionOperations != nil {
+					disableBootstrap = *m.Spec.DisableVMBootstrapExtension
+					break
+				}
+			}
+			if !disableBootstrap {
+				Expect(vmExtensionNames).To(ContainElements("CAPZ." + osName + ".Bootstrapping"))
+			}
 			Expect(vmExtensionNames).To(ContainElements(expectedVMExtensionMap[*machine.ID]))
 		}
 	}
