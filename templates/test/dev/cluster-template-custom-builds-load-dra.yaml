@@ -299,6 +299,7 @@ spec:
       - diskSizeGB: 256
         lun: 0
         nameSuffix: etcddisk
+      disableVMBootstrapExtension: true
       identity: UserAssigned
       image:
         marketplace:
@@ -350,6 +351,7 @@ spec:
     spec:
       additionalTags:
         monitoring: dra
+      disableVMBootstrapExtension: true
       identity: UserAssigned
       image:
         marketplace:

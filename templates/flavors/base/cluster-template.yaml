@@ -109,6 +109,7 @@ metadata:
 spec:
   template:
     spec:
+      disableVMBootstrapExtension: true
       vmSize: ${AZURE_CONTROL_PLANE_MACHINE_TYPE}
       osDisk:
         osType: "Linux"

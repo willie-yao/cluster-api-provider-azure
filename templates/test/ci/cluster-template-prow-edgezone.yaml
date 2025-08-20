@@ -183,6 +183,7 @@ spec:
         managedDisk:
           storageAccountType: StandardSSD_LRS
         nameSuffix: etcddisk
+      disableVMBootstrapExtension: true
       identity: UserAssigned
       osDisk:
         diskSizeGB: 128
@@ -225,6 +226,7 @@ metadata:
 spec:
   template:
     spec:
+      disableVMBootstrapExtension: true
       identity: UserAssigned
       osDisk:
         diskSizeGB: 128
