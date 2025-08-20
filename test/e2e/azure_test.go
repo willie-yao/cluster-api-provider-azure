@@ -290,7 +290,7 @@ var _ = Describe("Workload cluster creation", func() {
 				withFlavor("azure-cni-v1"),
 				withNamespace(namespace.Name),
 				withClusterName(clusterName),
-				withControlPlaneMachineCount(1),
+				withControlPlaneMachineCount(3),
 				withWorkerMachineCount(2),
 				withControlPlaneInterval(specName, "wait-control-plane-ha"),
 				withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
