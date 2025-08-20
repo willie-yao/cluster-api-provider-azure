@@ -17,6 +17,26 @@ patches:
     kind: KubeadmControlPlane
     name: .*-control-plane
     version: v1beta1
+- patch: |-
+    - op: add
+      path: /spec/template/spec/disableVMBootstrapExtension
+      value: true
+  target:
+    group: infrastructure.cluster.x-k8s.io
+    kind: AzureMachineTemplate
+    name: .*-control-plane
+    namespace: default
+    version: v1beta1
+- patch: |-
+    - op: add
+      path: /spec/template/spec/disableVMBootstrapExtension
+      value: true
+  target:
+    group: infrastructure.cluster.x-k8s.io
+    kind: AzureMachineTemplate
+    name: .*-md-0
+    namespace: default
+    version: v1beta1
 
 sortOptions:
   order: fifo
