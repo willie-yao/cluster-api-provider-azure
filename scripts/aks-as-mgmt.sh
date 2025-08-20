@@ -134,6 +134,8 @@ create_aks_cluster() {
     --node-resource-group "${AKS_NODE_RESOURCE_GROUP}" \
     --vm-set-type VirtualMachineScaleSets \
     --enable-managed-identity \
+    --assign-identity "${AKS_MI_RESOURCE_ID}" \
+    --assign-kubelet-identity "${AKS_MI_RESOURCE_ID}" \
     --generate-ssh-keys \
     --network-plugin azure \
     --vnet-subnet-id "/subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${AKS_RESOURCE_GROUP}/providers/Microsoft.Network/virtualNetworks/${AKS_MGMT_VNET_NAME}/subnets/${AKS_MGMT_SUBNET_NAME}" \
@@ -189,16 +191,12 @@ create_aks_cluster() {
     kubectl --kubeconfig "${REPO_ROOT}/${MGMT_CLUSTER_KUBECONFIG}" patch pdb metrics-server-pdb -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 0}]' 2>/dev/null || true
 
     echo "assigning user-assigned managed identity to the AKS cluster"
-    az aks update --resource-group "${AKS_RESOURCE_GROUP}" \
-    --name "${MGMT_CLUSTER_NAME}" \
-    --enable-managed-identity \
-    --assign-identity "${AKS_MI_RESOURCE_ID}" \
-    --assign-kubelet-identity "${AKS_MI_RESOURCE_ID}" \
-    --yes --verbose
-
-    echo "Restoring metrics-server PDB..."
-    kubectl --kubeconfig "${REPO_ROOT}/${MGMT_CLUSTER_KUBECONFIG}" patch pdb metrics-server-pdb -n kube-system --type='json' -p='[{"op": "replace", "path": "/spec/minAvailable", "value": 1}]' 2>/dev/null || true
-
+    # az aks update --resource-group "${AKS_RESOURCE_GROUP}" \
+    # --name "${MGMT_CLUSTER_NAME}" \
+    # --enable-managed-identity \
+    # --assign-identity "${AKS_MI_RESOURCE_ID}" \
+    # --assign-kubelet-identity "${AKS_MI_RESOURCE_ID}" \
+    # --yes --verbose
   else
     # echo "fetching Client ID for ${MGMT_CLUSTER_NAME}"
     AKS_MI_CLIENT_ID=$(az aks show -n "${MGMT_CLUSTER_NAME}" -g "${AKS_RESOURCE_GROUP}" --output json \
