@@ -17,6 +17,31 @@ patches:
     kind: KubeadmControlPlane
     name: .*-control-plane
     version: v1beta1
+- path: patches/oot-cred-provider-control-plane.yaml
+  target:
+    group: controlplane.cluster.x-k8s.io
+    kind: KubeadmControlPlane
+    name: .*-control-plane
+    version: v1beta1
+- path: patches/oot-cred-provider-worker.yaml
+  target:
+    group: bootstrap.cluster.x-k8s.io
+    kind: KubeadmConfigTemplate
+    name: .*-md-0
+    namespace: default
+    version: v1beta1
+- patch: |
+    $patch: delete
+    apiVersion: cluster.x-k8s.io/v1beta1
+    kind: MachineHealthCheck
+    metadata:
+      name: ${CLUSTER_NAME}-control-plane
+  target:
+    group: cluster.x-k8s.io
+    kind: MachineHealthCheck
+    name: .*-control-plane
+    namespace: default
+    version: v1beta1
 - patch: |-
     - op: add
       path: /spec/template/spec/disableVMBootstrapExtension
