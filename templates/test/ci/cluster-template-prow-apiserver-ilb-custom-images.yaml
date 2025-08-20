@@ -200,49 +200,16 @@ spec:
       tdnf install -y ca-certificates ca-certificates-legacy
       update-ca-trust
 
-      # Configure iptables for Azure Linux 3 - allow necessary traffic for Kubernetes/Calico
-      # Azure Linux 3 has default DROP policy, need to allow required traffic
-      # Allow loopback traffic
-      iptables -I INPUT 1 -i lo -j ACCEPT
-      iptables -I OUTPUT 1 -o lo -j ACCEPT
-      # Allow established and related connections
-      iptables -I INPUT 2 -m state --state ESTABLISHED,RELATED -j ACCEPT
-      # Allow all traffic from Azure metadata service
-      iptables -I INPUT 3 -s 168.63.129.16 -j ACCEPT
-      iptables -I OUTPUT 3 -d 168.63.129.16 -j ACCEPT
-      # Allow SSH (port 22) for management
-      iptables -I INPUT 4 -p tcp --dport 22 -j ACCEPT
-      # Allow Kubernetes API server (port 6443)
-      iptables -I INPUT 5 -p tcp --dport 6443 -j ACCEPT
-      # Allow etcd (ports 2379-2380)
-      iptables -I INPUT 6 -p tcp --dport 2379:2380 -j ACCEPT
-      # Allow kubelet API (port 10250)
-      iptables -I INPUT 7 -p tcp --dport 10250 -j ACCEPT
-      # Allow kube-scheduler (port 10259)
-      iptables -I INPUT 8 -p tcp --dport 10259 -j ACCEPT
-      # Allow kube-controller-manager (port 10257)
-      iptables -I INPUT 9 -p tcp --dport 10257 -j ACCEPT
-      # Allow Calico BGP (port 179)
-      iptables -I INPUT 10 -p tcp --dport 179 -j ACCEPT
-      # Allow Calico VXLAN (port 4789)
-      iptables -I INPUT 11 -p udp --dport 4789 -j ACCEPT
-      # Allow Calico Typha (port 5473)
-      iptables -I INPUT 12 -p tcp --dport 5473 -j ACCEPT
-      # Allow NodePort services (30000-32767)
-      iptables -I INPUT 13 -p tcp --dport 30000:32767 -j ACCEPT
-      # Allow all outbound traffic (Kubernetes components need to communicate)
+      # Change default policy to ACCEPT
+      iptables -P INPUT ACCEPT
+      iptables -P FORWARD ACCEPT
       iptables -P OUTPUT ACCEPT
-      # Allow inter-node communication (adjust based on your subnet)
-      iptables -I INPUT 14 -s 10.0.0.0/8 -j ACCEPT
-      iptables -I INPUT 15 -s 172.16.0.0/12 -j ACCEPT
-      iptables -I INPUT 16 -s 192.168.0.0/16 -j ACCEPT
-      # Save the iptables rules for Azure Linux 3
-      iptables-save > /etc/systemd/scripts/ip4save
-      # Also configure ip6tables for IPv6
-      ip6tables -I INPUT 1 -i lo -j ACCEPT
-      ip6tables -I OUTPUT 1 -o lo -j ACCEPT
-      ip6tables -I INPUT 2 -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+      ip6tables -P INPUT ACCEPT
+      ip6tables -P FORWARD ACCEPT
       ip6tables -P OUTPUT ACCEPT
+
+      iptables-save > /etc/systemd/scripts/ip4save
       ip6tables-save > /etc/systemd/scripts/ip6save
     - bash -c /tmp/kubeadm-bootstrap.sh
     verbosity: 5
