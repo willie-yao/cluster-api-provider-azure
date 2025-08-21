@@ -71,7 +71,6 @@ spec:
       apiServer:
         extraArgs: {}
         timeoutForControlPlane: 20m
-      controlPlaneEndpoint: ${AZURE_INTERNAL_LB_PRIVATE_IP}:6443
       controllerManager:
         extraArgs:
           allocate-node-cidrs: "false"
@@ -162,7 +161,21 @@ spec:
     mounts:
     - - LABEL=etcd_disk
       - /var/lib/etcddisk
-    postKubeadmCommands: []
+    postKubeadmCommands:
+    - |
+      # Debug API server after kubeadm init
+      echo "=== Post-kubeadm API Server Debug ==="
+      echo "Checking if API server is running..."
+      crictl ps | grep kube-apiserver || echo "No kube-apiserver container found"
+      echo "Checking API server logs..."
+      crictl logs $(crictl ps --name kube-apiserver -q) | tail -20 || echo "Could not get API server logs"
+      echo "Checking what ports API server is listening on..."
+      netstat -tlnp | grep :6443 || echo "No process listening on port 6443"
+      echo "Testing local API server connectivity..."
+      timeout 5 curl -k https://127.0.0.1:6443/livez || echo "Cannot reach API server on localhost"
+      timeout 5 curl -k https://40.0.0.4:6443/livez || echo "Cannot reach API server on node IP"
+      echo "Checking load balancer connectivity from node..."
+      timeout 5 nc -zv ${AZURE_INTERNAL_LB_PRIVATE_IP} 6443 || echo "Cannot reach internal LB from node"
     preKubeadmCommands:
     - echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
       >> /etc/hosts
