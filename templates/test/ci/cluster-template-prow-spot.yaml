@@ -113,54 +113,19 @@ spec:
       tdnf install -y ca-certificates ca-certificates-legacy
       update-ca-trust
 
-      # Completely reset iptables to permissive state for etcd connectivity
-      iptables -F
-      iptables -X
-      iptables -t nat -F
-      iptables -t nat -X
-      iptables -t mangle -F
-      iptables -t mangle -X
-      iptables -t raw -F 2>/dev/null || true
-      iptables -t raw -X 2>/dev/null || true
+      # Follow Azure Linux 3 docs exactly - completely permissive for debugging
+      # Change default policy to ACCEPT (as recommended by AZL3 docs)
       iptables -P INPUT ACCEPT
       iptables -P FORWARD ACCEPT
       iptables -P OUTPUT ACCEPT
 
-      ip6tables -F
-      ip6tables -X
-      ip6tables -t nat -F
-      ip6tables -t nat -X
-      ip6tables -t mangle -F
-      ip6tables -t mangle -X
-      ip6tables -t raw -F 2>/dev/null || true
-      ip6tables -t raw -X 2>/dev/null || true
       ip6tables -P INPUT ACCEPT
       ip6tables -P FORWARD ACCEPT
       ip6tables -P OUTPUT ACCEPT
 
-      # Allow all etcd communication explicitly
-      iptables -A INPUT -p tcp --dport 2379 -j ACCEPT
-      iptables -A INPUT -p tcp --dport 2380 -j ACCEPT
-      iptables -A OUTPUT -p tcp --dport 2379 -j ACCEPT
-      iptables -A OUTPUT -p tcp --dport 2380 -j ACCEPT
-
-      # Allow kubelet API communication (port 10250)
-      iptables -A INPUT -p tcp --dport 10250 -j ACCEPT
-      iptables -A OUTPUT -p tcp --dport 10250 -j ACCEPT
-
-      # Allow kube-apiserver (port 6443)
-      iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
-      iptables -A OUTPUT -p tcp --dport 6443 -j ACCEPT
-
-      # Allow nodeport range (30000-32767)
-      iptables -A INPUT -p tcp --dport 30000:32767 -j ACCEPT
-      iptables -A OUTPUT -p tcp --dport 30000:32767 -j ACCEPT
-
-      # Allow all traffic between pod/service subnets
-      iptables -A INPUT -s 10.0.0.0/8 -j ACCEPT
-      iptables -A OUTPUT -d 10.0.0.0/8 -j ACCEPT
-      iptables -A FORWARD -s 10.0.0.0/8 -j ACCEPT
-      iptables -A FORWARD -d 10.0.0.0/8 -j ACCEPT
+      # Flush any rules which would filter packets
+      iptables -F
+      ip6tables -F
 
       iptables-save > /etc/systemd/scripts/ip4save
       ip6tables-save > /etc/systemd/scripts/ip6save
