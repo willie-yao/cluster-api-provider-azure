@@ -155,6 +155,16 @@ spec:
       iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
       iptables -A OUTPUT -p tcp --dport 6443 -j ACCEPT
 
+      # Allow nodeport range (30000-32767)
+      iptables -A INPUT -p tcp --dport 30000:32767 -j ACCEPT
+      iptables -A OUTPUT -p tcp --dport 30000:32767 -j ACCEPT
+
+      # Allow all traffic between pod/service subnets
+      iptables -A INPUT -s 10.0.0.0/8 -j ACCEPT
+      iptables -A OUTPUT -d 10.0.0.0/8 -j ACCEPT
+      iptables -A FORWARD -s 10.0.0.0/8 -j ACCEPT
+      iptables -A FORWARD -d 10.0.0.0/8 -j ACCEPT
+
       iptables-save > /etc/systemd/scripts/ip4save
       ip6tables-save > /etc/systemd/scripts/ip6save
     verbosity: 10
