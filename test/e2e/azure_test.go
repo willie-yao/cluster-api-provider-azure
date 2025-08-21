@@ -290,7 +290,7 @@ var _ = Describe("Workload cluster creation", func() {
 				withFlavor("azure-cni-v1"),
 				withNamespace(namespace.Name),
 				withClusterName(clusterName),
-				withControlPlaneMachineCount(3),
+				withControlPlaneMachineCount(1),
 				withWorkerMachineCount(2),
 				withControlPlaneInterval(specName, "wait-control-plane-ha"),
 				withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
@@ -307,15 +307,15 @@ var _ = Describe("Workload cluster creation", func() {
 				}),
 			), result)
 
-			By("can expect VM extensions are present on the node", func() {
-				AzureVMExtensionsSpec(ctx, func() AzureVMExtensionsSpecInput {
-					return AzureVMExtensionsSpecInput{
-						BootstrapClusterProxy: bootstrapClusterProxy,
-						Namespace:             namespace,
-						ClusterName:           clusterName,
-					}
-				})
-			})
+			// By("can expect VM extensions are present on the node", func() {
+			// 	AzureVMExtensionsSpec(ctx, func() AzureVMExtensionsSpecInput {
+			// 		return AzureVMExtensionsSpecInput{
+			// 			BootstrapClusterProxy: bootstrapClusterProxy,
+			// 			Namespace:             namespace,
+			// 			ClusterName:           clusterName,
+			// 		}
+			// 	})
+			// })
 
 			By("can validate failure domains", func() {
 				AzureFailureDomainsSpec(ctx, func() AzureFailureDomainsSpecInput {

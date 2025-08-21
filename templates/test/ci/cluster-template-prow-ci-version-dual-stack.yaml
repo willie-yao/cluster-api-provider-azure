@@ -267,6 +267,14 @@ spec:
       iptables -A OUTPUT -p tcp --dport 2379 -j ACCEPT
       iptables -A OUTPUT -p tcp --dport 2380 -j ACCEPT
 
+      # Allow kubelet API communication (port 10250)
+      iptables -A INPUT -p tcp --dport 10250 -j ACCEPT
+      iptables -A OUTPUT -p tcp --dport 10250 -j ACCEPT
+
+      # Allow kube-apiserver (port 6443)
+      iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
+      iptables -A OUTPUT -p tcp --dport 6443 -j ACCEPT
+
       iptables-save > /etc/systemd/scripts/ip4save
       ip6tables-save > /etc/systemd/scripts/ip6save
     verbosity: 5
@@ -522,6 +530,14 @@ spec:
         iptables -A INPUT -p tcp --dport 2380 -j ACCEPT
         iptables -A OUTPUT -p tcp --dport 2379 -j ACCEPT
         iptables -A OUTPUT -p tcp --dport 2380 -j ACCEPT
+
+        # Allow kubelet API communication (port 10250)
+        iptables -A INPUT -p tcp --dport 10250 -j ACCEPT
+        iptables -A OUTPUT -p tcp --dport 10250 -j ACCEPT
+
+        # Allow kube-apiserver communication (port 6443)
+        iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
+        iptables -A OUTPUT -p tcp --dport 6443 -j ACCEPT
 
         iptables-save > /etc/systemd/scripts/ip4save
         ip6tables-save > /etc/systemd/scripts/ip6save
