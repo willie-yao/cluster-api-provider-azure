@@ -71,7 +71,7 @@ spec:
       apiServer:
         extraArgs: {}
         timeoutForControlPlane: 20m
-      controlPlaneEndpoint: '{{ ds.meta_data.local_ipv4 }}:6443'
+      controlPlaneEndpoint: ${AZURE_INTERNAL_LB_PRIVATE_IP}:6443
       controllerManager:
         extraArgs:
           allocate-node-cidrs: "false"

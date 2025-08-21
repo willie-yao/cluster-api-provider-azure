@@ -108,7 +108,7 @@
     permissions: "0744"
 - op: add
   path: /spec/kubeadmConfigSpec/clusterConfiguration/controlPlaneEndpoint
-  value: "{{ ds.meta_data.local_ipv4 }}:6443"
+  value: "${AZURE_INTERNAL_LB_PRIVATE_IP}:6443"
 - op: add
   path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
   value:
