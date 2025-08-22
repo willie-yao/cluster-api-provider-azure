@@ -199,6 +199,7 @@ var _ = Describe("Workload cluster creation", func() {
 	Context("Creating a highly available cluster [REQUIRED]", func() {
 		It("With 3 control-plane nodes and 2 Linux and 2 Windows worker nodes", func() {
 			Expect(os.Setenv("KUBERNETES_VERSION", "v1.33.2")).To(Succeed())
+			Expect(os.Setenv("SKIP_CLEANUP", "true")).To(Succeed())
 			clusterName = getClusterName(clusterNamePrefix, "ha")
 
 			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
@@ -206,7 +207,7 @@ var _ = Describe("Workload cluster creation", func() {
 				withNamespace(namespace.Name),
 				withClusterName(clusterName),
 				withFlavor("azl3"),
-				withControlPlaneMachineCount(1),
+				withControlPlaneMachineCount(3),
 				withWorkerMachineCount(2),
 				withControlPlaneInterval(specName, "wait-control-plane-ha"),
 				withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
