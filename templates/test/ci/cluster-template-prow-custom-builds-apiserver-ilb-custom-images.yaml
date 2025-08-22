@@ -115,8 +115,7 @@ spec:
         set -o errexit
 
         systemctl stop kubelet
-
-        declare -a BINARIES=("kubectl" "kubelet")
+        declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
 
         # Define the base URL and version
         BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
@@ -150,6 +149,7 @@ spec:
         # Reload systemd to pick up any changes from the new packages
         systemctl daemon-reload
         systemctl restart kubelet
+        sleep 500
 
         echo "kubeadm version: $(kubeadm version -o=short)"
         echo "kubectl version: $(kubectl version --client=true)"
@@ -271,7 +271,7 @@ spec:
 
           systemctl stop kubelet
 
-          declare -a BINARIES=("kubectl" "kubelet")
+          declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
 
           # Define the base URL and version
           BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
