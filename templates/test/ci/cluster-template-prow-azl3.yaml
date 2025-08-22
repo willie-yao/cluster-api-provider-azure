@@ -30,14 +30,11 @@ spec:
     buildProvenance: ${BUILD_PROVENANCE}
     creationTimestamp: ${TIMESTAMP}
     jobName: ${JOB_NAME}
-  extendedLocation:
-    name: ${AZURE_EXTENDEDLOCATION_NAME}
-    type: ${AZURE_EXTENDEDLOCATION_TYPE}
   identityRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: AzureClusterIdentity
     name: ${CLUSTER_IDENTITY_NAME}
-  location: ${AZURE_LOCATION_EDGEZONE}
+  location: ${AZURE_LOCATION}
   networkSpec:
     subnets:
     - name: control-plane-subnet
@@ -110,7 +107,28 @@ spec:
     - - LABEL=etcd_disk
       - /var/lib/etcddisk
     postKubeadmCommands: []
-    preKubeadmCommands: []
+    preKubeadmCommands:
+    - |
+      # Install ca-certificates packages for Azure Linux
+      tdnf install -y ca-certificates ca-certificates-legacy
+      update-ca-trust
+
+      # Follow Azure Linux 3 docs exactly - completely permissive for debugging
+      # Change default policy to ACCEPT (as recommended by AZL3 docs)
+      iptables -P INPUT ACCEPT
+      iptables -P FORWARD ACCEPT
+      iptables -P OUTPUT ACCEPT
+
+      ip6tables -P INPUT ACCEPT
+      ip6tables -P FORWARD ACCEPT
+      ip6tables -P OUTPUT ACCEPT
+
+      # Flush any rules which would filter packets
+      iptables -F
+      ip6tables -F
+
+      iptables-save > /etc/systemd/scripts/ip4save
+      ip6tables-save > /etc/systemd/scripts/ip6save
     verbosity: 10
   machineTemplate:
     infrastructureRef:
@@ -118,7 +136,7 @@ spec:
       kind: AzureMachineTemplate
       name: ${CLUSTER_NAME}-control-plane
   replicas: ${CONTROL_PLANE_MACHINE_COUNT:=1}
-  version: v1.25.0
+  version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureMachineTemplate
@@ -131,19 +149,21 @@ spec:
       dataDisks:
       - diskSizeGB: 256
         lun: 0
-        managedDisk:
-          storageAccountType: StandardSSD_LRS
         nameSuffix: etcddisk
+      disableVMBootstrapExtension: true
       identity: UserAssigned
+      image:
+        computeGallery:
+          gallery: ClusterAPI-f72ceb4f-5159-4c26-a0fe-2ea738f0d019
+          name: capi-azurelinux-3
+          version: ${KUBERNETES_VERSION#v}
       osDisk:
         diskSizeGB: 128
-        managedDisk:
-          storageAccountType: StandardSSD_LRS
         osType: Linux
       sshPublicKey: ${AZURE_SSH_PUBLIC_KEY_B64:=""}
       userAssignedIdentities:
       - providerID: /subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${CI_RG:=capz-ci}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${USER_IDENTITY:=cloud-provider-user-identity}
-      vmSize: ${AZURE_EDGEZONE_CONTROL_PLANE_MACHINE_TYPE:=Standard_DS2_v2}
+      vmSize: ${AZURE_CONTROL_PLANE_MACHINE_TYPE}
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
@@ -155,6 +175,9 @@ spec:
   replicas: ${WORKER_MACHINE_COUNT:=2}
   selector: {}
   template:
+    metadata:
+      labels:
+        nodepool: pool1
     spec:
       bootstrap:
         configRef:
@@ -166,7 +189,7 @@ spec:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: AzureMachineTemplate
         name: ${CLUSTER_NAME}-md-0
-      version: v1.25.0
+      version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureMachineTemplate
@@ -176,16 +199,20 @@ metadata:
 spec:
   template:
     spec:
+      disableVMBootstrapExtension: true
       identity: UserAssigned
+      image:
+        computeGallery:
+          gallery: ClusterAPI-f72ceb4f-5159-4c26-a0fe-2ea738f0d019
+          name: capi-azurelinux-3
+          version: ${KUBERNETES_VERSION#v}
       osDisk:
         diskSizeGB: 128
-        managedDisk:
-          storageAccountType: StandardSSD_LRS
         osType: Linux
       sshPublicKey: ${AZURE_SSH_PUBLIC_KEY_B64:=""}
       userAssignedIdentities:
       - providerID: /subscriptions/${AZURE_SUBSCRIPTION_ID}/resourceGroups/${CI_RG:=capz-ci}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${USER_IDENTITY:=cloud-provider-user-identity}
-      vmSize: ${AZURE_EDGEZONE_NODE_MACHINE_TYPE:=Standard_DS4_v2}
+      vmSize: ${AZURE_NODE_MACHINE_TYPE}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
@@ -208,7 +235,28 @@ spec:
           kubeletExtraArgs:
             cloud-provider: external
           name: '{{ ds.meta_data["local_hostname"] }}'
-      preKubeadmCommands: []
+      preKubeadmCommands:
+      - |
+        # Install ca-certificates packages for Azure Linux
+        tdnf install -y ca-certificates ca-certificates-legacy
+        update-ca-trust
+
+        # Follow Azure Linux 3 docs exactly - completely permissive for debugging
+        # Change default policy to ACCEPT (as recommended by AZL3 docs)
+        iptables -P INPUT ACCEPT
+        iptables -P FORWARD ACCEPT
+        iptables -P OUTPUT ACCEPT
+
+        ip6tables -P INPUT ACCEPT
+        ip6tables -P FORWARD ACCEPT
+        ip6tables -P OUTPUT ACCEPT
+
+        # Flush any rules which would filter packets
+        iptables -F
+        ip6tables -F
+
+        iptables-save > /etc/systemd/scripts/ip4save
+        ip6tables-save > /etc/systemd/scripts/ip6save
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureClusterIdentity
@@ -331,6 +379,7 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}
       logVerbosity: 4
 ---
@@ -350,6 +399,7 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       cloudConfig: ${CLOUD_CONFIG:-"/etc/kubernetes/azure.json"}
       cloudConfigSecretName: ${CONFIG_SECRET_NAME:-""}
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}

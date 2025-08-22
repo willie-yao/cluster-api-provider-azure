@@ -210,27 +210,8 @@ spec:
       - /var/lib/etcddisk
     postKubeadmCommands: []
     preKubeadmCommands:
-    - |
-      # Install ca-certificates packages for Azure Linux
-      tdnf install -y ca-certificates ca-certificates-legacy
-      update-ca-trust
-
-      # Follow Azure Linux 3 docs exactly - completely permissive for debugging
-      # Change default policy to ACCEPT (as recommended by AZL3 docs)
-      iptables -P INPUT ACCEPT
-      iptables -P FORWARD ACCEPT
-      iptables -P OUTPUT ACCEPT
-
-      ip6tables -P INPUT ACCEPT
-      ip6tables -P FORWARD ACCEPT
-      ip6tables -P OUTPUT ACCEPT
-
-      # Flush any rules which would filter packets
-      iptables -F
-      ip6tables -F
-
-      iptables-save > /etc/systemd/scripts/ip4save
-      ip6tables-save > /etc/systemd/scripts/ip6save
+    - bash -c /tmp/oot-cred-provider.sh
+    - bash -c /tmp/kubeadm-bootstrap.sh
     verbosity: 5
   machineTemplate:
     infrastructureRef:
@@ -254,7 +235,6 @@ spec:
       - diskSizeGB: 256
         lun: 0
         nameSuffix: etcddisk
-      disableVMBootstrapExtension: true
       identity: UserAssigned
       image:
         marketplace:
@@ -306,7 +286,6 @@ spec:
     spec:
       additionalTags:
         monitoring: virtualmachine
-      disableVMBootstrapExtension: true
       identity: UserAssigned
       image:
         marketplace:
@@ -447,27 +426,6 @@ spec:
             image-credential-provider-config: /var/lib/kubelet/credential-provider-config.yaml
           name: '{{ ds.meta_data["local_hostname"] }}'
       preKubeadmCommands:
-      - |
-        # Install ca-certificates packages for Azure Linux
-        tdnf install -y ca-certificates ca-certificates-legacy
-        update-ca-trust
-
-        # Follow Azure Linux 3 docs exactly - completely permissive for debugging
-        # Change default policy to ACCEPT (as recommended by AZL3 docs)
-        iptables -P INPUT ACCEPT
-        iptables -P FORWARD ACCEPT
-        iptables -P OUTPUT ACCEPT
-
-        ip6tables -P INPUT ACCEPT
-        ip6tables -P FORWARD ACCEPT
-        ip6tables -P OUTPUT ACCEPT
-
-        # Flush any rules which would filter packets
-        iptables -F
-        ip6tables -F
-
-        iptables-save > /etc/systemd/scripts/ip4save
-        ip6tables-save > /etc/systemd/scripts/ip6save
       - bash -c /tmp/oot-cred-provider.sh
       - bash -c /tmp/kubeadm-bootstrap.sh
       verbosity: 5
@@ -857,7 +815,6 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
-      caCertDir: "/etc/pki/tls/certs"
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}
       logVerbosity: 4
 ---
@@ -877,7 +834,6 @@ spec:
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
-      caCertDir: "/etc/pki/tls/certs"
       cloudConfig: ${CLOUD_CONFIG:-"/etc/kubernetes/azure.json"}
       cloudConfigSecretName: ${CONFIG_SECRET_NAME:-""}
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}

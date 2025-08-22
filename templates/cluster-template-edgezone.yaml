@@ -124,7 +124,6 @@ spec:
       - diskSizeGB: 256
         lun: 0
         nameSuffix: etcddisk
-      disableVMBootstrapExtension: true
       identity: UserAssigned
       osDisk:
         diskSizeGB: 128
@@ -166,7 +165,6 @@ metadata:
 spec:
   template:
     spec:
-      disableVMBootstrapExtension: true
       osDisk:
         diskSizeGB: 128
         osType: Linux

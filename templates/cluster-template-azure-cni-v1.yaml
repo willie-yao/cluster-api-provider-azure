@@ -123,7 +123,6 @@ spec:
       - diskSizeGB: 256
         lun: 0
         nameSuffix: etcddisk
-      disableVMBootstrapExtension: true
       identity: UserAssigned
       networkInterfaces:
       - privateIPConfigs: 110
@@ -168,7 +167,6 @@ metadata:
 spec:
   template:
     spec:
-      disableVMBootstrapExtension: true
       networkInterfaces:
       - privateIPConfigs: 110
         subnetName: node-subnet

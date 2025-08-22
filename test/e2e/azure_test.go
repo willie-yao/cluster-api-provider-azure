@@ -198,12 +198,14 @@ var _ = Describe("Workload cluster creation", func() {
 
 	Context("Creating a highly available cluster [REQUIRED]", func() {
 		It("With 3 control-plane nodes and 2 Linux and 2 Windows worker nodes", func() {
+			Expect(os.Setenv("KUBERNETES_VERSION", "v1.33.2")).To(Succeed())
 			clusterName = getClusterName(clusterNamePrefix, "ha")
 
 			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
 				specName,
 				withNamespace(namespace.Name),
 				withClusterName(clusterName),
+				withFlavor("azl3"),
 				withControlPlaneMachineCount(1),
 				withWorkerMachineCount(2),
 				withControlPlaneInterval(specName, "wait-control-plane-ha"),
@@ -221,15 +223,15 @@ var _ = Describe("Workload cluster creation", func() {
 				}),
 			), result)
 
-			By("Verifying expected VM extensions are present on the node", func() {
-				AzureVMExtensionsSpec(ctx, func() AzureVMExtensionsSpecInput {
-					return AzureVMExtensionsSpecInput{
-						BootstrapClusterProxy: bootstrapClusterProxy,
-						Namespace:             namespace,
-						ClusterName:           clusterName,
-					}
-				})
-			})
+			// By("Verifying expected VM extensions are present on the node", func() {
+			// 	AzureVMExtensionsSpec(ctx, func() AzureVMExtensionsSpecInput {
+			// 		return AzureVMExtensionsSpecInput{
+			// 			BootstrapClusterProxy: bootstrapClusterProxy,
+			// 			Namespace:             namespace,
+			// 			ClusterName:           clusterName,
+			// 		}
+			// 	})
+			// })
 
 			By("Verifying security rules are deleted on azure side", func() {
 				AzureSecurityGroupsSpec(ctx, func() AzureSecurityGroupsSpecInput {

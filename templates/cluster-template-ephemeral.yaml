@@ -121,7 +121,6 @@ spec:
       - diskSizeGB: 256
         lun: 0
         nameSuffix: etcddisk
-      disableVMBootstrapExtension: true
       identity: UserAssigned
       osDisk:
         cachingType: ReadOnly
@@ -166,7 +165,6 @@ metadata:
 spec:
   template:
     spec:
-      disableVMBootstrapExtension: true
       osDisk:
         cachingType: ReadOnly
         diffDiskSettings:

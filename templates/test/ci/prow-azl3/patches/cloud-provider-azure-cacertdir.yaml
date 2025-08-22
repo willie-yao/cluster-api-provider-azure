@@ -3,15 +3,10 @@ kind: HelmChartProxy
 metadata:
   name: cloud-provider-azure-chart
 spec:
-  clusterSelector:
-    matchLabels:
-      cloud-provider: "azure"
-  repoURL: https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo
-  chartName: cloud-provider-azure
-  releaseName: cloud-provider-azure-oot
   valuesTemplate: |
     infra:
       clusterName: {{ .Cluster.metadata.name }}
     cloudControllerManager:
+      caCertDir: "/etc/pki/tls/certs"
       clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}
       logVerbosity: 4
