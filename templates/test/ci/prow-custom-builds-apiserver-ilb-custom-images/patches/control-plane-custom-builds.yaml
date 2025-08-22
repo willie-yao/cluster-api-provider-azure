@@ -8,15 +8,14 @@
       set -o pipefail
       set -o errexit
 
-      # Stop kubelet to prevent conflicts during package installation
       systemctl stop kubelet
 
-      declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+      declare -a BINARIES=("kubectl" "kubelet")
 
       # Define the base URL and version
       BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
       VERSION="${KUBERNETES_VERSION}"
-      VERSION=$${VERSION#v}  # Remove 'v' prefix if present
+      VERSION=$${VERSION#v}
       OS_VERSION="ubuntu24.04"
       ARCH="amd64"
       DEB_VERSION="ubuntu24.04u1"
@@ -30,7 +29,7 @@
         echo "* downloading and installing package: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
         DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
         DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
-        
+
         echo "Downloading from: $${DEB_URL}"
         curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
         chmod 644 "$${DEB_FILE}"
@@ -40,103 +39,20 @@
 
         # Clean up the downloaded deb file
         rm -f "$${DEB_FILE}"
-        
-        # Validate binary installation
-        echo "Installed $${BINARY}: $(which $${BINARY})"
-        case $${BINARY} in
-          kubeadm)
-            echo "kubeadm version: $(kubeadm version -o=short)"
-            ;;
-          kubectl)
-            echo "kubectl version: $(kubectl version --client=true --output=short)"
-            ;;
-          kubelet)
-            echo "kubelet version: $(kubelet --version)"
-            ;;
-        esac
       done
 
-      # Ensure kubelet is stopped before kubeadm init (but keep it enabled for kubeadm to start)
-      systemctl stop kubelet
+      # Reload systemd to pick up any changes from the new packages
+      systemctl daemon-reload
+      systemctl restart kubelet
 
-      # kubeadm-specific validation
-      echo "=== kubeadm Validation ==="
-      
-      # Test kubeadm configuration functionality
-      echo "Testing kubeadm config functionality..."
-      kubeadm config print init-defaults > /tmp/kubeadm-test.yaml
-      if [ $? -ne 0 ]; then
-        echo "ERROR: kubeadm config print failed"
-        exit 1
-      fi
-      
-      # Validate the configuration
-      echo "Validating kubeadm configuration..."
-      kubeadm config validate --config /tmp/kubeadm-test.yaml
-      if [ $? -ne 0 ]; then
-        echo "ERROR: kubeadm config validation failed"
-        exit 1
-      fi
-      
-      # Check kubeadm dependencies
-      echo "Checking kubeadm binary dependencies..."
-      ldd $(which kubeadm) | grep "not found" && {
-        echo "ERROR: kubeadm has missing dependencies"
-        exit 1
-      } || echo "kubeadm dependencies OK"
-      
-      # Verify kubeadm can detect container runtime
-      echo "Testing container runtime detection..."
-      kubeadm config images list > /dev/null 2>&1
-      if [ $? -ne 0 ]; then
-        echo "WARNING: kubeadm cannot detect container runtime properly"
-      else
-        echo "Container runtime detection OK"
-      fi
-      
-      # Check systemd service status
-      echo "=== Service Status ==="
-      echo "kubelet service status: $(systemctl is-enabled kubelet)"
-      echo "kubelet active status: $(systemctl is-active kubelet)"
-      
-      # Clean up test files
-      rm -f /tmp/kubeadm-test.yaml
-      
-      echo "=== Binary Installation Complete ==="
+      echo "kubeadm version: $(kubeadm version -o=short)"
+      echo "kubectl version: $(kubectl version --client=true)"
+      echo "kubelet version: $(kubelet --version)"
     path: /tmp/replace-k8s-binaries.sh
     owner: "root:root"
     permissions: "0744"
 - op: add
   path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
   value:
-    echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com' >> /etc/hosts
-- op: add
-  path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
-  value:
     bash -c /tmp/replace-k8s-binaries.sh
-- op: add
-  path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
-  value: |
-    # Debug network connectivity before kubeadm init
-    echo "=== Network Debug Info ==="
-    cat /etc/hosts | grep ${CLUSTER_NAME}
-    nslookup ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com || true
-    ping -c 3 ${AZURE_INTERNAL_LB_PRIVATE_IP} || true
-    # Test if we can reach the internal load balancer IP on port 6443
-    timeout 10 nc -zv ${AZURE_INTERNAL_LB_PRIVATE_IP} 6443 || echo "Cannot reach internal LB on port 6443 yet (expected before kubeadm init)"
-- op: add
-  path: /spec/kubeadmConfigSpec/postKubeadmCommands/-
-  value: |
-    # Debug API server after kubeadm init
-    echo "=== Post-kubeadm API Server Debug ==="
-    echo "Checking if API server is running..."
-    crictl ps | grep kube-apiserver || echo "No kube-apiserver container found"
-    echo "Checking API server logs..."
-    crictl logs $(crictl ps --name kube-apiserver -q) | tail -20 || echo "Could not get API server logs"
-    echo "Checking what ports API server is listening on..."
-    netstat -tlnp | grep :6443 || echo "No process listening on port 6443"
-    echo "Testing local API server connectivity..."
-    timeout 5 curl -k https://127.0.0.1:6443/livez || echo "Cannot reach API server on localhost"
-    timeout 5 curl -k https://40.0.0.4:6443/livez || echo "Cannot reach API server on node IP"
-    echo "Checking load balancer connectivity from node..."
-    timeout 5 nc -zv ${AZURE_INTERNAL_LB_PRIVATE_IP} 6443 || echo "Cannot reach internal LB from node"
+    
