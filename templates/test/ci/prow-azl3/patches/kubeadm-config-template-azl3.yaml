@@ -1,29 +1,37 @@
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: KubeadmConfigTemplate
-metadata:
-  name: ${CLUSTER_NAME}-md-0
-spec:
-  template:
-    spec:
-      preKubeadmCommands:
-      - |
-        # Install ca-certificates packages for Azure Linux
-        tdnf install -y ca-certificates ca-certificates-legacy
-        update-ca-trust
-        
-        # Follow Azure Linux 3 docs exactly - completely permissive for debugging
-        # Change default policy to ACCEPT (as recommended by AZL3 docs)
-        iptables -P INPUT ACCEPT
-        iptables -P FORWARD ACCEPT
-        iptables -P OUTPUT ACCEPT
+- op: add
+  path: /spec/template/spec/files/0
+  value:
+    content: |
+      #!/bin/bash
 
-        ip6tables -P INPUT ACCEPT
-        ip6tables -P FORWARD ACCEPT
-        ip6tables -P OUTPUT ACCEPT
+      set -o nounset
+      set -o pipefail
+      set -o errexit
 
-        # Flush any rules which would filter packets
-        iptables -F
-        ip6tables -F
+      # Install ca-certificates packages for Azure Linux
+      tdnf install -y ca-certificates ca-certificates-legacy
+      update-ca-trust
+      
+      # Follow Azure Linux 3 docs exactly - completely permissive for debugging
+      # Change default policy to ACCEPT (as recommended by AZL3 docs)
+      iptables -P INPUT ACCEPT
+      iptables -P FORWARD ACCEPT
+      iptables -P OUTPUT ACCEPT
 
-        iptables-save > /etc/systemd/scripts/ip4save
-        ip6tables-save > /etc/systemd/scripts/ip6save
+      ip6tables -P INPUT ACCEPT
+      ip6tables -P FORWARD ACCEPT
+      ip6tables -P OUTPUT ACCEPT
+
+      # Flush any rules which would filter packets
+      iptables -F
+      ip6tables -F
+
+      iptables-save > /etc/systemd/scripts/ip4save
+      ip6tables-save > /etc/systemd/scripts/ip6save
+    path: /tmp/azl3-setup.sh
+    owner: "root:root"
+    permissions: "0744"
+- op: add
+  path: /spec/template/spec/preKubeadmCommands/0
+  value:
+    bash -c /tmp/azl3-setup.sh

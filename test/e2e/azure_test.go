@@ -224,15 +224,15 @@ var _ = Describe("Workload cluster creation", func() {
 				}),
 			), result)
 
-			// By("Verifying expected VM extensions are present on the node", func() {
-			// 	AzureVMExtensionsSpec(ctx, func() AzureVMExtensionsSpecInput {
-			// 		return AzureVMExtensionsSpecInput{
-			// 			BootstrapClusterProxy: bootstrapClusterProxy,
-			// 			Namespace:             namespace,
-			// 			ClusterName:           clusterName,
-			// 		}
-			// 	})
-			// })
+			By("Verifying expected VM extensions are present on the node", func() {
+				AzureVMExtensionsSpec(ctx, func() AzureVMExtensionsSpecInput {
+					return AzureVMExtensionsSpecInput{
+						BootstrapClusterProxy: bootstrapClusterProxy,
+						Namespace:             namespace,
+						ClusterName:           clusterName,
+					}
+				})
+			})
 
 			By("Verifying security rules are deleted on azure side", func() {
 				AzureSecurityGroupsSpec(ctx, func() AzureSecurityGroupsSpecInput {
@@ -293,7 +293,7 @@ var _ = Describe("Workload cluster creation", func() {
 				withFlavor("azure-cni-v1"),
 				withNamespace(namespace.Name),
 				withClusterName(clusterName),
-				withControlPlaneMachineCount(1),
+				withControlPlaneMachineCount(3),
 				withWorkerMachineCount(2),
 				withControlPlaneInterval(specName, "wait-control-plane-ha"),
 				withControlPlaneWaiters(clusterctl.ControlPlaneWaiters{
@@ -310,15 +310,15 @@ var _ = Describe("Workload cluster creation", func() {
 				}),
 			), result)
 
-			// By("can expect VM extensions are present on the node", func() {
-			// 	AzureVMExtensionsSpec(ctx, func() AzureVMExtensionsSpecInput {
-			// 		return AzureVMExtensionsSpecInput{
-			// 			BootstrapClusterProxy: bootstrapClusterProxy,
-			// 			Namespace:             namespace,
-			// 			ClusterName:           clusterName,
-			// 		}
-			// 	})
-			// })
+			By("can expect VM extensions are present on the node", func() {
+				AzureVMExtensionsSpec(ctx, func() AzureVMExtensionsSpecInput {
+					return AzureVMExtensionsSpecInput{
+						BootstrapClusterProxy: bootstrapClusterProxy,
+						Namespace:             namespace,
+						ClusterName:           clusterName,
+					}
+				})
+			})
 
 			By("can validate failure domains", func() {
 				AzureFailureDomainsSpec(ctx, func() AzureFailureDomainsSpecInput {

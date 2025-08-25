@@ -86,6 +86,36 @@ spec:
         overwrite: false
         tableType: gpt
     files:
+    - content: |
+        #!/bin/bash
+
+        set -o nounset
+        set -o pipefail
+        set -o errexit
+
+        # Install ca-certificates packages for Azure Linux
+        tdnf install -y ca-certificates ca-certificates-legacy
+        update-ca-trust
+
+        # Follow Azure Linux 3 docs exactly - completely permissive for debugging
+        # Change default policy to ACCEPT (as recommended by AZL3 docs)
+        iptables -P INPUT ACCEPT
+        iptables -P FORWARD ACCEPT
+        iptables -P OUTPUT ACCEPT
+
+        ip6tables -P INPUT ACCEPT
+        ip6tables -P FORWARD ACCEPT
+        ip6tables -P OUTPUT ACCEPT
+
+        # Flush any rules which would filter packets
+        iptables -F
+        ip6tables -F
+
+        iptables-save > /etc/systemd/scripts/ip4save
+        ip6tables-save > /etc/systemd/scripts/ip6save
+      owner: root:root
+      path: /tmp/azl3-setup.sh
+      permissions: "0744"
     - contentFrom:
         secret:
           key: control-plane-azure.json
@@ -108,27 +138,7 @@ spec:
       - /var/lib/etcddisk
     postKubeadmCommands: []
     preKubeadmCommands:
-    - |
-      # Install ca-certificates packages for Azure Linux
-      tdnf install -y ca-certificates ca-certificates-legacy
-      update-ca-trust
-
-      # Follow Azure Linux 3 docs exactly - completely permissive for debugging
-      # Change default policy to ACCEPT (as recommended by AZL3 docs)
-      iptables -P INPUT ACCEPT
-      iptables -P FORWARD ACCEPT
-      iptables -P OUTPUT ACCEPT
-
-      ip6tables -P INPUT ACCEPT
-      ip6tables -P FORWARD ACCEPT
-      ip6tables -P OUTPUT ACCEPT
-
-      # Flush any rules which would filter packets
-      iptables -F
-      ip6tables -F
-
-      iptables-save > /etc/systemd/scripts/ip4save
-      ip6tables-save > /etc/systemd/scripts/ip6save
+    - bash -c /tmp/azl3-setup.sh
     verbosity: 10
   machineTemplate:
     infrastructureRef:
@@ -221,6 +231,36 @@ spec:
   template:
     spec:
       files:
+      - content: |
+          #!/bin/bash
+
+          set -o nounset
+          set -o pipefail
+          set -o errexit
+
+          # Install ca-certificates packages for Azure Linux
+          tdnf install -y ca-certificates ca-certificates-legacy
+          update-ca-trust
+
+          # Follow Azure Linux 3 docs exactly - completely permissive for debugging
+          # Change default policy to ACCEPT (as recommended by AZL3 docs)
+          iptables -P INPUT ACCEPT
+          iptables -P FORWARD ACCEPT
+          iptables -P OUTPUT ACCEPT
+
+          ip6tables -P INPUT ACCEPT
+          ip6tables -P FORWARD ACCEPT
+          ip6tables -P OUTPUT ACCEPT
+
+          # Flush any rules which would filter packets
+          iptables -F
+          ip6tables -F
+
+          iptables-save > /etc/systemd/scripts/ip4save
+          ip6tables-save > /etc/systemd/scripts/ip6save
+        owner: root:root
+        path: /tmp/azl3-setup.sh
+        permissions: "0744"
       - contentFrom:
           secret:
             key: worker-node-azure.json
@@ -234,27 +274,7 @@ spec:
             cloud-provider: external
           name: '{{ ds.meta_data["local_hostname"] }}'
       preKubeadmCommands:
-      - |
-        # Install ca-certificates packages for Azure Linux
-        tdnf install -y ca-certificates ca-certificates-legacy
-        update-ca-trust
-
-        # Follow Azure Linux 3 docs exactly - completely permissive for debugging
-        # Change default policy to ACCEPT (as recommended by AZL3 docs)
-        iptables -P INPUT ACCEPT
-        iptables -P FORWARD ACCEPT
-        iptables -P OUTPUT ACCEPT
-
-        ip6tables -P INPUT ACCEPT
-        ip6tables -P FORWARD ACCEPT
-        ip6tables -P OUTPUT ACCEPT
-
-        # Flush any rules which would filter packets
-        iptables -F
-        ip6tables -F
-
-        iptables-save > /etc/systemd/scripts/ip4save
-        ip6tables-save > /etc/systemd/scripts/ip6save
+      - bash -c /tmp/azl3-setup.sh
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureClusterIdentity
