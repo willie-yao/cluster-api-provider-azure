@@ -20,7 +20,6 @@ patches:
 - path: patches/azuremachinetemplate-azl3-image.yaml
 - path: patches/cloud-provider-azure-cacertdir.yaml
 - path: patches/cloud-provider-azure-ci-cacertdir.yaml
-- path: patches/disable-vm-bootstrap-extension.yaml
 
 sortOptions:
   order: fifo
