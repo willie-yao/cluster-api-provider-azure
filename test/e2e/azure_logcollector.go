@@ -52,6 +52,8 @@ type AzureLogCollector struct{}
 const (
 	collectLogInterval = 3 * time.Second
 	collectLogTimeout  = 1 * time.Minute
+	// extendedCollectLogTimeout is used for scenarios where nodes might take longer to be ready (e.g., additional control plane nodes)
+	extendedCollectLogTimeout = 3 * time.Minute
 )
 
 var _ framework.ClusterLogCollector = &AzureLogCollector{}
@@ -334,13 +336,20 @@ func collectLogsFromNode(cluster *clusterv1.Cluster, hostname string, isWindows 
 
 	execToPathFn := func(outputFileName, command string, args ...string) func() error {
 		return func() error {
-			return retryWithTimeout(collectLogInterval, collectLogTimeout, func() error {
+			// Use extended timeout for better resilience, especially for additional control plane nodes
+			return retryWithTimeout(collectLogInterval, extendedCollectLogTimeout, func() error {
 				f, err := fileOnHost(filepath.Join(outputPath, outputFileName))
 				if err != nil {
+					Logf("Failed to create output file %s for node %s: %v", outputFileName, hostname, err)
 					return err
 				}
 				defer f.Close()
-				return execOnHost(controlPlaneEndpoint, hostname, sshPort, collectLogTimeout, f, command, args...)
+
+				err = execOnHost(controlPlaneEndpoint, hostname, sshPort, extendedCollectLogTimeout, f, command, args...)
+				if err != nil {
+					Logf("Failed to execute command '%s %v' on node %s: %v", command, args, hostname, err)
+				}
+				return err
 			})
 		}
 	}
@@ -417,6 +426,10 @@ func getAzureMachinePool(ctx context.Context, managementClusterClient client.Cli
 
 func linuxLogs(execToPathFn func(outputFileName string, command string, args ...string) func() error) []func() error {
 	return []func() error{
+		execToPathFn(
+			"ssh-connectivity-test.txt",
+			"echo", "SSH connectivity test successful - $(date) - hostname: $(hostname) - uptime: $(uptime)",
+		),
 		execToPathFn(
 			"journal.log",
 			"sudo", "journalctl", "--no-pager", "--output=short-precise",
@@ -510,6 +523,10 @@ func linuxLogs(execToPathFn func(outputFileName string, command string, args ...
 		execToPathFn(
 			"kube-apiserver.log",
 			crictlPodLogsCmd("kube-apiserver"),
+		),
+		execToPathFn(
+			"log-collection-summary.txt",
+			"echo", "Log collection completed at $(date) for node $(hostname). SSH connectivity was successful if you can see this message.",
 		),
 	}
 }
