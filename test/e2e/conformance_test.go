@@ -102,9 +102,7 @@ var _ = Describe("Conformance Tests", func() {
 
 		if flavor == "" {
 			if useCIArtifacts {
-				// flavor = "conformance-ci-artifacts"
-				// TODO: Remove this as it's for testing
-				flavor = "conformance-ci-artifacts-azl3"
+				flavor = "conformance-ci-artifacts"
 			} else if usePRArtifacts {
 				flavor = "conformance-presubmit-artifacts"
 			}

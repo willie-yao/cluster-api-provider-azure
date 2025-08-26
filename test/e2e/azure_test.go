@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-service-operator/v2/pkg/common/config"
@@ -1298,6 +1299,9 @@ var _ = Describe("Workload cluster creation", func() {
 	Context("Creating a highly-available cluster with Azure Linux 3 [OPTIONAL]", func() {
 		It("with three controlplane node and two worker nodes", func() {
 			clusterName = getClusterName(clusterNamePrefix, "azl3")
+			kubernetesVersion := e2eConfig.MustGetVariable(capi_e2e.KubernetesVersion)
+			kubernetesVersion = strings.TrimPrefix(kubernetesVersion, "v")
+			Expect(os.Setenv("AZL3_VERSION", kubernetesVersion)).To(Succeed())
 
 			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
 				specName,
