@@ -450,56 +450,8 @@ func linuxLogs(execToPathFn func(outputFileName string, command string, args ...
 			"sudo", "sh", "-c", "echo 'Waiting for cloud-init to complete before collecting output log...' && cloud-init status --wait && echo 'Cloud-init completed, collecting output log...' && if [ -f /var/log/cloud-init-output.log ]; then echo 'Found cloud-init-output.log, reading contents:' && sudo cat /var/log/cloud-init-output.log; else echo 'cloud-init-output.log not found after cloud-init completion'; fi",
 		),
 		execToPathFn(
-			"cloud-init-journal.log",
-			"sudo", "journalctl", "--no-pager", "--output=short-precise", "-u", "cloud-init", "-u", "cloud-config", "-u", "cloud-final",
-		),
-		execToPathFn(
-			"cloud-init-status.txt",
-			"sudo", "cloud-init", "status", "--long",
-		),
-		execToPathFn(
-			"cloud-init-all-logs.txt",
-			"sudo", "sh", "-c", "echo '=== cloud-init logs from journal ===' && journalctl --no-pager -u cloud-init-local -u cloud-init -u cloud-config -u cloud-final --output=short-precise && echo && echo '=== cloud-init result.json ===' && cat /run/cloud-init/result.json 2>/dev/null || echo 'result.json not found' && echo && echo '=== cloud-init instance-data.json ===' && cat /run/cloud-init/instance-data.json 2>/dev/null || echo 'instance-data.json not found'",
-		),
-		execToPathFn(
-			"cloud-init-file-details.txt",
-			"sudo", "sh", "-c", "echo '=== Cloud-init file existence and permissions ===' && echo 'Timestamp: '$(date) && echo 'Cloud-init status:' && cloud-init status && echo && echo 'Files in /var/log/ matching cloud-init*:' && ls -la /var/log/cloud-init* 2>/dev/null || echo 'No cloud-init files found in /var/log/' && echo && echo 'Files in /run/cloud-init/:' && ls -la /run/cloud-init/ 2>/dev/null || echo '/run/cloud-init/ not found' && echo && echo 'Checking for sentinel file:' && ls -la /run/cluster-api/ 2>/dev/null || echo '/run/cluster-api/ not found' && echo && echo 'SELinux context (if applicable):' && ls -laZ /var/log/cloud-init* 2>/dev/null || echo 'No SELinux or cloud-init files'",
-		),
-		execToPathFn(
-			"cloud-init-output-comprehensive.log",
-			"sudo", "sh", "-c", "echo '=== Comprehensive cloud-init output collection ===' && echo 'Method 1: Direct sudo cat:' && sudo cat /var/log/cloud-init-output.log",
-		),
-		execToPathFn(
-			"cloud-init-output-methods.log",
-			"sudo", "sh", "-c", "echo 'Method 2: sudo tail:' && sudo tail -n +1 /var/log/cloud-init-output.log && echo && echo 'Method 3: sudo dd:' && sudo dd if=/var/log/cloud-init-output.log 2>/dev/null && echo && echo 'Method 4: File readability test:' && sudo test -r /var/log/cloud-init-output.log && echo 'File readable with sudo' || echo 'File not readable with sudo'",
-		),
-		execToPathFn(
-			"cloud-init-userdata.log",
-			"sudo", "cloud-init", "query", "userdata",
-		),
-		execToPathFn(
 			"sentinel-file-dir.txt",
 			"ls", "-la", "/run/cluster-api/",
-		),
-		execToPathFn(
-			"var-log-dir.txt",
-			"ls", "-la", "/var/log/",
-		),
-		execToPathFn(
-			"system-info.txt",
-			"sudo", "sh", "-c", "echo '=== OS Release ===' && cat /etc/os-release && echo && echo '=== Uptime ===' && uptime && echo && echo '=== Free memory ===' && free -h",
-		),
-		execToPathFn(
-			"dmesg.log",
-			"sudo", "dmesg",
-		),
-		execToPathFn(
-			"systemd-analyze.txt",
-			"sudo", "systemd-analyze", "blame",
-		),
-		execToPathFn(
-			"cloud-init-run-dir.txt",
-			"sudo", "ls", "-la", "/run/cloud-init/",
 		),
 		execToPathFn(
 			"cni.log",

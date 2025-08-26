@@ -102,7 +102,9 @@ var _ = Describe("Conformance Tests", func() {
 
 		if flavor == "" {
 			if useCIArtifacts {
-				flavor = "conformance-ci-artifacts"
+				// flavor = "conformance-ci-artifacts"
+				// TODO: Remove this as it's for testing
+				flavor = "conformance-ci-artifacts-azl3"
 			} else if usePRArtifacts {
 				flavor = "conformance-presubmit-artifacts"
 			}
@@ -115,9 +117,6 @@ var _ = Describe("Conformance Tests", func() {
 				kubetestConfigFilePath = strings.Replace(kubetestConfigFilePath, ".yaml", "-dual-stack.yaml", 1)
 			}
 		}
-
-		// TODO: Remove this as it's for testing
-		flavor = "conformance-ci-artifacts-azl3"
 
 		// Starting with Kubernetes v1.25, the kubetest config file needs to be compatible with Ginkgo V2.
 		v125 := semver.MustParse("1.25.0-alpha.0.0")
