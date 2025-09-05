@@ -107,31 +107,51 @@ spec:
       owner: root:root
       path: /etc/kubernetes/azure.json
       permissions: "0644"
-    - content: "#!/bin/bash\n\nset -o nounset\nset -o pipefail\nset -o errexit\n\n#
-        Only stop kubelet if it's running\nif systemctl is-active --quiet kubelet;
-        then\n  echo \"Stopping kubelet service\"\n  systemctl stop kubelet\nfi\n\ndeclare
-        -a BINARIES=(\"kubeadm\" \"kubectl\" \"kubelet\")\n\n# Define the base URL
-        and version\nBASE_URL=\"https://kubernetesreleases.blob.core.windows.net/dalec-packages\"\nVERSION=\"${KUBERNETES_VERSION}\"\nVERSION=$${VERSION#v}\nOS_VERSION=\"ubuntu24.04\"\nARCH=\"amd64\"\n\n#
-        Create temporary directory for extraction\nTEMP_DIR=$(mktemp -d)\ntrap \"rm
-        -rf $${TEMP_DIR}\" EXIT\n\nfor BINARY in \"$${BINARIES[@]}\"; do\n  if [[
-        \"$${BINARY}\" == \"kubelet\" ]]; then\n    DEB_VERSION=\"ubuntu24.04u1\"\n
-        \ else\n    DEB_VERSION=\"ubuntu24.04u2\"\n  fi\n  \n  echo \"* downloading
-        and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}\"\n
-        \ DEB_FILE=\"$${TEMP_DIR}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
-        \ DEB_URL=\"$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n\n
-        \ echo \"Downloading from: $${DEB_URL}\"\n  curl -L --retry 10 --retry-delay
-        5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n\n  # Extract the deb package\n
-        \ echo \"Extracting $${DEB_FILE}\"\n  dpkg-deb -x \"$${DEB_FILE}\" \"$${TEMP_DIR}/$${BINARY}_extract\"\n\n
-        \ # Find and replace the binary\n  BINARY_PATH=$(find \"$${TEMP_DIR}/$${BINARY}_extract\"
-        -name \"$${BINARY}\" -type f | head -n1)\n  if [[ -n \"$${BINARY_PATH}\" ]];
-        then\n    echo \"Replacing /usr/bin/$${BINARY} with custom build\"\n    #
-        Backup original binary\n    cp \"/usr/bin/$${BINARY}\" \"/usr/bin/$${BINARY}.backup.$(date
-        +%s)\" || true\n    # Replace with new binary\n    cp \"$${BINARY_PATH}\"
-        \"/usr/bin/$${BINARY}\"\n    chmod +x \"/usr/bin/$${BINARY}\"\n  else\n    echo
-        \"ERROR: Could not find $${BINARY} in extracted package\"\n    exit 1\n  fi\ndone\nsystemctl
-        restart kubelet\n\necho \"Custom Kubernetes binaries installed successfully\"\necho
-        \"kubeadm version: $(kubeadm version -o=short)\"\necho \"kubectl version:
-        $(kubectl version --client=true)\"\necho \"kubelet version: $(kubelet --version)\"\n"
+    - content: |
+        #!/bin/bash
+
+        set -o nounset
+        set -o pipefail
+        set -o errexit
+
+        systemctl stop kubelet
+
+        declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+
+        # Define the base URL and version
+        BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+        VERSION="${KUBERNETES_VERSION}"
+        VERSION=$${VERSION#v}
+        OS_VERSION="ubuntu24.04"
+        ARCH="amd64"
+
+        for BINARY in "$${BINARIES[@]}"; do
+          if [[ "$${BINARY}" == "kubelet" ]]; then
+            DEB_VERSION="ubuntu24.04u1"
+          else
+            DEB_VERSION="ubuntu24.04u2"
+          fi
+          echo "* downloading and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
+          DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+          DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+
+          echo "Downloading from: $${DEB_URL}"
+          curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
+
+          # Extract just the binary from the deb package directly to /usr/bin
+          echo "Extracting $${BINARY} binary to /usr/bin"
+          dpkg-deb --fsys-tarfile "$${DEB_FILE}" | tar -xf - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}
+          chmod +x "/usr/bin/$${BINARY}"
+
+          # Clean up the downloaded deb file
+          rm -f "$${DEB_FILE}"
+        done
+
+        systemctl restart kubelet
+
+        echo "kubeadm version: $(kubeadm version -o=short)"
+        echo "kubectl version: $(kubectl version --client=true)"
+        echo "kubelet version: $(kubelet --version)"
       owner: root:root
       path: /tmp/replace-k8s-binaries.sh
       permissions: "0744"
@@ -238,32 +258,51 @@ spec:
         owner: root:root
         path: /etc/kubernetes/azure.json
         permissions: "0644"
-      - content: "#!/bin/bash\n\nset -o nounset\nset -o pipefail\nset -o errexit\n\n#
-          Only stop kubelet if it's running\nif systemctl is-active --quiet kubelet;
-          then\n  echo \"Stopping kubelet service\"\n  systemctl stop kubelet\nfi\n\ndeclare
-          -a BINARIES=(\"kubeadm\" \"kubectl\" \"kubelet\")\n\n# Define the base URL
-          and version\nBASE_URL=\"https://kubernetesreleases.blob.core.windows.net/dalec-packages\"\nVERSION=\"${KUBERNETES_VERSION}\"\nVERSION=$${VERSION#v}\nOS_VERSION=\"ubuntu24.04\"\nARCH=\"amd64\"\n\n#
-          Create temporary directory for extraction\nTEMP_DIR=$(mktemp -d)\ntrap \"rm
-          -rf $${TEMP_DIR}\" EXIT\n\nfor BINARY in \"$${BINARIES[@]}\"; do\n  if [[
-          \"$${BINARY}\" == \"kubelet\" ]]; then\n    DEB_VERSION=\"ubuntu24.04u1\"\n
-          \ else\n    DEB_VERSION=\"ubuntu24.04u2\"\n  fi\n  \n  echo \"* downloading
-          and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}\"\n
-          \ DEB_FILE=\"$${TEMP_DIR}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
-          \ DEB_URL=\"$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n\n
-          \ echo \"Downloading from: $${DEB_URL}\"\n  curl -L --retry 10 --retry-delay
-          5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n\n  # Extract the deb package\n
-          \ echo \"Extracting $${DEB_FILE}\"\n  dpkg-deb -x \"$${DEB_FILE}\" \"$${TEMP_DIR}/$${BINARY}_extract\"\n\n
-          \ # Find and replace the binary\n  BINARY_PATH=$(find \"$${TEMP_DIR}/$${BINARY}_extract\"
-          -name \"$${BINARY}\" -type f | head -n1)\n  if [[ -n \"$${BINARY_PATH}\"
-          ]]; then\n    echo \"Replacing /usr/bin/$${BINARY} with custom build\"\n
-          \   # Backup original binary\n    cp \"/usr/bin/$${BINARY}\" \"/usr/bin/$${BINARY}.backup.$(date
-          +%s)\" || true\n    # Replace with new binary\n    cp \"$${BINARY_PATH}\"
-          \"/usr/bin/$${BINARY}\"\n    chmod +x \"/usr/bin/$${BINARY}\"\n  else\n
-          \   echo \"ERROR: Could not find $${BINARY} in extracted package\"\n    exit
-          1\n  fi\ndone\nsystemctl restart kubelet\n\necho \"Custom Kubernetes binaries
-          installed successfully\"\necho \"kubeadm version: $(kubeadm version -o=short)\"\necho
-          \"kubectl version: $(kubectl version --client=true)\"\necho \"kubelet version:
-          $(kubelet --version)\"\n"
+      - content: |
+          #!/bin/bash
+
+          set -o nounset
+          set -o pipefail
+          set -o errexit
+
+          systemctl stop kubelet
+
+          declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+
+          # Define the base URL and version
+          BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+          VERSION="${KUBERNETES_VERSION}"
+          VERSION=$${VERSION#v}
+          OS_VERSION="ubuntu24.04"
+          ARCH="amd64"
+
+          for BINARY in "$${BINARIES[@]}"; do
+            if [[ "$${BINARY}" == "kubelet" ]]; then
+              DEB_VERSION="ubuntu24.04u1"
+            else
+              DEB_VERSION="ubuntu24.04u2"
+            fi
+            echo "* downloading and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
+            DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+            DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+
+            echo "Downloading from: $${DEB_URL}"
+            curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
+
+            # Extract just the binary from the deb package directly to /usr/bin
+            echo "Extracting $${BINARY} binary to /usr/bin"
+            dpkg-deb --fsys-tarfile "$${DEB_FILE}" | tar -xf - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}
+            chmod +x "/usr/bin/$${BINARY}"
+
+            # Clean up the downloaded deb file
+            rm -f "$${DEB_FILE}"
+          done
+
+          systemctl restart kubelet
+
+          echo "kubeadm version: $(kubeadm version -o=short)"
+          echo "kubectl version: $(kubectl version --client=true)"
+          echo "kubelet version: $(kubelet --version)"
         owner: root:root
         path: /tmp/replace-k8s-binaries.sh
         permissions: "0744"
