@@ -17,6 +17,13 @@ patches:
     kind: KubeadmControlPlane
     name: .*-control-plane
     version: v1beta1
+- path: patches/delete-machine-health-check.yaml
+  target:
+    group: cluster.x-k8s.io
+    kind: MachineHealthCheck
+    name: .*-control-plane
+    namespace: default
+    version: v1beta1
 
 sortOptions:
   order: fifo
