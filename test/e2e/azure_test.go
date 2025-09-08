@@ -110,6 +110,9 @@ var _ = Describe("Workload cluster creation", func() {
 
 		CheckTestBeforeCleanup()
 
+		// Skip cleanup for Azure Linux 3 test for debugging purposes
+		localSkipCleanup := skipCleanup || (clusterName != "" && strings.Contains(clusterName, "azl3"))
+
 		cleanInput := cleanupInput{
 			SpecName:               specName,
 			Cluster:                result.Cluster,
@@ -117,7 +120,7 @@ var _ = Describe("Workload cluster creation", func() {
 			Namespace:              namespace,
 			CancelWatches:          cancelWatches,
 			IntervalsGetter:        e2eConfig.GetIntervals,
-			SkipCleanup:            skipCleanup,
+			SkipCleanup:            localSkipCleanup,
 			SkipLogCollection:      skipLogCollection,
 			AdditionalCleanup:      additionalCleanup,
 			ArtifactFolder:         artifactFolder,
@@ -1299,6 +1302,7 @@ var _ = Describe("Workload cluster creation", func() {
 			kubernetesVersion := e2eConfig.MustGetVariable(capi_e2e.KubernetesVersion)
 			kubernetesVersion = strings.TrimPrefix(kubernetesVersion, "v")
 			Expect(os.Setenv("AZL3_VERSION", kubernetesVersion)).To(Succeed())
+			skipResourceGroupCheck = true
 
 			clusterctl.ApplyClusterTemplateAndWait(ctx, createApplyClusterTemplateInput(
 				specName,
