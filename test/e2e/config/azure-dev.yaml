@@ -188,6 +188,8 @@ providers:
         targetName: "cluster-template-apiserver-ilb-custom-images.yaml"
       - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-custom-builds-apiserver-ilb-custom-images.yaml"
         targetName: "cluster-template-custom-builds-apiserver-ilb-custom-images.yaml"
+      - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-custom-builds-azl3.yaml"
+        targetName: "cluster-template-custom-builds-azl3.yaml"
       - sourcePath: "${PWD}/templates/test/ci/cluster-template-prow-azl3.yaml"
         targetName: "cluster-template-azl3.yaml"
       replacements:

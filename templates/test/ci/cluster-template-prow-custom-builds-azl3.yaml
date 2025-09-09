@@ -36,12 +36,26 @@ spec:
     name: ${CLUSTER_IDENTITY_NAME}
   location: ${AZURE_LOCATION}
   networkSpec:
+    apiServerLB:
+      frontendIPs:
+      - name: ${CLUSTER_NAME}-api-lb
+        publicIP:
+          dnsName: ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com
+          name: ${CLUSTER_NAME}-api-lb
+      - name: ${CLUSTER_NAME}-internal-lb-private-ip
+        privateIP: ${AZURE_INTERNAL_LB_PRIVATE_IP}
     subnets:
-    - name: control-plane-subnet
+    - cidrBlocks:
+      - ${AZURE_CP_SUBNET_CIDR}
+      name: control-plane-subnet
       role: control-plane
-    - name: node-subnet
+    - cidrBlocks:
+      - ${AZURE_NODE_SUBNET_CIDR}
+      name: node-subnet
       role: node
     vnet:
+      cidrBlocks:
+      - ${AZURE_VNET_CIDR}
       name: ${AZURE_VNET_NAME:=${CLUSTER_NAME}-vnet}
   resourceGroup: ${AZURE_RESOURCE_GROUP:=${CLUSTER_NAME}}
   subscriptionID: ${AZURE_SUBSCRIPTION_ID}
@@ -123,6 +137,51 @@ spec:
       owner: root:root
       path: /etc/kubernetes/azure.json
       permissions: "0644"
+    - content: |
+        #!/bin/bash
+
+        set -o nounset
+        set -o pipefail
+        set -o errexit
+
+        systemctl stop kubelet
+
+        declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+
+        # Define the base URL and version
+        BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+        VERSION="${KUBERNETES_VERSION}"
+        VERSION=$${VERSION#v}
+        OS_VERSION="azl3"
+        ARCH="x86_64"
+
+        for BINARY in "$${BINARIES[@]}"; do
+          echo "* downloading and extracting binary: $${BINARY} $${VERSION}"
+          RPM_FILE="/tmp/$${BINARY}-$${VERSION}-1.$${OS_VERSION}.$${ARCH}.rpm"
+          RPM_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}-$${VERSION}-1.$${OS_VERSION}.$${ARCH}.rpm"
+
+          echo "Downloading from: $${RPM_URL}"
+          curl -L --retry 10 --retry-delay 5 "$${RPM_URL}" --output "$${RPM_FILE}"
+
+          # Extract just the binary from the RPM package directly to /usr/bin
+          echo "Extracting $${BINARY} binary to /usr/bin"
+          rpm2cpio "$${RPM_FILE}" | cpio -idmv
+          cp "./usr/bin/$${BINARY}" "/usr/bin/$${BINARY}"
+          chmod +x "/usr/bin/$${BINARY}"
+
+          # Clean up
+          rm -rf ./usr
+          rm -f "$${RPM_FILE}"
+        done
+
+        systemctl restart kubelet
+
+        echo "kubeadm version: $(kubeadm version -o=short)"
+        echo "kubectl version: $(kubectl version --client=true)"
+        echo "kubelet version: $(kubelet --version)"
+      owner: root:root
+      path: /tmp/replace-k8s-binaries.sh
+      permissions: "0744"
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
@@ -139,6 +198,7 @@ spec:
     postKubeadmCommands: []
     preKubeadmCommands:
     - bash -c /tmp/azl3-setup.sh
+    - bash -c /tmp/replace-k8s-binaries.sh
     verbosity: 10
   machineTemplate:
     infrastructureRef:
@@ -182,11 +242,9 @@ metadata:
 spec:
   clusterName: ${CLUSTER_NAME}
   replicas: ${WORKER_MACHINE_COUNT:=2}
-  selector: {}
+  selector:
+    matchLabels: null
   template:
-    metadata:
-      labels:
-        nodepool: pool1
     spec:
       bootstrap:
         configRef:
@@ -268,6 +326,51 @@ spec:
         owner: root:root
         path: /etc/kubernetes/azure.json
         permissions: "0644"
+      - content: |
+          #!/bin/bash
+
+          set -o nounset
+          set -o pipefail
+          set -o errexit
+
+          systemctl stop kubelet
+
+          declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+
+          # Define the base URL and version
+          BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+          VERSION="${KUBERNETES_VERSION}"
+          VERSION=$${VERSION#v}
+          OS_VERSION="azl3"
+          ARCH="x86_64"
+
+          for BINARY in "$${BINARIES[@]}"; do
+            echo "* downloading and extracting binary: $${BINARY} $${VERSION}"
+            RPM_FILE="/tmp/$${BINARY}-$${VERSION}-1.$${OS_VERSION}.$${ARCH}.rpm"
+            RPM_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}-$${VERSION}-1.$${OS_VERSION}.$${ARCH}.rpm"
+
+            echo "Downloading from: $${RPM_URL}"
+            curl -L --retry 10 --retry-delay 5 "$${RPM_URL}" --output "$${RPM_FILE}"
+
+            # Extract just the binary from the RPM package directly to /usr/bin
+            echo "Extracting $${BINARY} binary to /usr/bin"
+            rpm2cpio "$${RPM_FILE}" | cpio -idmv
+            cp "./usr/bin/$${BINARY}" "/usr/bin/$${BINARY}"
+            chmod +x "/usr/bin/$${BINARY}"
+
+            # Clean up
+            rm -rf ./usr
+            rm -f "$${RPM_FILE}"
+          done
+
+          systemctl restart kubelet
+
+          echo "kubeadm version: $(kubeadm version -o=short)"
+          echo "kubectl version: $(kubectl version --client=true)"
+          echo "kubelet version: $(kubelet --version)"
+        owner: root:root
+        path: /tmp/replace-k8s-binaries.sh
+        permissions: "0744"
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
@@ -275,6 +378,9 @@ spec:
           name: '{{ ds.meta_data["local_hostname"] }}'
       preKubeadmCommands:
       - bash -c /tmp/azl3-setup.sh
+      - echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
+        >> /etc/hosts
+      - bash -c /tmp/replace-k8s-binaries.sh
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureClusterIdentity
