@@ -86,33 +86,63 @@ spec:
         overwrite: false
         tableType: gpt
     files:
-    - content: |
-        #!/bin/bash
-
-        set -o nounset
-        set -o pipefail
-        set -o errexit
-
-        # Install ca-certificates packages for Azure Linux
-        tdnf install -y ca-certificates ca-certificates-legacy
-        update-ca-trust
-
-        # Follow Azure Linux 3 docs exactly - completely permissive for debugging
-        # Change default policy to ACCEPT (as recommended by AZL3 docs)
-        iptables -P INPUT ACCEPT
-        iptables -P FORWARD ACCEPT
-        iptables -P OUTPUT ACCEPT
-
-        ip6tables -P INPUT ACCEPT
-        ip6tables -P FORWARD ACCEPT
-        ip6tables -P OUTPUT ACCEPT
-
-        # Flush any rules which would filter packets
-        iptables -F
-        ip6tables -F
-
-        iptables-save > /etc/systemd/scripts/ip4save
-        ip6tables-save > /etc/systemd/scripts/ip6save
+    - content: "#!/bin/bash\n\nset -o nounset\nset -o pipefail\nset -o errexit\n\n#
+        Install ca-certificates packages for Azure Linux\ntdnf install -y ca-certificates
+        ca-certificates-legacy\nupdate-ca-trust\n\n# Azure Linux 3 firewall configuration
+        based on actual netstat output from working cluster\n# Keep the default DROP
+        policy for security, only add specific ACCEPT rules\n\n# Allow Azure service
+        IP addresses (required for Azure resources)\niptables -A INPUT -s 168.63.129.16
+        -j ACCEPT\niptables -A OUTPUT -d 168.63.129.16 -j ACCEPT\nip6tables -A INPUT
+        -s fe80::1234:5678:9abc -j ACCEPT\nip6tables -A OUTPUT -d fe80::1234:5678:9abc
+        -j ACCEPT\n\n# Allow localhost traffic (required for many localhost-bound
+        services)\niptables -A INPUT -i lo -j ACCEPT\niptables -A OUTPUT -o lo -j
+        ACCEPT\nip6tables -A INPUT -i lo -j ACCEPT\nip6tables -A OUTPUT -o lo -j ACCEPT\n\n#
+        Allow established and related connections\niptables -A INPUT -m state --state
+        ESTABLISHED,RELATED -j ACCEPT\niptables -A OUTPUT -m state --state ESTABLISHED,RELATED
+        -j ACCEPT\nip6tables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\nip6tables
+        -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n\n# SSH (port 22)
+        - bound to all interfaces, needs external access\niptables -A INPUT -p tcp
+        --dport 22 -j ACCEPT\nip6tables -A INPUT -p tcp --dport 22 -j ACCEPT\n\n#
+        Kubernetes API Server (port 6443) - bound to all IPv6 interfaces, needs external
+        access\niptables -A INPUT -p tcp --dport 6443 -j ACCEPT\nip6tables -A INPUT
+        -p tcp --dport 6443 -j ACCEPT\n\n# etcd server communication - external access
+        needed for cluster communication\n# Port 2379 is bound to node IP (10.0.0.5),
+        needs cluster access\niptables -A INPUT -p tcp --dport 2379 -j ACCEPT\nip6tables
+        -A INPUT -p tcp --dport 2379 -j ACCEPT\n# Port 2380 is bound to node IP (10.0.0.5),
+        needs cluster access  \niptables -A INPUT -p tcp --dport 2380 -j ACCEPT\nip6tables
+        -A INPUT -p tcp --dport 2380 -j ACCEPT\n# Port 2381 is localhost only, no
+        external rule needed\n\n# Kubelet API (port 10250) - bound to all IPv6 interfaces,
+        needs cluster access\niptables -A INPUT -p tcp --dport 10250 -j ACCEPT\nip6tables
+        -A INPUT -p tcp --dport 10250 -j ACCEPT\n\n# kube-proxy (port 10256) - bound
+        to all IPv6 interfaces, needs cluster access\niptables -A INPUT -p tcp --dport
+        10256 -j ACCEPT\nip6tables -A INPUT -p tcp --dport 10256 -j ACCEPT\n\n# Calico
+        networking requirements\n# Calico Typha (port 5473) - bound to all IPv6 interfaces,
+        needs cluster access\niptables -A INPUT -p tcp --dport 5473 -j ACCEPT\nip6tables
+        -A INPUT -p tcp --dport 5473 -j ACCEPT\n\n# VXLAN for overlay networking (port
+        4789 UDP) - bound to all interfaces\niptables -A INPUT -p udp --dport 4789
+        -j ACCEPT\nip6tables -A INPUT -p udp --dport 4789 -j ACCEPT\n\n# Calico metrics
+        ports (29603, 29605) - bound to all IPv6 interfaces\niptables -A INPUT -p
+        tcp --dport 29603 -j ACCEPT\niptables -A INPUT -p tcp --dport 29605 -j ACCEPT\nip6tables
+        -A INPUT -p tcp --dport 29603 -j ACCEPT\nip6tables -A INPUT -p tcp --dport
+        29605 -j ACCEPT\n\n# BGP for node-to-node communication (port 179) - not in
+        netstat but needed for Calico\niptables -A INPUT -p tcp --dport 179 -j ACCEPT\nip6tables
+        -A INPUT -p tcp --dport 179 -j ACCEPT\n\n# IP-in-IP protocol for Calico\niptables
+        -A INPUT -p 4 -j ACCEPT\nip6tables -A INPUT -p 41 -j ACCEPT\n\n# DHCP client
+        (port 68 UDP) - for IP assignment\niptables -A INPUT -p udp --dport 68 -j
+        ACCEPT\nip6tables -A INPUT -p udp --dport 68 -j ACCEPT\n\n# NTP (port 323
+        UDP) - for time synchronization  \niptables -A INPUT -p udp --dport 323 -j
+        ACCEPT\nip6tables -A INPUT -p udp --dport 323 -j ACCEPT\n\n# Allow ICMP for
+        connectivity checks\niptables -A INPUT -p icmp -j ACCEPT\nip6tables -A INPUT
+        -p ipv6-icmp -j ACCEPT\n\n# Allow traffic to Kubernetes service network (10.96.0.0/12)
+        - required for pod-to-service communication\niptables -A OUTPUT -d 10.96.0.0/12
+        -j ACCEPT\niptables -A INPUT -s 10.96.0.0/12 -j ACCEPT\n\n# Allow traffic
+        to/from Calico pod network (192.168.0.0/16) - required for pod-to-pod communication\niptables
+        -A OUTPUT -d 192.168.0.0/16 -j ACCEPT\niptables -A INPUT -s 192.168.0.0/16
+        -j ACCEPT\n\n# Allow traffic to/from node network (10.1.0.0/24) - required
+        for node-to-node communication\niptables -A OUTPUT -d 10.1.0.0/24 -j ACCEPT\niptables
+        -A INPUT -s 10.1.0.0/24 -j ACCEPT\n\n# Save the rules following Azure Linux
+        3 approach\niptables-save > /etc/systemd/scripts/ip4save\nip6tables-save >
+        /etc/systemd/scripts/ip6save\n"
       owner: root:root
       path: /tmp/azl3-setup.sh
       permissions: "0744"
@@ -231,33 +261,55 @@ spec:
   template:
     spec:
       files:
-      - content: |
-          #!/bin/bash
-
-          set -o nounset
-          set -o pipefail
-          set -o errexit
-
-          # Install ca-certificates packages for Azure Linux
-          tdnf install -y ca-certificates ca-certificates-legacy
-          update-ca-trust
-
-          # Follow Azure Linux 3 docs exactly - completely permissive for debugging
-          # Change default policy to ACCEPT (as recommended by AZL3 docs)
-          iptables -P INPUT ACCEPT
-          iptables -P FORWARD ACCEPT
-          iptables -P OUTPUT ACCEPT
-
-          ip6tables -P INPUT ACCEPT
-          ip6tables -P FORWARD ACCEPT
-          ip6tables -P OUTPUT ACCEPT
-
-          # Flush any rules which would filter packets
-          iptables -F
-          ip6tables -F
-
-          iptables-save > /etc/systemd/scripts/ip4save
-          ip6tables-save > /etc/systemd/scripts/ip6save
+      - content: "#!/bin/bash\n\nset -o nounset\nset -o pipefail\nset -o errexit\n\n#
+          Install ca-certificates packages for Azure Linux\ntdnf install -y ca-certificates
+          ca-certificates-legacy\nupdate-ca-trust\n\n# Azure Linux 3 firewall configuration
+          for worker nodes\n# Keep the default DROP policy for security, only add
+          specific ACCEPT rules\n\n# Allow Azure service IP addresses (required for
+          Azure resources)\niptables -A INPUT -s 168.63.129.16 -j ACCEPT\niptables
+          -A OUTPUT -d 168.63.129.16 -j ACCEPT\nip6tables -A INPUT -s fe80::1234:5678:9abc
+          -j ACCEPT\nip6tables -A OUTPUT -d fe80::1234:5678:9abc -j ACCEPT\n\n# Allow
+          localhost traffic (required for many localhost-bound services)\niptables
+          -A INPUT -i lo -j ACCEPT\niptables -A OUTPUT -o lo -j ACCEPT\nip6tables
+          -A INPUT -i lo -j ACCEPT\nip6tables -A OUTPUT -o lo -j ACCEPT\n\n# Allow
+          established and related connections\niptables -A INPUT -m state --state
+          ESTABLISHED,RELATED -j ACCEPT\niptables -A OUTPUT -m state --state ESTABLISHED,RELATED
+          -j ACCEPT\nip6tables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\nip6tables
+          -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT\n\n# SSH (port
+          22) - bound to all interfaces, needs external access\niptables -A INPUT
+          -p tcp --dport 22 -j ACCEPT\nip6tables -A INPUT -p tcp --dport 22 -j ACCEPT\n\n#
+          Kubelet API (port 10250) - bound to all IPv6 interfaces, needs cluster access\niptables
+          -A INPUT -p tcp --dport 10250 -j ACCEPT\nip6tables -A INPUT -p tcp --dport
+          10250 -j ACCEPT\n\n# kube-proxy (port 10256) - bound to all IPv6 interfaces,
+          needs cluster access\niptables -A INPUT -p tcp --dport 10256 -j ACCEPT\nip6tables
+          -A INPUT -p tcp --dport 10256 -j ACCEPT\n\n# Calico networking requirements\n#
+          Calico Typha (port 5473) - bound to all IPv6 interfaces, needs cluster access\niptables
+          -A INPUT -p tcp --dport 5473 -j ACCEPT\nip6tables -A INPUT -p tcp --dport
+          5473 -j ACCEPT\n\n# VXLAN for overlay networking (port 4789 UDP) - bound
+          to all interfaces\niptables -A INPUT -p udp --dport 4789 -j ACCEPT\nip6tables
+          -A INPUT -p udp --dport 4789 -j ACCEPT\n\n# Calico metrics ports (29603,
+          29605) - bound to all IPv6 interfaces\niptables -A INPUT -p tcp --dport
+          29603 -j ACCEPT\niptables -A INPUT -p tcp --dport 29605 -j ACCEPT\nip6tables
+          -A INPUT -p tcp --dport 29603 -j ACCEPT\nip6tables -A INPUT -p tcp --dport
+          29605 -j ACCEPT\n\n# BGP for node-to-node communication (port 179) - not
+          in netstat but needed for Calico\niptables -A INPUT -p tcp --dport 179 -j
+          ACCEPT\nip6tables -A INPUT -p tcp --dport 179 -j ACCEPT\n\n# IP-in-IP protocol
+          for Calico\niptables -A INPUT -p 4 -j ACCEPT\nip6tables -A INPUT -p 41 -j
+          ACCEPT\n\n# DHCP client (port 68 UDP) - for IP assignment\niptables -A INPUT
+          -p udp --dport 68 -j ACCEPT\nip6tables -A INPUT -p udp --dport 68 -j ACCEPT\n\n#
+          NTP (port 323 UDP) - for time synchronization  \niptables -A INPUT -p udp
+          --dport 323 -j ACCEPT\nip6tables -A INPUT -p udp --dport 323 -j ACCEPT\n\n#
+          Allow ICMP for connectivity checks\niptables -A INPUT -p icmp -j ACCEPT\nip6tables
+          -A INPUT -p ipv6-icmp -j ACCEPT\n\n# Allow traffic to Kubernetes service
+          network (10.96.0.0/12) - required for pod-to-service communication\niptables
+          -A OUTPUT -d 10.96.0.0/12 -j ACCEPT\niptables -A INPUT -s 10.96.0.0/12 -j
+          ACCEPT\n\n# Allow traffic to/from Calico pod network (192.168.0.0/16) -
+          required for pod-to-pod communication\niptables -A OUTPUT -d 192.168.0.0/16
+          -j ACCEPT\niptables -A INPUT -s 192.168.0.0/16 -j ACCEPT\n\n# Allow traffic
+          to/from node network (10.1.0.0/24) - required for node-to-node communication\niptables
+          -A OUTPUT -d 10.1.0.0/24 -j ACCEPT\niptables -A INPUT -s 10.1.0.0/24 -j
+          ACCEPT\n\n# Save the rules following Azure Linux 3 approach\niptables-save
+          > /etc/systemd/scripts/ip4save\nip6tables-save > /etc/systemd/scripts/ip6save\n"
         owner: root:root
         path: /tmp/azl3-setup.sh
         permissions: "0744"
