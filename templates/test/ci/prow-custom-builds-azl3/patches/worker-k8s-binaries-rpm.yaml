@@ -26,14 +26,25 @@
       echo "Downloading from: $${RPM_URL}"
       curl -L --retry 10 --retry-delay 5 "$${RPM_URL}" --output "$${RPM_FILE}"
 
-      # Extract just the binary from the RPM package directly to /usr/bin
+      # Extract binary from RPM package in a temporary directory
       echo "Extracting $${BINARY} binary to /usr/bin"
+      TEMP_DIR="/tmp/$${BINARY}-extract-$$"
+      mkdir -p "$${TEMP_DIR}"
+      cd "$${TEMP_DIR}"
       rpm2cpio "$${RPM_FILE}" | cpio -idmv
-      cp "./usr/bin/$${BINARY}" "/usr/bin/$${BINARY}"
-      chmod +x "/usr/bin/$${BINARY}"
+      
+      # Move the binary to the correct location
+      if [ -f "./usr/bin/$${BINARY}" ]; then
+        mv "./usr/bin/$${BINARY}" "/usr/bin/$${BINARY}"
+        chmod +x "/usr/bin/$${BINARY}"
+      else
+        echo "Error: Binary $${BINARY} not found in RPM package"
+        exit 1
+      fi
 
       # Clean up
-      rm -rf ./usr
+      cd /
+      rm -rf "$${TEMP_DIR}"
       rm -f "$${RPM_FILE}"
     done
 
