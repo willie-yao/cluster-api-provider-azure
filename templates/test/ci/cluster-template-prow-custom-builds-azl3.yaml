@@ -156,6 +156,54 @@ spec:
         version: $(kubeadm version -o=short)\"\necho \"kubectl version: $(kubectl
         version --client=true)\"\necho \"kubelet version: $(kubelet --version)\"\n"
       owner: root:root
+      path: /tmp/kubeadm-bootstrap.sh
+      permissions: "0744"
+    - content: |
+        #!/bin/bash
+
+        set -o nounset
+        set -o pipefail
+        set -o errexit
+
+        systemctl stop kubelet
+
+        declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+
+        # Define the base URL and version
+        BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+        VERSION="${KUBERNETES_VERSION}"
+        VERSION=$${VERSION#v}
+        OS_VERSION="ubuntu24.04"
+        ARCH="amd64"
+
+        for BINARY in "$${BINARIES[@]}"; do
+          if [[ "$${BINARY}" == "kubelet" ]]; then
+            DEB_VERSION="ubuntu24.04u1"
+          else
+            DEB_VERSION="ubuntu24.04u2"
+          fi
+          echo "* downloading and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
+          DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+          DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+
+          echo "Downloading from: $${DEB_URL}"
+          curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
+
+          # Extract just the binary from the deb package directly to /usr/bin
+          echo "Extracting $${BINARY} binary to /usr/bin"
+          dpkg-deb --fsys-tarfile "$${DEB_FILE}" | tar -xf - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}
+          chmod +x "/usr/bin/$${BINARY}"
+
+          # Clean up the downloaded deb file
+          rm -f "$${DEB_FILE}"
+        done
+
+        systemctl restart kubelet
+
+        echo "kubeadm version: $(kubeadm version -o=short)"
+        echo "kubectl version: $(kubectl version --client=true)"
+        echo "kubelet version: $(kubelet --version)"
+      owner: root:root
       path: /tmp/replace-k8s-binaries.sh
       permissions: "0744"
     initConfiguration:
@@ -174,8 +222,9 @@ spec:
     postKubeadmCommands: []
     preKubeadmCommands:
     - bash -c /tmp/azl3-setup.sh
+    - bash -c /tmp/kubeadm-bootstrap.sh
     - bash -c /tmp/replace-k8s-binaries.sh
-    verbosity: 10
+    verbosity: 5
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -322,6 +371,54 @@ spec:
           version: $(kubectl version --client=true)\"\necho \"kubelet version: $(kubelet
           --version)\"\n"
         owner: root:root
+        path: /tmp/kubeadm-bootstrap.sh
+        permissions: "0744"
+      - content: |
+          #!/bin/bash
+
+          set -o nounset
+          set -o pipefail
+          set -o errexit
+
+          systemctl stop kubelet
+
+          declare -a BINARIES=("kubeadm" "kubectl" "kubelet")
+
+          # Define the base URL and version
+          BASE_URL="https://kubernetesreleases.blob.core.windows.net/dalec-packages"
+          VERSION="${KUBERNETES_VERSION}"
+          VERSION=$${VERSION#v}
+          OS_VERSION="ubuntu24.04"
+          ARCH="amd64"
+
+          for BINARY in "$${BINARIES[@]}"; do
+            if [[ "$${BINARY}" == "kubelet" ]]; then
+              DEB_VERSION="ubuntu24.04u1"
+            else
+              DEB_VERSION="ubuntu24.04u2"
+            fi
+            echo "* downloading and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
+            DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+            DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+
+            echo "Downloading from: $${DEB_URL}"
+            curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
+
+            # Extract just the binary from the deb package directly to /usr/bin
+            echo "Extracting $${BINARY} binary to /usr/bin"
+            dpkg-deb --fsys-tarfile "$${DEB_FILE}" | tar -xf - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}
+            chmod +x "/usr/bin/$${BINARY}"
+
+            # Clean up the downloaded deb file
+            rm -f "$${DEB_FILE}"
+          done
+
+          systemctl restart kubelet
+
+          echo "kubeadm version: $(kubeadm version -o=short)"
+          echo "kubectl version: $(kubectl version --client=true)"
+          echo "kubelet version: $(kubelet --version)"
+        owner: root:root
         path: /tmp/replace-k8s-binaries.sh
         permissions: "0744"
       joinConfiguration:
@@ -333,7 +430,9 @@ spec:
       - bash -c /tmp/azl3-setup.sh
       - echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
         >> /etc/hosts
+      - bash -c /tmp/kubeadm-bootstrap.sh
       - bash -c /tmp/replace-k8s-binaries.sh
+      verbosity: 5
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AzureClusterIdentity
