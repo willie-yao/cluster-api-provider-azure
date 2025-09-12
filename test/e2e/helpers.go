@@ -688,29 +688,6 @@ func resolveKubetestRepoListPath(version string, path string) (string, error) {
 	return filepath.Join(path, "repo-list.yaml"), nil
 }
 
-// isWindowsRequired checks if Windows machines are needed by examining multiple sources
-func isWindowsRequired(config *clusterctl.E2EConfig) bool {
-	// Check TEST_WINDOWS environment variable
-	if testWindows := os.Getenv("TEST_WINDOWS"); testWindows == "true" || testWindows == "1" {
-		return true
-	}
-
-	// Check WINDOWS_WORKER_MACHINE_COUNT environment variable
-	if windowsWorkerCount := os.Getenv("WINDOWS_WORKER_MACHINE_COUNT"); windowsWorkerCount != "" && windowsWorkerCount != "0" {
-		return true
-	}
-
-	// Check if WINDOWS_WORKER_MACHINE_COUNT exists in config
-	if config.HasVariable("WINDOWS_WORKER_MACHINE_COUNT") {
-		count := config.GetVariableOrEmpty("WINDOWS_WORKER_MACHINE_COUNT")
-		if count != "" && count != "0" {
-			return true
-		}
-	}
-
-	return false
-}
-
 // resolveKubernetesVersions looks at Kubernetes versions set as variables in the e2e config and sets them to a valid k8s version
 // that has an existing capi offer image available. For example, if the version is "stable-1.22", the function will set it to the latest 1.22 version that has a published reference image.
 func resolveKubernetesVersions(config *clusterctl.E2EConfig) {
@@ -719,11 +696,11 @@ func resolveKubernetesVersions(config *clusterctl.E2EConfig) {
 
 	var versions semver.Versions
 
-	// Check if Windows machines are needed by examining multiple sources
-	windowsRequired := isWindowsRequired(config)
+	// Check if Windows testing is explicitly disabled via TEST_WINDOWS environment variable
+	testWindows := os.Getenv("TEST_WINDOWS")
+	windowsRequired := testWindows != "false"
 
 	if windowsRequired {
-		// Original logic: find intersection of ubuntu and windows versions
 		windowsVersions := getVersionsInCommunityGallery(context.TODO(), os.Getenv(AzureLocation), capiCommunityGallery, "capi-win-2019-containerd")
 		for k, v := range linuxVersions {
 			if _, ok := windowsVersions[k]; ok {
@@ -732,7 +709,6 @@ func resolveKubernetesVersions(config *clusterctl.E2EConfig) {
 		}
 		Logf("Windows machines required, using intersection of Linux and Windows versions")
 	} else {
-		// Use only Linux versions when Windows is not required
 		for _, v := range linuxVersions {
 			versions = append(versions, v)
 		}
