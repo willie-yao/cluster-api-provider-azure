@@ -23,6 +23,12 @@ patches:
     kind: HelmChartProxy
     name: cloud-provider-azure-chart-ci
     version: v1alpha1
+- path: patches/cloud-provider-azure-oot-custom-images.yaml
+  target:
+    group: addons.cluster.x-k8s.io
+    kind: HelmChartProxy
+    name: cloud-provider-azure-chart
+    version: v1alpha1
 
 sortOptions:
   order: fifo
