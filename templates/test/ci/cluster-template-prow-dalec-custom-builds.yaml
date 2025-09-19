@@ -189,23 +189,23 @@ spec:
         latest available\n  for i in $(seq 10 -1 1); do\n    local test_url=\"$${BASE_URL}/$${binary}/$${version}/$${os_version}/$${arch}/$${binary}_$${version}-$${os_version}u$${i}_$${arch}.deb\"\n
         \   if curl -s --head \"$${test_url}\" | grep -q \"200 OK\" 2>/dev/null; then\n
         \     echo \"$${os_version}u$${i}\"\n      return 0\n    fi\n  done\n  \n
-        \ # Fallback to default revisions if none found\n  case \"$${binary}\" in\n
-        \   \"kubelet\")\n      echo \"$${os_version}u1\"\n      ;;\n    *)\n      echo
-        \"$${os_version}u2\"\n      ;;\n  esac\n}\n\nfor BINARY in \"$${BINARIES[@]}\";
-        do\n  echo \"* Finding latest revision for $${BINARY}...\"\n  DEB_VERSION=$$(find_latest_revision
-        \"$${BINARY}\" \"$${VERSION}\" \"$${OS_VERSION}\" \"$${ARCH}\")\n  echo \"*
-        Using revision: $${DEB_VERSION}\"\n  echo \"* downloading and extracting binary:
-        $${BINARY} $${VERSION} with deb version $${DEB_VERSION}\"\n  DEB_FILE=\"/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
-        \ DEB_URL=\"$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
-        \ echo \"Downloading from: $${DEB_URL}\"\n  curl -L --retry 10 --retry-delay
-        5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n  # Extract just the binary from
-        the deb package directly to /usr/bin\n  echo \"Extracting $${BINARY} binary
-        to /usr/bin\"\n  dpkg-deb --fsys-tarfile \"$${DEB_FILE}\" | tar -xf - --strip-components=3
-        -C /usr/bin ./usr/bin/$${BINARY}\n  chmod +x \"/usr/bin/$${BINARY}\"\n  #
-        Clean up the downloaded deb file\n  rm -f \"$${DEB_FILE}\"\ndone\nsystemctl
-        restart kubelet\necho \"kubeadm version: $(kubeadm version -o=short)\"\necho
-        \"kubectl version: $(kubectl version --client=true)\"\necho \"kubelet version:
-        $(kubelet --version)\"\n"
+        \ # Return empty string if no revision found\n  echo \"\"\n  return 1\n}\n\nfor
+        BINARY in \"$${BINARIES[@]}\"; do\n  echo \"* Finding latest revision for
+        $${BINARY}...\"\n  if DEB_VERSION=$$(find_latest_revision \"$${BINARY}\" \"$${VERSION}\"
+        \"$${OS_VERSION}\" \"$${ARCH}\"); then\n    echo \"* Using revision: $${DEB_VERSION}\"\n
+        \   echo \"* downloading and extracting binary: $${BINARY} $${VERSION} with
+        deb version $${DEB_VERSION}\"\n    DEB_FILE=\"/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
+        \   DEB_URL=\"$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
+        \   echo \"Downloading from: $${DEB_URL}\"\n    curl -L --retry 10 --retry-delay
+        5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n    # Extract just the binary
+        from the deb package directly to /usr/bin\n    echo \"Extracting $${BINARY}
+        binary to /usr/bin\"\n    dpkg-deb --fsys-tarfile \"$${DEB_FILE}\" | tar -xf
+        - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}\n    chmod +x \"/usr/bin/$${BINARY}\"\n
+        \   # Clean up the downloaded deb file\n    rm -f \"$${DEB_FILE}\"\n  else\n
+        \   echo \"* No deb package found for $${BINARY} $${VERSION}, skipping...\"\n
+        \ fi\ndone\nsystemctl restart kubelet\necho \"kubeadm version: $(kubeadm version
+        -o=short)\"\necho \"kubectl version: $(kubectl version --client=true)\"\necho
+        \"kubelet version: $(kubelet --version)\"\n"
       owner: root:root
       path: /tmp/replace-k8s-binaries.sh
       permissions: "0744"
@@ -355,23 +355,23 @@ spec:
           latest available\n  for i in $(seq 10 -1 1); do\n    local test_url=\"$${BASE_URL}/$${binary}/$${version}/$${os_version}/$${arch}/$${binary}_$${version}-$${os_version}u$${i}_$${arch}.deb\"\n
           \   if curl -s --head \"$${test_url}\" | grep -q \"200 OK\" 2>/dev/null;
           then\n      echo \"$${os_version}u$${i}\"\n      return 0\n    fi\n  done\n
-          \ \n  # Fallback to default revisions if none found\n  case \"$${binary}\"
-          in\n    \"kubelet\")\n      echo \"$${os_version}u1\"\n      ;;\n    *)\n
-          \     echo \"$${os_version}u2\"\n      ;;\n  esac\n}\n\nfor BINARY in \"$${BINARIES[@]}\";
-          do\n  echo \"* Finding latest revision for $${BINARY}...\"\n  DEB_VERSION=$$(find_latest_revision
-          \"$${BINARY}\" \"$${VERSION}\" \"$${OS_VERSION}\" \"$${ARCH}\")\n  echo
-          \"* Using revision: $${DEB_VERSION}\"\n  echo \"* downloading and extracting
-          binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}\"\n  DEB_FILE=\"/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
-          \ DEB_URL=\"$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
-          \ echo \"Downloading from: $${DEB_URL}\"\n  curl -L --retry 10 --retry-delay
-          5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n  # Extract just the binary
-          from the deb package directly to /usr/bin\n  echo \"Extracting $${BINARY}
-          binary to /usr/bin\"\n  dpkg-deb --fsys-tarfile \"$${DEB_FILE}\" | tar -xf
-          - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}\n  chmod +x \"/usr/bin/$${BINARY}\"\n
-          \ # Clean up the downloaded deb file\n  rm -f \"$${DEB_FILE}\"\ndone\nsystemctl
-          restart kubelet\necho \"kubeadm version: $(kubeadm version -o=short)\"\necho
-          \"kubectl version: $(kubectl version --client=true)\"\necho \"kubelet version:
-          $(kubelet --version)\"\n"
+          \ \n  # Return empty string if no revision found\n  echo \"\"\n  return
+          1\n}\n\nfor BINARY in \"$${BINARIES[@]}\"; do\n  echo \"* Finding latest
+          revision for $${BINARY}...\"\n  if DEB_VERSION=$$(find_latest_revision \"$${BINARY}\"
+          \"$${VERSION}\" \"$${OS_VERSION}\" \"$${ARCH}\"); then\n    echo \"* Using
+          revision: $${DEB_VERSION}\"\n    echo \"* downloading and extracting binary:
+          $${BINARY} $${VERSION} with deb version $${DEB_VERSION}\"\n    DEB_FILE=\"/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
+          \   DEB_URL=\"$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb\"\n
+          \   echo \"Downloading from: $${DEB_URL}\"\n    curl -L --retry 10 --retry-delay
+          5 \"$${DEB_URL}\" --output \"$${DEB_FILE}\"\n    # Extract just the binary
+          from the deb package directly to /usr/bin\n    echo \"Extracting $${BINARY}
+          binary to /usr/bin\"\n    dpkg-deb --fsys-tarfile \"$${DEB_FILE}\" | tar
+          -xf - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}\n    chmod +x
+          \"/usr/bin/$${BINARY}\"\n    # Clean up the downloaded deb file\n    rm
+          -f \"$${DEB_FILE}\"\n  else\n    echo \"* No deb package found for $${BINARY}
+          $${VERSION}, skipping...\"\n  fi\ndone\nsystemctl restart kubelet\necho
+          \"kubeadm version: $(kubeadm version -o=short)\"\necho \"kubectl version:
+          $(kubectl version --client=true)\"\necho \"kubelet version: $(kubelet --version)\"\n"
         owner: root:root
         path: /tmp/replace-k8s-binaries.sh
         permissions: "0744"

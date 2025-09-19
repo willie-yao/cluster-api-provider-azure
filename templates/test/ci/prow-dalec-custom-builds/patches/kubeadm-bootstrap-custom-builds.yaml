@@ -31,32 +31,29 @@
           fi
         done
         
-        # Fallback to default revisions if none found
-        case "$${binary}" in
-          "kubelet")
-            echo "$${os_version}u1"
-            ;;
-          *)
-            echo "$${os_version}u2"
-            ;;
-        esac
+        # Return empty string if no revision found
+        echo ""
+        return 1
       }
       
       for BINARY in "$${BINARIES[@]}"; do
         echo "* Finding latest revision for $${BINARY}..."
-        DEB_VERSION=$$(find_latest_revision "$${BINARY}" "$${VERSION}" "$${OS_VERSION}" "$${ARCH}")
-        echo "* Using revision: $${DEB_VERSION}"
-        echo "* downloading and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
-        DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
-        DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
-        echo "Downloading from: $${DEB_URL}"
-        curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
-        # Extract just the binary from the deb package directly to /usr/bin
-        echo "Extracting $${BINARY} binary to /usr/bin"
-        dpkg-deb --fsys-tarfile "$${DEB_FILE}" | tar -xf - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}
-        chmod +x "/usr/bin/$${BINARY}"
-        # Clean up the downloaded deb file
-        rm -f "$${DEB_FILE}"
+        if DEB_VERSION=$$(find_latest_revision "$${BINARY}" "$${VERSION}" "$${OS_VERSION}" "$${ARCH}"); then
+          echo "* Using revision: $${DEB_VERSION}"
+          echo "* downloading and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
+          DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+          DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
+          echo "Downloading from: $${DEB_URL}"
+          curl -L --retry 10 --retry-delay 5 "$${DEB_URL}" --output "$${DEB_FILE}"
+          # Extract just the binary from the deb package directly to /usr/bin
+          echo "Extracting $${BINARY} binary to /usr/bin"
+          dpkg-deb --fsys-tarfile "$${DEB_FILE}" | tar -xf - --strip-components=3 -C /usr/bin ./usr/bin/$${BINARY}
+          chmod +x "/usr/bin/$${BINARY}"
+          # Clean up the downloaded deb file
+          rm -f "$${DEB_FILE}"
+        else
+          echo "* No deb package found for $${BINARY} $${VERSION}, skipping..."
+        fi
       done
       systemctl restart kubelet
       echo "kubeadm version: $(kubeadm version -o=short)"
