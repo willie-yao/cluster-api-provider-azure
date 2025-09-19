@@ -14,12 +14,38 @@
       VERSION=$${VERSION#v}
       OS_VERSION="ubuntu24.04"
       ARCH="amd64"
+      
+      # Function to find the latest available revision for a binary
+      find_latest_revision() {
+        local binary="$1"
+        local version="$2"
+        local os_version="$3"
+        local arch="$4"
+        
+        # Try revisions from u10 down to u1 to find the latest available
+        for i in $(seq 10 -1 1); do
+          local test_url="$${BASE_URL}/$${binary}/$${version}/$${os_version}/$${arch}/$${binary}_$${version}-$${os_version}u$${i}_$${arch}.deb"
+          if curl -s --head "$${test_url}" | grep -q "200 OK" 2>/dev/null; then
+            echo "$${os_version}u$${i}"
+            return 0
+          fi
+        done
+        
+        # Fallback to default revisions if none found
+        case "$${binary}" in
+          "kubelet")
+            echo "$${os_version}u1"
+            ;;
+          *)
+            echo "$${os_version}u2"
+            ;;
+        esac
+      }
+      
       for BINARY in "$${BINARIES[@]}"; do
-        if [[ "$${BINARY}" == "kubelet" ]]; then
-          DEB_VERSION="ubuntu24.04u1"
-        else
-          DEB_VERSION="ubuntu24.04u2"
-        fi
+        echo "* Finding latest revision for $${BINARY}..."
+        DEB_VERSION=$$(find_latest_revision "$${BINARY}" "$${VERSION}" "$${OS_VERSION}" "$${ARCH}")
+        echo "* Using revision: $${DEB_VERSION}"
         echo "* downloading and extracting binary: $${BINARY} $${VERSION} with deb version $${DEB_VERSION}"
         DEB_FILE="/tmp/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
         DEB_URL="$${BASE_URL}/$${BINARY}/$${VERSION}/$${OS_VERSION}/$${ARCH}/$${BINARY}_$${VERSION}-$${DEB_VERSION}_$${ARCH}.deb"
