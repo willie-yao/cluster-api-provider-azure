@@ -4,8 +4,8 @@
 # long-running E2E jobs every time that file changes
 
 ##@ E2E Testing:
-.PHONY: test-e2e-run
-test-e2e-run: generate-e2e-templates install-tools create-bootstrap ## Run e2e tests.
+.PHONY: test-e2e-run-steps
+test-e2e-run-steps: generate-e2e-templates install-tools create-bootstrap ## Run e2e test steps without cleanup.
 	if [ "$(MGMT_CLUSTER_TYPE)" == "aks" ]; then \
 		source ./scripts/peer-vnets.sh && source_tilt_settings tilt-settings.yaml; \
 	fi; \
@@ -17,13 +17,25 @@ test-e2e-run: generate-e2e-templates install-tools create-bootstrap ## Run e2e t
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-log-collection="$(SKIP_LOG_COLLECTION)" \
-		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) -e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER) $(E2E_ARGS) \
-	$(MAKE) cleanup-workload-identity
-	$(MAKE) clean-release-git
+		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) -e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER) $(E2E_ARGS)
+
+.PHONY: test-e2e-cleanup
+test-e2e-cleanup: ## Clean up e2e test resources.
+	$(MAKE) cleanup-workload-identity || true
+	$(MAKE) clean-release-git || true
 	if [ "$(MGMT_CLUSTER_TYPE)" == "aks" ] && [ "$(SKIP_CLEANUP)" != "true" ]; then \
 		echo "Cleaning up AKS management cluster..."; \
-		$(MAKE) aks-delete; \
+		$(MAKE) aks-delete || true; \
 	fi
+
+.PHONY: test-e2e-run
+test-e2e-run: ## Run e2e tests.
+	@set +e; \
+	$(MAKE) test-e2e-run-steps; \
+	EXIT_CODE=$$?; \
+	set -e; \
+	$(MAKE) test-e2e-cleanup; \
+	exit $$EXIT_CODE
 
 .PHONY: test-e2e
 test-e2e: ## Run "docker-build" and "docker-push" rules then run e2e tests.
