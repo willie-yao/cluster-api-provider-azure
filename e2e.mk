@@ -22,11 +22,11 @@ test-e2e-run: generate-e2e-templates install-tools create-bootstrap ## Run e2e t
 
 .PHONY: test-e2e-run-cleanup
 test-e2e-run-cleanup: ## Run e2e cleanup tasks.
-	$(MAKE) cleanup-workload-identity
-	$(MAKE) clean-release-git
+	$(MAKE) cleanup-workload-identity || true
+	$(MAKE) clean-release-git || true
 	if [ "$(MGMT_CLUSTER_TYPE)" == "aks" ] && [ "$(SKIP_CLEANUP)" != "true" ]; then \
 		echo "Cleaning up AKS management cluster..."; \
-		$(MAKE) aks-delete; \
+		$(MAKE) aks-delete || true; \
 	fi
 
 .PHONY: test-e2e
