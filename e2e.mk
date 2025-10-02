@@ -8,6 +8,11 @@
 .PHONY: test-e2e-run
 test-e2e-run: generate-e2e-templates install-tools create-bootstrap ## Run e2e tests.
 	if [ "$(MGMT_CLUSTER_TYPE)" == "aks" ]; then \
+		echo "AKS management cluster created successfully!"; \
+		echo "INTENTIONAL FAILURE: Testing failure scenario after AKS management cluster creation"; \
+		exit 1; \
+	fi; \
+	if [ "$(MGMT_CLUSTER_TYPE)" == "aks" ]; then \
 		source ./scripts/peer-vnets.sh && source_tilt_settings tilt-settings.yaml; \
 	fi; \
 	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST) && \

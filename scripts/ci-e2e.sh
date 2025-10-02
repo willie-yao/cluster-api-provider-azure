@@ -78,7 +78,7 @@ capz::ci-e2e::cleanup() {
     "${REPO_ROOT}/hack/log/redact.sh" || true
     make cleanup-workload-identity || true
     make clean-release-git || true
-    if [ "$(MGMT_CLUSTER_TYPE)" == "aks" ] && [ "$(SKIP_CLEANUP)" != "true" ]; then
+    if [ "${MGMT_CLUSTER_TYPE}" == "aks" ] && [ "${SKIP_CLEANUP}" != "true" ]; then
       echo "Cleaning up AKS management cluster..."
       make aks-delete || true
     fi
