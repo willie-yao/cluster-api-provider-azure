@@ -278,6 +278,11 @@ spec:
         lun: 0
         nameSuffix: etcddisk
       identity: UserAssigned
+      image:
+        computeGallery:
+          gallery: ClusterAPI-f72ceb4f-5159-4c26-a0fe-2ea738f0d019
+          name: capi-ubun2-2404
+          version: ${CAPZ_GALLERY_VERSION}
       osDisk:
         diskSizeGB: 128
         osType: Linux
@@ -319,6 +324,11 @@ spec:
   template:
     spec:
       identity: UserAssigned
+      image:
+        computeGallery:
+          gallery: ClusterAPI-f72ceb4f-5159-4c26-a0fe-2ea738f0d019
+          name: capi-ubun2-2404
+          version: ${CAPZ_GALLERY_VERSION}
       osDisk:
         diskSizeGB: 128
         osType: Linux
