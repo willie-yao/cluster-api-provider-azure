@@ -99,6 +99,13 @@
   path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
   value:
     bash -c /tmp/replace-k8s-binaries.sh
+# Add /etc/hosts entry for API server FQDN to work around Azure ILB hairpin routing issue.
+# The first control plane node cannot reach itself through the ILB, so we point the FQDN
+# to the ILB private IP which gets routed correctly within the VNet.
+- op: add
+  path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
+  value:
+    echo '${AZURE_INTERNAL_LB_PRIVATE_IP:-10.0.0.100}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com' >> /etc/hosts
 - op: add
   path: /spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/ignorePreflightErrors
   value:
