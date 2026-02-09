@@ -291,10 +291,10 @@ spec:
       - /var/lib/etcddisk
     postKubeadmCommands: []
     preKubeadmCommands:
+    - echo '127.0.0.1   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
+      >> /etc/hosts
     - bash -c /tmp/kubeadm-bootstrap.sh
     - bash -c /tmp/replace-k8s-binaries.sh
-    - echo '${AZURE_INTERNAL_LB_PRIVATE_IP:-10.0.0.100}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
-      >> /etc/hosts
     verbosity: 5
   machineTemplate:
     infrastructureRef:
