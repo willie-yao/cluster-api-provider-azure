@@ -96,13 +96,13 @@
     owner: "root:root"
     permissions: "0744"
 # Add /etc/hosts entry for API server FQDN to work around Azure ILB hairpin routing issue.
-# The first control plane node cannot reach itself through the ILB, so we point the FQDN
-# to localhost. This allows kubeadm init to complete successfully on the first CP node.
+# - If API server is reachable via ILB: This is a join node, use ILB IP
+# - If API server is NOT reachable: This is the init node, use localhost (API server will run locally)
 # This MUST run before any other preKubeadmCommands that might need API server access.
 - op: add
   path: /spec/kubeadmConfigSpec/preKubeadmCommands/0
   value:
-    echo '127.0.0.1   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com' >> /etc/hosts
+    bash -c 'if curl -sk --connect-timeout 5 https://${AZURE_INTERNAL_LB_PRIVATE_IP}:6443/healthz >/dev/null 2>&1; then echo "${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com" >> /etc/hosts; else echo "127.0.0.1   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com" >> /etc/hosts; fi'
 - op: add
   path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
   value:

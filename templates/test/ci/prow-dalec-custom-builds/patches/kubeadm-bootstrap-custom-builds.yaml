@@ -95,6 +95,12 @@
     path: /tmp/replace-k8s-binaries.sh
     owner: "root:root"
     permissions: "0744"
+# Add /etc/hosts entry for API server FQDN to work around Azure ILB hairpin routing issue.
+# Worker nodes always join, so they use the ILB IP directly.
+- op: add
+  path: /spec/template/spec/preKubeadmCommands/0
+  value:
+    echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com' >> /etc/hosts
 - op: add
   path: /spec/template/spec/preKubeadmCommands/-
   value:

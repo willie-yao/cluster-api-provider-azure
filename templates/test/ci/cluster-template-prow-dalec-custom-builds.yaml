@@ -291,8 +291,10 @@ spec:
       - /var/lib/etcddisk
     postKubeadmCommands: []
     preKubeadmCommands:
-    - echo '127.0.0.1   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
-      >> /etc/hosts
+    - bash -c 'if curl -sk --connect-timeout 5 https://${AZURE_INTERNAL_LB_PRIVATE_IP}:6443/healthz
+      >/dev/null 2>&1; then echo "${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com"
+      >> /etc/hosts; else echo "127.0.0.1   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com"
+      >> /etc/hosts; fi'
     - bash -c /tmp/kubeadm-bootstrap.sh
     - bash -c /tmp/replace-k8s-binaries.sh
     verbosity: 5
@@ -525,6 +527,8 @@ spec:
             cloud-provider: external
           name: '{{ ds.meta_data["local_hostname"] }}'
       preKubeadmCommands:
+      - echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
+        >> /etc/hosts
       - echo '${AZURE_INTERNAL_LB_PRIVATE_IP}   ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com'
         >> /etc/hosts
       - bash -c /tmp/kubeadm-bootstrap.sh
