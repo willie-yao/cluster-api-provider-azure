@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: default
 resources:
 - ../prow-apiserver-ilb-custom-images
-- patches/azl3-machine-deployment.yaml
+# - patches/azl3-machine-deployment.yaml //temporarily disabled to avoid AZL3 image issues, will re-enable once resolved
 patches:
 - path: patches/kubeadm-bootstrap-custom-builds.yaml
   target:
