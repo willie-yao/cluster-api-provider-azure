@@ -107,12 +107,12 @@
   path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
   value:
     bash -c /tmp/replace-k8s-binaries.sh
-- op: add
-  path: /spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/ignorePreflightErrors
-  value:
-    - HTTPProxyCIDR
-# Also add ignorePreflightErrors for join operations (second/third control plane nodes)
-- op: add
-  path: /spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/ignorePreflightErrors
-  value:
-    - HTTPProxyCIDR
+# - op: add
+#   path: /spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/ignorePreflightErrors
+#   value:
+#     - HTTPProxyCIDR
+# # Also add ignorePreflightErrors for join operations (second/third control plane nodes)
+# - op: add
+#   path: /spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/ignorePreflightErrors
+#   value:
+#     - HTTPProxyCIDR

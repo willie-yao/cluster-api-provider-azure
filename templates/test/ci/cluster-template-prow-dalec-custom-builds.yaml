@@ -276,15 +276,11 @@ spec:
       permissions: "0744"
     initConfiguration:
       nodeRegistration:
-        ignorePreflightErrors:
-        - HTTPProxyCIDR
         kubeletExtraArgs:
           cloud-provider: external
         name: '{{ ds.meta_data["local_hostname"] }}'
     joinConfiguration:
       nodeRegistration:
-        ignorePreflightErrors:
-        - HTTPProxyCIDR
         kubeletExtraArgs:
           cloud-provider: external
         name: '{{ ds.meta_data["local_hostname"] }}'
