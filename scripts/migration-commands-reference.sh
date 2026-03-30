@@ -30,7 +30,38 @@ kubectl get azuremanagedmachinepool ${CLUSTER_NAME}-pool0 -o jsonpath='{.metadat
 kubectl get azuremanagedmachinepool ${CLUSTER_NAME}-pool1 -o jsonpath='{.metadata.annotations.clusterctl\.cluster\.x-k8s\.io/block-move}'
 
 # ============================================================
-# Step 3: Create new namespace
+# Step 3: Disarm old ASO resources
+# ============================================================
+# CRITICAL SAFETY STEP — must happen BEFORE creating new resources or deleting
+# any old resources.
+#
+# The old ASO resources (ResourceGroup, ManagedCluster, ManagedClustersAgentPools) in
+# the old namespace have:
+#   1. Owner references pointing to old CAPZ resources (AzureManagedControlPlane, etc.)
+#   2. ASO finalizers (serviceoperator.azure.com/finalizer)
+#
+# Without this step, if anything goes wrong and old resources get garbage collected,
+# the chain of destruction would be:
+#   Delete old AzureManagedControlPlane → Kubernetes GC sees the old ASO ManagedCluster
+#   has a dangling ownerReference → GC tries to delete the ASO ManagedCluster →
+#   ASO's finalizer kicks in → ASO sends a DELETE to the Azure API →
+#   YOUR ACTUAL AKS CLUSTER GETS DELETED
+#
+# We prevent this by:
+#   - Setting reconcile-policy to "skip" (tells ASO to ignore this resource entirely)
+#   - Removing the ASO finalizer (so the K8s object can be deleted without ASO acting)
+# After this, the old ASO objects are inert — they can be garbage collected safely.
+for pool in ${CLUSTER_NAME}-pool0 ${CLUSTER_NAME}-pool1; do
+  kubectl patch managedclustersagentpool.containerservice.azure.com/$pool -n default \
+    --type merge -p '{"metadata": {"annotations": {"serviceoperator.azure.com/reconcile-policy": "skip"}, "finalizers": null}}'
+done
+kubectl patch managedcluster.containerservice.azure.com/${CLUSTER_NAME} -n default \
+  --type merge -p '{"metadata": {"annotations": {"serviceoperator.azure.com/reconcile-policy": "skip"}, "finalizers": null}}'
+kubectl patch resourcegroup.resources.azure.com/${CLUSTER_NAME} -n default \
+  --type merge -p '{"metadata": {"annotations": {"serviceoperator.azure.com/reconcile-policy": "skip"}, "finalizers": null}}'
+
+# ============================================================
+# Step 4: Create new namespace and copy credentials
 # ============================================================
 # We put the new resources in a separate namespace to avoid conflicts with the old
 # ASO resources. ASO uses the resource name + namespace + Azure resource ID to track
@@ -38,9 +69,6 @@ kubectl get azuremanagedmachinepool ${CLUSTER_NAME}-pool1 -o jsonpath='{.metadat
 # name would conflict, so a new namespace cleanly separates them.
 kubectl create namespace ${NEW_NAMESPACE}
 
-# ============================================================
-# Step 4: Copy ASO credential secret to new namespace
-# ============================================================
 # ASO resources authenticate to Azure using a credential secret referenced by the
 # annotation "serviceoperator.azure.com/credential-from" on each ASO resource.
 # The new ASO resources in the new namespace need access to the same credentials.
@@ -209,36 +237,7 @@ kubectl wait --for=condition=Available cluster.cluster.x-k8s.io/${CLUSTER_NAME} 
 kubectl get clusters.cluster.x-k8s.io,azureasomanagedcontrolplanes,azureasomanagedclusters,machinepools,azureasomanagedmachinepools -n ${NEW_NAMESPACE} -o wide
 
 # ============================================================
-# Step 6: Prevent old ASO resources from deleting Azure resources
-# ============================================================
-# THIS IS THE MOST CRITICAL SAFETY STEP.
-#
-# The old ASO resources (ResourceGroup, ManagedCluster, ManagedClustersAgentPools) in
-# the default namespace have:
-#   1. Owner references pointing to old CAPZ resources (AzureManagedControlPlane, etc.)
-#   2. ASO finalizers (serviceoperator.azure.com/finalizer)
-#
-# Without this step, the chain of destruction would be:
-#   Delete old AzureManagedControlPlane → Kubernetes GC sees the old ASO ManagedCluster
-#   has a dangling ownerReference → GC tries to delete the ASO ManagedCluster →
-#   ASO's finalizer kicks in → ASO sends a DELETE to the Azure API →
-#   YOUR ACTUAL AKS CLUSTER GETS DELETED
-#
-# We prevent this by:
-#   - Setting reconcile-policy to "skip" (tells ASO to ignore this resource entirely)
-#   - Removing the ASO finalizer (so the K8s object can be deleted without ASO acting)
-# After this, the old ASO objects are inert — they can be garbage collected safely.
-for pool in ${CLUSTER_NAME}-pool0 ${CLUSTER_NAME}-pool1; do
-  kubectl patch managedclustersagentpool.containerservice.azure.com/$pool -n default \
-    --type merge -p '{"metadata": {"annotations": {"serviceoperator.azure.com/reconcile-policy": "skip"}, "finalizers": null}}'
-done
-kubectl patch managedcluster.containerservice.azure.com/${CLUSTER_NAME} -n default \
-  --type merge -p '{"metadata": {"annotations": {"serviceoperator.azure.com/reconcile-policy": "skip"}, "finalizers": null}}'
-kubectl patch resourcegroup.resources.azure.com/${CLUSTER_NAME} -n default \
-  --type merge -p '{"metadata": {"annotations": {"serviceoperator.azure.com/reconcile-policy": "skip"}, "finalizers": null}}'
-
-# ============================================================
-# Step 7: Delete old CAPI/CAPZ resources
+# Step 6: Delete old CAPI/CAPZ resources
 # ============================================================
 # Now we delete the old CAPI/CAPZ resources. We use --wait=false because CAPI
 # controllers refuse to reconcile paused resources, even for deletion. The resources
@@ -252,7 +251,7 @@ kubectl patch resourcegroup.resources.azure.com/${CLUSTER_NAME} -n default \
 #
 # The old ASO resources (ResourceGroup, ManagedCluster, AgentPools) will be garbage
 # collected automatically because their owner references point to the CAPZ resources
-# we're deleting. Since we already disarmed them in Step 6, this is safe.
+# we're deleting. Since we already disarmed them in Step 3, this is safe.
 kubectl delete cluster ${CLUSTER_NAME} -n default --wait=false
 kubectl delete azuremanagedcluster ${CLUSTER_NAME} -n default --wait=false
 kubectl delete azuremanagedcontrolplane ${CLUSTER_NAME} -n default --wait=false
@@ -266,7 +265,7 @@ kubectl patch azuremanagedcontrolplane ${CLUSTER_NAME} -n default --type merge -
 kubectl patch cluster ${CLUSTER_NAME} -n default --type merge -p '{"metadata": {"finalizers": null}}'
 
 # ============================================================
-# Step 8: Verify
+# Step 7: Verify
 # ============================================================
 # Confirm:
 #   1. All old resources are gone from the default namespace (CAPI and ASO)
