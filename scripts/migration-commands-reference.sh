@@ -123,6 +123,19 @@ kubectl wait --for=condition=Ready resourcegroup.resources.azure.com/${CLUSTER_N
 # Note: we use v1api20240901 (newer API version) even though the old cluster used
 # v1api20210501. ASO handles the version translation. The spec fields here match
 # the existing cluster's configuration to avoid any drift.
+#
+# IMPORTANT: You must include agentPoolProfiles in the ManagedCluster spec. The old
+# CAPZ controller strips agentPoolProfiles from the ASO ManagedCluster spec (it manages
+# pools separately), but the v1api20240901 API requires them. Without agentPoolProfiles,
+# ASO will PUT the spec to Azure without pool definitions, triggering an update cycle
+# that causes the AAMCP to get stuck waiting for readiness.
+#
+# Extract them from the existing ASO ManagedCluster's status:
+#   kubectl get managedcluster.containerservice.azure.com/${CLUSTER_NAME} -n default \
+#     -o jsonpath='{.status.agentPoolProfiles}' | jq .
+#
+# Then include the relevant fields for each pool (name, mode, vmSize, count, osType,
+# osDiskSizeGB, osDiskType, type, vnetSubnetID) under spec.agentPoolProfiles.
 cat <<'EOF' | kubectl apply -f -
 apiVersion: containerservice.azure.com/v1api20240901
 kind: ManagedCluster
@@ -158,6 +171,23 @@ spec:
   sku:
     name: Base
     tier: Free
+  agentPoolProfiles:
+  - name: pool0
+    mode: System
+    vmSize: ${VM_SIZE}
+    count: 2
+    osType: Linux
+    osDiskSizeGB: 128
+    osDiskType: Managed
+    type: VirtualMachineScaleSets
+  - name: pool1
+    mode: User
+    vmSize: ${VM_SIZE}
+    count: 2
+    osType: Linux
+    osDiskSizeGB: 128
+    osDiskType: Managed
+    type: VirtualMachineScaleSets
 EOF
 kubectl wait --for=condition=Ready managedcluster.containerservice.azure.com/${CLUSTER_NAME} -n ${NEW_NAMESPACE} --timeout=180s
 kubectl get clusters.cluster.x-k8s.io,azureasomanagedcontrolplanes,azureasomanagedclusters -n ${NEW_NAMESPACE}

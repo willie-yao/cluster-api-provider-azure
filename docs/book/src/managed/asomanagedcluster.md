@@ -145,10 +145,18 @@ To migrate one cluster to the ASO-based APIs:
       ```
    1. Create an ASO ManagedCluster resource in the new namespace with the
       `sigs.k8s.io/cluster-api-provider-azure-adopt: "true"` annotation. Its `spec.owner.name` must reference
-      the ResourceGroup created above. The spec must include `agentPoolProfiles` (which can be extracted
-      from the existing ManagedCluster's status) as newer Azure API versions require them. Wait for the
-      ManagedCluster to become Ready and for CAPZ to scaffold the Cluster, AzureASOManagedCluster, and
-      AzureASOManagedControlPlane resources.
+      the ResourceGroup created above. Wait for the ManagedCluster to become Ready and for CAPZ to scaffold
+      the Cluster, AzureASOManagedCluster, and AzureASOManagedControlPlane resources.
+
+      > **Important**: The spec **must** include `agentPoolProfiles`. The old CAPZ controller strips
+      > `agentPoolProfiles` from the ASO ManagedCluster spec (it manages pools separately via
+      > ManagedClustersAgentPool resources), so the existing ASO resource's `.spec` will not have them.
+      > Extract them from `.status.agentPoolProfiles` instead:
+      > ```bash
+      > kubectl get managedcluster.containerservice.azure.com/<name> -o json | jq '.status.agentPoolProfiles'
+      > ```
+      > Without `agentPoolProfiles`, ASO will PUT the spec to Azure without pool definitions, triggering
+      > an update cycle that prevents the AzureASOManagedControlPlane from becoming ready.
    1. Create ASO ManagedClustersAgentPool resources in the new namespace, one per node pool, each with the
       `sigs.k8s.io/cluster-api-provider-azure-adopt: "true"` annotation. Their `spec.owner.name` must
       reference the ManagedCluster. Wait for CAPZ to scaffold the MachinePools and
