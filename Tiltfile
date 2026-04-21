@@ -25,7 +25,7 @@ settings = {
     "capi_version": "v1.13.0-rc.0",
     "caaph_version": "v0.6.2",
     "cert_manager_version": "v1.20.1",
-    "kubernetes_version": "v1.33.6",
+    "kubernetes_version": "v1.35.4",
     "aks_kubernetes_version": "v1.30.2",
     "flatcar_version": "3374.2.1",
     "azure_location": "eastus",
