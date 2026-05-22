@@ -1,0 +1,20 @@
+# Points AzureCluster at the workload VNet that Bicep pre-created.
+# CIDRs come from Bicep parameters via deployment-script env vars.
+- op: replace
+  path: /spec/networkSpec/vnet
+  value:
+    resourceGroup: ${AZURE_RESOURCE_GROUP:=${CLUSTER_NAME}}
+    name: workload-vnet
+    cidrBlocks:
+    - ${AZURE_VNET_CIDR}
+- op: replace
+  path: /spec/networkSpec/subnets
+  value:
+  - name: control-plane-subnet
+    role: control-plane
+    cidrBlocks:
+    - ${AZURE_CP_SUBNET_CIDR}
+  - name: node-subnet
+    role: node
+    cidrBlocks:
+    - ${AZURE_NODE_SUBNET_CIDR}

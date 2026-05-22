@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: default
+# Internal-restricted networking: workload VNet pre-created and peered to
+# the AKS mgmt VNet by Bicep. AzureCluster references the existing VNet
+# (BYO) and adds a private-IP frontend on the apiserver LB.
+resources:
+- ../../base
+patches:
+- path: byo-vnet-patch.yaml
+  target:
+    group: infrastructure.cluster.x-k8s.io
+    kind: AzureCluster
+    name: .*
+    version: v1beta1
+- path: apiserver-ilb-patch.yaml
+  target:
+    group: infrastructure.cluster.x-k8s.io
+    kind: AzureCluster
+    name: .*
+    version: v1beta1

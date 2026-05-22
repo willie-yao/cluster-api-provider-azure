@@ -1,0 +1,6 @@
+# Mirror of the kubelet-side gates from alpha-gates-patch.yaml, but applied
+# to the worker MachineDeployment's KubeadmConfigTemplate (the KCP patch
+# only reaches control-plane kubelets).
+- op: add
+  path: /spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/feature-gates
+  value: ${K8S_FEATURE_GATES:="AllAlpha=true,AllBeta=true"}

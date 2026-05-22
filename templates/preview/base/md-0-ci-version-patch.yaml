@@ -1,0 +1,41 @@
+# Worker-side equivalent of ci-version-patch.yaml: downloads alpha k8s
+# binaries at node boot so workers match the control-plane CI version.
+- op: add
+  path: /spec/template/spec/files
+  value: []
+- op: add
+  path: /spec/template/spec/files/-
+  value:
+    content: |
+      #!/bin/bash
+      set -o nounset
+      set -o pipefail
+      set -o errexit
+      [[ $(id -u) != 0 ]] && SUDO="sudo" || SUDO=""
+
+      CI_VERSION=${CI_VERSION}
+      if [[ $(kubectl version --client=true -o json | jq '.clientVersion.gitVersion' -r) = "$${CI_VERSION}" ]]; then
+        exit 0
+      fi
+      if [[ "$${CI_VERSION}" != "" ]]; then
+        CI_DIR=/tmp/k8s-ci
+        mkdir -p "$${CI_DIR}"
+        declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
+        CI_URL="https://dl.k8s.io/ci/$${CI_VERSION}/bin/linux/amd64"
+        if [[ "$${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ "$${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)\.[0-9]+$ ]]; then
+          CI_URL="https://dl.k8s.io/release/$${CI_VERSION}/bin/linux/amd64"
+        fi
+        for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
+          wget --inet4-only "$${CI_URL}/$${CI_PACKAGE}" -O "$${CI_DIR}/$${CI_PACKAGE}"
+          chmod +x "$${CI_DIR}/$${CI_PACKAGE}"
+          mv "$${CI_DIR}/$${CI_PACKAGE}" "/usr/bin/$${CI_PACKAGE}"
+        done
+        systemctl restart kubelet
+      fi
+    path: /tmp/kubeadm-bootstrap.sh
+    owner: "root:root"
+    permissions: "0744"
+- op: add
+  path: /spec/template/spec/preKubeadmCommands/-
+  value:
+    bash -c /tmp/kubeadm-bootstrap.sh
