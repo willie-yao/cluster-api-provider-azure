@@ -1,0 +1,25 @@
+# Enables every alpha + beta feature gate on every relevant component and
+# every alpha API on the API server. Tracks upstream automatically — no
+# per-release maintenance for gate-only features. Users can override via
+# the K8S_FEATURE_GATES env var (e.g. to set a narrower list).
+#
+# Extends templates/test/ci/patches/alpha-beta-feature-gates-kubeadmcontrolplane.yaml
+# by also setting feature-gates on the kubelet (init + join configurations).
+- op: add
+  path: /spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/feature-gates
+  value: ${K8S_FEATURE_GATES:="AllAlpha=true,AllBeta=true"}
+- op: add
+  path: /spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/runtime-config
+  value: ${K8S_RUNTIME_CONFIG:="api/all=true"}
+- op: add
+  path: /spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/feature-gates
+  value: ${K8S_FEATURE_GATES:="AllAlpha=true,AllBeta=true"}
+- op: add
+  path: /spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/feature-gates
+  value: ${K8S_FEATURE_GATES:="AllAlpha=true,AllBeta=true"}
+- op: add
+  path: /spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/feature-gates
+  value: ${K8S_FEATURE_GATES:="AllAlpha=true,AllBeta=true"}
+- op: add
+  path: /spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/feature-gates
+  value: ${K8S_FEATURE_GATES:="AllAlpha=true,AllBeta=true"}

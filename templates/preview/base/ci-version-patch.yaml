@@ -1,0 +1,70 @@
+# Downloads alpha k8s binaries from dl.k8s.io/ci/ at node boot and pins
+# kubeadm to the requested CI version. Mirrors templates/test/ci/patches/
+# control-plane-kubeadm-boostrap-ci-version.yaml but applied to the
+# KubeadmControlPlane defined in this base.
+- op: add
+  path: /spec/kubeadmConfigSpec/files/-
+  value:
+    content: |
+      #!/bin/bash
+      set -o nounset
+      set -o pipefail
+      set -o errexit
+      [[ $(id -u) != 0 ]] && SUDO="sudo" || SUDO=""
+
+      LINE_SEPARATOR="*************************************************"
+      echo "$${LINE_SEPARATOR}"
+      CI_VERSION=${CI_VERSION}
+
+      if [[ $(kubectl version --client=true -o json | jq '.clientVersion.gitVersion' -r) = "$${CI_VERSION}" ]]; then
+        echo "Detected Kubernetes $${CI_VERSION} via kubectl version, nothing to do"
+        exit 0
+      fi
+      if [[ "$${CI_VERSION}" != "" ]]; then
+        CI_DIR=/tmp/k8s-ci
+        mkdir -p "$${CI_DIR}"
+        declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
+        declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
+        CONTAINER_EXT="tar"
+        echo "* testing version $${CI_VERSION}"
+        CI_URL="https://dl.k8s.io/ci/$${CI_VERSION}/bin/linux/amd64"
+        if [[ "$${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ "$${CI_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)\.[0-9]+$ ]]; then
+          CI_URL="https://dl.k8s.io/release/$${CI_VERSION}/bin/linux/amd64"
+        fi
+        for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
+          echo "* downloading binary: $${CI_URL}/$${CI_PACKAGE}"
+          wget --inet4-only "$${CI_URL}/$${CI_PACKAGE}" -O "$${CI_DIR}/$${CI_PACKAGE}"
+          chmod +x "$${CI_DIR}/$${CI_PACKAGE}"
+          mv "$${CI_DIR}/$${CI_PACKAGE}" "/usr/bin/$${CI_PACKAGE}"
+        done
+
+        systemctl restart kubelet
+        IMAGE_REGISTRY_PREFIX=registry.k8s.io
+        for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do
+          echo "* downloading package: $${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
+          wget --inet4-only "$${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}" -O "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
+          $${SUDO} ctr -n k8s.io images import "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}" || echo "* ignoring expected 'ctr images import' result"
+          $${SUDO} ctr -n k8s.io images tag "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${CI_VERSION//+/_}" "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}:$${CI_VERSION//+/_}"
+          $${SUDO} ctr -n k8s.io images tag "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${CI_VERSION//+/_}" "gcr.io/k8s-staging-ci-images/$${CI_CONTAINER}:$${CI_VERSION//+/_}"
+        done
+      fi
+      echo "* checking binary versions"
+      echo "ctr version: " "$(ctr version)"
+      echo "kubeadm version: " "$(kubeadm version -o=short)"
+      echo "kubectl version: " "$(kubectl version --client=true)"
+      echo "kubelet version: " "$(kubelet --version)"
+      echo "$${LINE_SEPARATOR}"
+    path: /tmp/kubeadm-bootstrap.sh
+    owner: "root:root"
+    permissions: "0744"
+- op: add
+  path: /spec/kubeadmConfigSpec/preKubeadmCommands/-
+  value:
+    bash -c /tmp/kubeadm-bootstrap.sh
+- op: add
+  path: /spec/kubeadmConfigSpec/clusterConfiguration/kubernetesVersion
+  value:
+    "ci/${CI_VERSION}"
+- op: add
+  path: /spec/kubeadmConfigSpec/verbosity
+  value: 5

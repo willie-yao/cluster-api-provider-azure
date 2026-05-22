@@ -1,0 +1,14 @@
+# Adds a private-IP frontend to the apiserver LB. Keeps the public IP
+# frontend (matching the dalec-custom-builds / apiserver-ilb flavor that
+# is already running in MSFT-internal subs). Private IP must match the
+# A record that Bicep created in the private DNS zone.
+- op: add
+  path: /spec/networkSpec/apiServerLB
+  value:
+    frontendIPs:
+    - name: ${CLUSTER_NAME}-api-lb
+      publicIP:
+        dnsName: ${CLUSTER_NAME}-${APISERVER_LB_DNS_SUFFIX}.${AZURE_LOCATION}.cloudapp.azure.com
+        name: ${CLUSTER_NAME}-api-lb
+    - name: ${CLUSTER_NAME}-internal-lb-private-ip
+      privateIP: ${AZURE_INTERNAL_LB_PRIVATE_IP}

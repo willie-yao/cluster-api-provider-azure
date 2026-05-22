@@ -1,0 +1,61 @@
+# HelmChartProxy addons that match the labels on the Cluster CR. The Helm
+# addon provider (installed by CAPI Operator in bootstrap.sh) reconciles
+# these into Helm releases on every matching workload cluster.
+#
+# Mirrors the standard installs in templates/addons/cluster-api-helm/.
+# Without these the workload cluster nodes stay NotReady forever (no CNI,
+# no cloud provider).
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: calico-${CLUSTER_NAME}
+  namespace: default
+spec:
+  clusterSelector:
+    matchLabels:
+      cni: calico
+  repoURL: https://docs.tigera.io/calico/charts
+  chartName: tigera-operator
+  version: ${CALICO_VERSION:=v3.28.0}
+  releaseName: projectcalico
+  namespace: tigera-operator
+  valuesTemplate: |
+    installation:
+      cni:
+        type: Calico
+        ipam:
+          type: Calico
+      calicoNetwork:
+        bgp: Disabled
+        mtu: 1350
+        ipPools:{{range $i, $cidr := .Cluster.spec.clusterNetwork.pods.cidrBlocks }}
+        - cidr: {{ $cidr }}
+          encapsulation: VXLAN{{end}}
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: cloud-provider-azure-${CLUSTER_NAME}
+  namespace: default
+spec:
+  clusterSelector:
+    matchLabels:
+      cloud-provider: azure
+  repoURL: https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo
+  chartName: cloud-provider-azure
+  releaseName: cloud-provider-azure-oot
+  # The chart auto-resolves cloud-provider-azure image tags from
+  # .Capabilities.KubeVersion.Minor, but its mapping ends at minor 36. With
+  # alpha k8s (v1.37+) the resolved tag is empty and both DaemonSet/Deployment
+  # render with image: "" which the apiserver rejects as 'Required value'.
+  # Pin the latest published cloud-provider-azure release explicitly so the
+  # CCM + cloud-node-manager DaemonSet render with a valid image.
+  valuesTemplate: |
+    infra:
+      clusterName: {{ .Cluster.metadata.name }}
+    cloudControllerManager:
+      clusterCIDR: {{ .Cluster.spec.clusterNetwork.pods.cidrBlocks | join "," }}
+      imageTag: "${CLOUD_PROVIDER_AZURE_VERSION:=v1.36.0}"
+      logVerbosity: 4
+    cloudNodeManager:
+      imageTag: "${CLOUD_PROVIDER_AZURE_VERSION:=v1.36.0}"
