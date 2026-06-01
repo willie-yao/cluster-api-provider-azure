@@ -19,8 +19,7 @@ gate and alpha API is on by default.
 | **AKS management cluster** (`Standard_D2s_v3` × 2) | Hosts CAPI Operator + CAPZ. Override `aksNodeVmSize` to a burstable SKU (e.g. `Standard_B2s`) on subs that allow it. |
 | **User-assigned managed identity** + role assignment | CAPZ auth (Workload Identity, no secrets). |
 | **Federated credentials** | Wire AKS OIDC issuer to `capz-manager` and ASO. |
-| **Key Vault** | Holds the workload cluster's kubeconfig. |
-| **Deployment script** (one-shot ACI) | Installs cert-manager, CAPI Operator (CAPZ + Helm addon), applies the workload cluster, publishes the kubeconfig. |
+| **Deployment script** (one-shot ACI) | Installs cert-manager, CAPI Operator (CAPZ + Helm addon), applies the workload cluster. |
 | **Workload Cluster** (`Standard_D2s_v3` × 1 CP + 2 workers) | The alpha-Kubernetes cluster you came for. |
 
 Everything lands in a single resource group. Cleanup is one command.
@@ -29,31 +28,14 @@ Everything lands in a single resource group. Cleanup is one command.
 
 The deploy itself needs **Contributor + User Access Administrator** (or
 `Owner`) on the target resource group so the template can create the
-AKS cluster, UAMI, Key Vault, and the role assignments wiring them
-together.
+AKS cluster, UAMI, and the role assignments wiring them together.
 
-After deploy, you'll pull the workload cluster's kubeconfig out of the
-Key Vault the template created. That requires **`Key Vault Secrets
-Officer`** (or `Key Vault Secrets User`, or any role that grants
-`Microsoft.KeyVault/vaults/secrets/getSecret/action`) on the Key Vault.
-You typically already have this:
-
-- If you have `Owner`, `Contributor`, or `Key Vault Administrator` at
-  subscription or RG scope, RBAC inheritance covers you. No extra
-  action needed.
-- If you only have narrowly-scoped permissions on the RG (no Key Vault
-  data-plane role), grant yourself the Secrets role on the KV after
-  deploy:
-
-  ```bash
-  KV_ID=$(az keyvault show -g capz-preview-rg \
-            --name $(az keyvault list -g capz-preview-rg --query "[0].name" -o tsv) \
-            --query id -o tsv)
-  az role assignment create \
-    --role "Key Vault Secrets Officer" \
-    --assignee $(az ad signed-in-user show --query id -o tsv) \
-    --scope "$KV_ID"
-  ```
+After deploy, you'll pull the workload cluster's kubeconfig out of a
+Secret on the AKS management cluster. That requires AKS admin
+credentials, which `az aks get-credentials --admin` returns to anyone
+with `Contributor` (or `Azure Kubernetes Service Cluster Admin Role`)
+on the AKS resource. Sub-scoped `Contributor`/`Owner` covers this by
+inheritance.
 
 ## Quick start
 
@@ -80,16 +62,20 @@ You typically already have this:
 3. Wait 15–30 minutes (most of it is the workload cluster control plane
    coming up on alpha binaries).
 
-4. Pull the workload kubeconfig out of Key Vault:
+4. Pull the workload kubeconfig out of the management cluster:
 
    ```bash
-   eval "$(az deployment group show -g capz-preview-rg -n capz-preview \
-            --query properties.outputs.kubeconfigCommand.value -o tsv)"
+   AKS_NAME=$(az deployment group show -g capz-preview-rg -n capz-preview \
+                --query properties.outputs.aksClusterName.value -o tsv)
+   az aks get-credentials -g capz-preview-rg -n "$AKS_NAME" --admin --overwrite-existing
+   kubectl get secret capz-preview-kubeconfig \
+     -o jsonpath='{.data.value}' | base64 -d > workload.kubeconfig
    kubectl --kubeconfig workload.kubeconfig get nodes
    ```
 
-   If this errors with `ForbiddenByRbac`, see the prerequisites
-   section above for the role assignment you need.
+   Your kubectl context after step 4 is the **management cluster**.
+   `kubectl get cluster,azurecluster,machine` shows the CAPI resources
+   that produced the workload cluster.
 
 5. Tear it all down:
 
@@ -153,9 +139,9 @@ in them.
 
 ## How it works
 
-1. **Bicep** creates the ARM resources (AKS, UAMI + federated cred,
-   Key Vault) and one `deploymentScript` resource that runs
-   `bootstrap.sh` in an Azure-CLI ACI container with the UAMI attached.
+1. **Bicep** creates the ARM resources (AKS, UAMI + federated cred) and
+   one `deploymentScript` resource that runs `bootstrap.sh` in an
+   Azure-CLI ACI container with the UAMI attached.
 2. **`bootstrap.sh`** clones this repo, runs `az aks get-credentials`,
    installs cert-manager + CAPI Operator (with CAPZ + Helm addon
    providers), annotates the `capz-manager` SA with the UAMI client ID
@@ -167,8 +153,10 @@ in them.
    that download `kubeadm`/`kubelet`/`kubectl` from `dl.k8s.io/ci/<ver>`
    and the corresponding control-plane container images from
    `gcr.io/k8s-staging-ci-images/`.
-4. When the workload `Cluster` becomes `Available`, the script copies the
-   CAPI-generated `<cluster>-kubeconfig` Secret to a Key Vault secret.
+4. When the workload `Cluster` becomes `Available`, CAPI publishes its
+   kubeconfig as a Secret (`<cluster>-kubeconfig`) in the management
+   cluster's `default` namespace. Step 4 of the quickstart reads that
+   Secret with kubectl.
 
 The `templates/preview/base/` kustomize layer holds the shared spec; the
 `overlays/public` overlay composes the base into the rendered manifest
@@ -194,9 +182,9 @@ When a newer Kubernetes alpha is published:
      -p ciVersion=<ver>
    ```
 
-   The existing AKS + UAMI + Key Vault stay; the deploymentScript
-   re-runs and `kubectl apply`s an updated KCP, which rolls the control
-   plane and node pools.
+   The existing AKS + UAMI stay; the deploymentScript re-runs and
+   `kubectl apply`s an updated KCP, which rolls the control plane and
+   node pools.
 
 If a new alpha breaks bringup with the blanket `AllAlpha=true`, fall back
 to listing only the gates you care about:

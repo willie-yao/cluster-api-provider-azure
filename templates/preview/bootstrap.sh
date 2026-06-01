@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Bootstrap script run inside the Bicep deploymentScripts ACI container.
 # Connects to the AKS mgmt cluster, installs CAPI Operator (with CAPZ +
-# Helm addon), applies the alpha-preview workload cluster, optionally
-# patches NRMS NSG rules in internal subscriptions, and writes the
-# workload cluster's kubeconfig back to Key Vault.
+# Helm addon), applies the alpha-preview workload cluster, and (in
+# internal mode) patches NRMS NSG rules to allow CAPI bring-up.
 
 set -o errexit
 set -o nounset
@@ -12,7 +11,6 @@ set -o pipefail
 # Inputs (passed in via Bicep environmentVariables):
 #   AKS_NAME, AKS_RG, AKS_NODE_RG
 #   UAMI_CLIENT_ID
-#   KV_NAME
 #   AZURE_LOCATION, AZURE_SUBSCRIPTION_ID, AZURE_TENANT_ID
 #   CLUSTER_NAME, CLUSTER_NAMESPACE, CI_VERSION
 #   K8S_FEATURE_GATES (optional, defaults to AllAlpha=true,AllBeta=true)
@@ -72,15 +70,20 @@ ensure_tool() {
 }
 
 # Generate or fetch a stable SSH keypair for the workload cluster nodes and
-# emit the base64-encoded public key on stdout. Persisting in Key Vault keeps
-# the value stable across re-runs of the bootstrap script so AzureMachineTemplate's
-# immutable spec.template.spec.sshPublicKey doesn't change between deploys.
+# emit the base64-encoded public key on stdout. Persisting as a Kubernetes
+# Secret in the mgmt cluster keeps the value stable across re-runs of the
+# bootstrap script so AzureMachineTemplate's immutable
+# spec.template.spec.sshPublicKey doesn't change between deploys.
+# The private key is stored alongside so an operator can SSH into a node
+# for debugging via:
+#   kubectl get secret -n default ${CLUSTER_NAME}-ssh-cache \
+#     -o jsonpath='{.data.private-key}' | base64 -d > ~/.ssh/capz-preview-key
 ensure_ssh_keypair() {
     ensure_tool openssh-keygen
-    local secret_name="workload-ssh-public-key-b64"
+    local secret_name="${CLUSTER_NAME}-ssh-cache"
     local cached
-    cached=$(az keyvault secret show --vault-name "${KV_NAME}" --name "${secret_name}" \
-        --query value -o tsv 2>/dev/null || true)
+    cached=$(kubectl -n "${CLUSTER_NAMESPACE:-default}" get secret "${secret_name}" \
+        -o jsonpath='{.data.public-key-b64}' 2>/dev/null | base64 -d || true)
     if [[ -n "${cached}" ]]; then
         echo "${cached}"
         return 0
@@ -89,10 +92,10 @@ ensure_ssh_keypair() {
     ssh-keygen -t rsa -b 2048 -N "" -f "${tmpdir}/id_rsa" -C "capz-preview" >/dev/null
     local b64
     b64=$(base64 -w 0 < "${tmpdir}/id_rsa.pub")
-    az keyvault secret set --vault-name "${KV_NAME}" --name "${secret_name}" \
-        --value "${b64}" --only-show-errors >/dev/null
-    az keyvault secret set --vault-name "${KV_NAME}" --name "workload-ssh-private-key" \
-        --file "${tmpdir}/id_rsa" --only-show-errors >/dev/null
+    kubectl -n "${CLUSTER_NAMESPACE:-default}" create secret generic "${secret_name}" \
+        --from-literal=public-key-b64="${b64}" \
+        --from-file=private-key="${tmpdir}/id_rsa" \
+        --dry-run=client -o yaml | kubectl apply -f - >&2
     rm -rf "${tmpdir}"
     echo "${b64}"
 }
@@ -117,11 +120,14 @@ main() {
         fix_nrms_nsg_rules
     fi
     wait_for_workload_cluster_ready
-    publish_kubeconfig
 
+    echo "================================================================"
     echo "bootstrap complete. retrieve the workload kubeconfig with:"
-    echo "  az keyvault secret show --vault-name ${KV_NAME} \\"
-    echo "    --name workload-kubeconfig --query value -o tsv > workload.kubeconfig"
+    echo "  az aks get-credentials -g ${AKS_RG} -n ${AKS_NAME} --admin --overwrite-existing"
+    echo "  kubectl get secret -n ${CLUSTER_NAMESPACE:-default} ${CLUSTER_NAME}-kubeconfig \\"
+    echo "    -o jsonpath='{.data.value}' | base64 -d > workload.kubeconfig"
+    echo "  kubectl --kubeconfig workload.kubeconfig get nodes"
+    echo "================================================================"
 }
 
 # Bicep inlines this script via loadTextContent(), but the kustomize tree
@@ -322,11 +328,13 @@ apply_workload_cluster() {
     export KUBERNETES_VERSION="${CI_VERSION}"
     export CI_VERSION
     # AzureMachineTemplate spec.template.spec is immutable. To keep the
-    # script idempotent across re-runs we persist a generated SSH key in Key
-    # Vault and reuse it. The base manifests interpolate ${AZURE_SSH_PUBLIC_KEY_B64:=""}
-    # into AzureMachineTemplate.spec.template.spec.sshPublicKey; an empty
-    # value triggers CAPZ's defaulter to generate a random key on first apply,
-    # then later applies (with empty) fail the immutability webhook.
+    # script idempotent across re-runs we persist a generated SSH key as
+    # a Secret in the mgmt cluster and reuse it. The base manifests
+    # interpolate ${AZURE_SSH_PUBLIC_KEY_B64:=""} into
+    # AzureMachineTemplate.spec.template.spec.sshPublicKey; an empty
+    # value triggers CAPZ's defaulter to generate a random key on first
+    # apply, then later applies (with empty) fail the immutability
+    # webhook.
     export AZURE_SSH_PUBLIC_KEY_B64="$(ensure_ssh_keypair)"
     export K8S_FEATURE_GATES="${K8S_FEATURE_GATES:-AllAlpha=true,AllBeta=true}"
     export K8S_RUNTIME_CONFIG="${K8S_RUNTIME_CONFIG:-api/all=true}"
@@ -390,25 +398,6 @@ wait_for_workload_cluster_ready() {
     kubectl wait cluster "${CLUSTER_NAME}" \
         -n "${CLUSTER_NAMESPACE:-default}" \
         --for=condition=Available --timeout=30m
-}
-
-publish_kubeconfig() {
-    echo "--- exporting workload kubeconfig to Key Vault ${KV_NAME} ---"
-
-    # clusterctl ships in the CAPI Operator container, but the deployment
-    # script runs the azure-cli image. Use the secret CAPI publishes
-    # natively instead of installing clusterctl just for this.
-    kubectl get secret -n "${CLUSTER_NAMESPACE:-default}" \
-        "${CLUSTER_NAME}-kubeconfig" \
-        -o jsonpath='{.data.value}' | base64 -d > /tmp/workload.kubeconfig
-
-    az_retry 5 az keyvault secret set \
-        --vault-name "${KV_NAME}" \
-        --name workload-kubeconfig \
-        --file /tmp/workload.kubeconfig \
-        --only-show-errors --output none
-
-    rm -f /tmp/workload.kubeconfig
 }
 
 main "$@"

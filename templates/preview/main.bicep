@@ -97,7 +97,6 @@ var effectiveControlPlaneMachineCount = (networkingMode == 'internal' && control
 var aksName              = 'capz-preview-aks-${nameSuffix}'
 var aksNodeRg            = '${resourceGroup().name}-aks-nodes'
 var uamiName             = 'capz-preview-mi-${nameSuffix}'
-var keyVaultName         = take('capzpv${nameSuffix}', 24)
 var mgmtVnetName         = 'mgmt-vnet'
 var aksSubnetName        = 'aks-subnet'
 var workloadVnetName     = 'workload-vnet'
@@ -110,8 +109,7 @@ var subscriptionId = subscription().subscriptionId
 var tenantId       = subscription().tenantId
 
 // Built-in role definition IDs (well-known).
-var roleContributor             = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-var roleKeyVaultSecretsOfficer  = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7')
+var roleContributor = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
 
 // ---------- Networking (internal mode only) ----------
 
@@ -322,35 +320,6 @@ resource fedCredAso 'Microsoft.ManagedIdentity/userAssignedIdentities/federatedI
   ]
 }
 
-// ---------- Key Vault ----------
-
-resource keyVault 'Microsoft.KeyVault/vaults@2024-04-01-preview' = {
-  name: keyVaultName
-  location: location
-  properties: {
-    tenantId: tenantId
-    sku: {
-      family: 'A'
-      name: 'standard'
-    }
-    enableRbacAuthorization: true
-    enabledForDeployment: false
-    enableSoftDelete: true
-    softDeleteRetentionInDays: 7
-    publicNetworkAccess: 'Enabled'
-  }
-}
-
-resource kvSecretsOfficerForUami 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(keyVault.id, uami.id, 'KeyVaultSecretsOfficer')
-  scope: keyVault
-  properties: {
-    principalId: uami.properties.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: roleKeyVaultSecretsOfficer
-  }
-}
-
 // ---------- Bootstrap deployment script ----------
 
 resource bootstrap 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
@@ -374,7 +343,6 @@ resource bootstrap 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
       { name: 'AKS_RG',                         value: resourceGroup().name }
       { name: 'AKS_NODE_RG',                    value: aksNodeRg }
       { name: 'UAMI_CLIENT_ID',                 value: uami.properties.clientId }
-      { name: 'KV_NAME',                        value: keyVault.name }
       { name: 'AZURE_LOCATION',                 value: location }
       { name: 'AZURE_SUBSCRIPTION_ID',          value: subscriptionId }
       { name: 'AZURE_TENANT_ID',                value: tenantId }
@@ -402,7 +370,6 @@ resource bootstrap 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   dependsOn: [
     // Role assignments must be effective before the script runs.
     uamiRgContributor
-    kvSecretsOfficerForUami
     fedCredCapz
     fedCredAso
     // In internal mode, the workload VNet + private DNS must exist before
@@ -417,17 +384,14 @@ resource bootstrap 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
 
 // ---------- Outputs ----------
 
-@description('Key Vault name where the workload cluster kubeconfig is stored.')
-output kubeconfigVault string = keyVault.name
+@description('Resource group the deployment landed in. Use with az aks get-credentials.')
+output resourceGroupName string = resourceGroup().name
 
-@description('Command to retrieve the workload cluster kubeconfig.')
-output kubeconfigCommand string = 'az keyvault secret show --vault-name ${keyVault.name} --name workload-kubeconfig --query value -o tsv > workload.kubeconfig'
+@description('AKS management cluster name. Pull its kubeconfig with `az aks get-credentials -g <rg> -n <aksName> --admin --overwrite-existing`.')
+output aksClusterName string = aksName
+
+@description('Workload cluster name (CAPI Cluster CR name in the mgmt cluster). After getting AKS credentials, the workload kubeconfig is in the `default` namespace as the Secret `<workloadClusterName>-kubeconfig`.')
+output workloadClusterName string = workloadClusterName
 
 @description('Command to delete everything created by this template.')
 output cleanupCommand string = 'az group delete --name ${resourceGroup().name} --yes --no-wait'
-
-@description('AKS management cluster name. kubectl context after `az aks get-credentials -g <rg> -n <aksName>`.')
-output aksClusterName string = aksName
-
-@description('Workload cluster name (CAPI Cluster CR name in the mgmt cluster).')
-output workloadClusterName string = workloadClusterName
