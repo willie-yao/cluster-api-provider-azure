@@ -56,6 +56,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	apiruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -385,6 +387,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.PreInit(managementClusterProxy)
 		}
 
+		// Ensure ASO deployments use rolling update strategy to avoid webhook downtime during upgrades
+		By("Configuring ASO deployments for rolling upgrades")
+		EnsureASODeploymentRollingStrategy(ctx, managementClusterProxy)
+
 		var (
 			coreProvider              string
 			bootstrapProviders        []string
@@ -580,6 +586,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				Byf("[%d] Running Pre-upgrade steps against the management cluster", i)
 				input.PreUpgrade(managementClusterProxy)
 			}
+
+			// Ensure ASO deployments maintain rolling update strategy before upgrade
+			Byf("[%d] Ensuring ASO deployments use rolling update strategy", i)
+			EnsureASODeploymentRollingStrategy(ctx, managementClusterProxy)
 
 			// Get the workloadCluster before the management cluster is upgraded to make sure that the upgrade did not trigger
 			// any unexpected rollouts.
@@ -1234,6 +1244,34 @@ func getValueOrFallback(value []string, fallback []string) []string {
 		return value
 	}
 	return fallback
+}
+
+// EnsureASODeploymentRollingStrategy ensures Azure Service Operator deployments use rolling update
+// strategy to prevent webhook downtime during upgrades.
+func EnsureASODeploymentRollingStrategy(ctx context.Context, clusterProxy framework.ClusterProxy) {
+	deploymentList := &appsv1.DeploymentList{}
+	if err := clusterProxy.GetClient().List(ctx, deploymentList, client.MatchingLabels{"app.kubernetes.io/name": "azure-service-operator"}); err != nil {
+		if !apierrors.IsNotFound(err) {
+			Logf("Warning: failed to list ASO deployments: %v", err)
+		}
+		return
+	}
+
+	for i := range deploymentList.Items {
+		deployment := &deploymentList.Items[i]
+		if deployment.Spec.Strategy.Type != appsv1.RollingUpdateDeploymentStrategyType {
+			deployment.Spec.Strategy.Type = appsv1.RollingUpdateDeploymentStrategyType
+		}
+		if deployment.Spec.Strategy.RollingUpdate == nil {
+			deployment.Spec.Strategy.RollingUpdate = &appsv1.RollingUpdateDeployment{}
+		}
+		if deployment.Spec.Strategy.RollingUpdate.MaxSurge == nil {
+			deployment.Spec.Strategy.RollingUpdate.MaxSurge = ptr.To(intstr.FromInt(1))
+		}
+		if err := clusterProxy.GetClient().Update(ctx, deployment); err != nil {
+			Logf("Warning: failed to update ASO deployment %s: %v", deployment.Name, err)
+		}
+	}
 }
 
 // The following identifiers are defined in the upstream sigs.k8s.io/cluster-api/test/e2e
