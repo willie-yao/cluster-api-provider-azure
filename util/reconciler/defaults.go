@@ -28,7 +28,7 @@ const (
 	// DefaultAzureServiceReconcileTimeout is the default timeout for an Azure service reconcile.
 	DefaultAzureServiceReconcileTimeout = 12 * time.Second
 	// DefaultAzureCallTimeout is the default timeout for an Azure request after which an Azure operation is considered long running.
-	DefaultAzureCallTimeout = 2 * time.Second
+	DefaultAzureCallTimeout = 10 * time.Second
 	// DefaultReconcilerRequeue is the default value for the reconcile retry.
 	DefaultReconcilerRequeue = 15 * time.Second
 	// DefaultHTTP429RetryAfter is a default backoff wait time when we get a HTTP 429 response with no Retry-After data.
