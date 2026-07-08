@@ -196,7 +196,9 @@ func getRetryAfterFromError(err error) time.Duration {
 				ret = time.Duration(rai) * time.Second
 				// This handles the case where Retry-After data is in the form of absolute time
 			} else if t, err := time.Parse(time.RFC1123, retryAfter); err == nil {
-				ret = time.Until(t)
+				if d := time.Until(t); d > 0 {
+					ret = d
+				}
 			}
 			// If we didn't find Retry-After HTTP header data but the response type is 429,
 			// we'll have to come up with our sane default.
