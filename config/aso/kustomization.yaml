@@ -69,6 +69,22 @@ patches:
       kind: ClusterRole
       name: azureserviceoperator-crd-manager-role
       version: v1
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: azureserviceoperator-controller-manager
+      spec:
+        strategy:
+          type: RollingUpdate
+          rollingUpdate:
+            maxUnavailable: 0
+            maxSurge: 1
+    target:
+      group: apps
+      kind: Deployment
+      name: azureserviceoperator-controller-manager
+      version: v1
 replacements:
   - source:
       fieldPath: metadata.namespace
