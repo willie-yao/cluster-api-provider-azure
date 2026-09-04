@@ -110,7 +110,7 @@ MOCKGEN_VER := $(shell go list -m -f '{{.Version}}' go.uber.org/mock)
 MOCKGEN_BIN := mockgen
 MOCKGEN := $(TOOLS_BIN_DIR)/$(MOCKGEN_BIN)-$(MOCKGEN_VER)
 
-RELEASE_NOTES_VER := v0.18.0
+RELEASE_NOTES_VER := v0.19.0
 RELEASE_NOTES_BIN := release-notes
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/$(RELEASE_NOTES_BIN)-$(RELEASE_NOTES_VER)
 
@@ -119,6 +119,7 @@ TRIVY_VER := 0.69.3
 KPROMO_VER := 5ab0dbc74b0228c22a93d240596dff77464aee8f
 KPROMO_BIN := kpromo
 KPROMO := $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER)
+KPROMO_USE_SSH ?= true
 
 GO_APIDIFF_VER := v0.8.3
 GO_APIDIFF_BIN := go-apidiff
@@ -739,15 +740,30 @@ release-alias-tag: ## Adds the tag to the last build tag.
 release-notes: $(RELEASE_NOTES) $(RELEASE_NOTES_DIR) ## Generate/update release notes.
 	@echo "generating release notes from $(PREVIOUS_TAG) to $(RELEASE_TAG) with start sha $(START_SHA) and end sha $(END_SHA)"
 	@if [ -n "${PRE_RELEASE}" ]; then echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api-provider-azure/issues/new)." > $(RELEASE_NOTES_DIR)/release-notes-$(RELEASE_TAG).md; \
-	else $(RELEASE_NOTES) --org $(GIT_ORG_NAME) --repo $(GIT_REPO_NAME) --branch $(RELEASE_BRANCH) --repo-path $(ROOT_DIR) --start-sha $(START_SHA) --end-sha $(END_SHA) --markdown-links true --output $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md --list-v2; \
-	sed 's/\[SIG Cluster Lifecycle\]//g' $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md > $(RELEASE_NOTES_DIR)/tmp-release-notes.md; \
-	cp $(RELEASE_NOTES_DIR)/tmp-release-notes.md $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
-	rm -f $(RELEASE_NOTES_DIR)/tmp-release-notes.md; \
+	else set -e; tmp_file="$(RELEASE_NOTES_DIR)/.$(RELEASE_TAG).md.tmp"; trap 'rm -f "$$tmp_file"' EXIT; \
+	$(RELEASE_NOTES) generate --org $(GIT_ORG_NAME) --repo $(GIT_REPO_NAME) --branch $(RELEASE_BRANCH) --repo-path $(ROOT_DIR) --start-sha $(START_SHA) --end-sha $(END_SHA) --markdown-links true --required-author "" --output "$$tmp_file"; \
+	sed 's/\[SIG Cluster Lifecycle\]//g' "$$tmp_file" > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	printf '\n## Details\n<!-- markdown-link-check-disable-next-line -->\nhttps://github.com/%s/%s/compare/%s...%s\n' "$(GIT_ORG_NAME)" "$(GIT_REPO_NAME)" "$(PREVIOUS_TAG)" "$(RELEASE_TAG)" >> $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	fi
+
+.PHONY: release-prepare
+release-prepare: ## Generate release notes and open their pull request.
+	@if [ "$(origin RELEASE_TAG)" = "file" ] || [ -z "$(RELEASE_TAG)" ]; then echo "RELEASE_TAG is required"; exit 1; fi
+	./hack/release.sh prepare --tag "$(RELEASE_TAG)" $(RELEASE_ARGS)
+
+.PHONY: release-promote
+release-promote: ## Open or verify the image promotion pull request.
+	@if [ "$(origin RELEASE_TAG)" = "file" ] || [ -z "$(RELEASE_TAG)" ]; then echo "RELEASE_TAG is required"; exit 1; fi
+	./hack/release.sh promote --tag "$(RELEASE_TAG)" $(RELEASE_ARGS)
+
+.PHONY: release-publish
+release-publish: ## Validate and publish the GitHub release.
+	@if [ "$(origin RELEASE_TAG)" = "file" ] || [ -z "$(RELEASE_TAG)" ]; then echo "RELEASE_TAG is required"; exit 1; fi
+	./hack/release.sh publish --tag "$(RELEASE_TAG)" $(RELEASE_ARGS)
 
 .PHONY: promote-images
 promote-images: $(KPROMO) ## Promote images.
-	$(KPROMO) pr --project cluster-api-azure --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK)
+	$(KPROMO) pr --project cluster-api-azure --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK) --use-ssh=$(KPROMO_USE_SSH)
 
 ## --------------------------------------
 ## Testing
@@ -756,6 +772,10 @@ promote-images: $(KPROMO) ## Promote images.
 ##@ Testing:
 .PHONY: test
 test: generate go-test-race ## Run "generate" and "go-test-race" rules.
+
+.PHONY: test-release
+test-release: ## Run release automation tests.
+	./hack/release_test.sh
 
 .PHONY: go-test-race
 go-test-race: TEST_ARGS+= -race

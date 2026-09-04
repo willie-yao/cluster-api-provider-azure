@@ -47,6 +47,8 @@ Before starting a release, confirm that the job which builds and pushes staging 
 - Check that the [post push images job](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-azure#post-cluster-api-provider-azure-push-images) is green.
 - Confirm that the image pinned in [cloudbuild.yaml](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/main/cloudbuild.yaml) is in sync with the one [Cluster API uses](https://github.com/kubernetes-sigs/cluster-api/blob/main/cloudbuild.yaml). If it is out of date, open a [PR](https://github.com/kubernetes-sigs/cluster-api-provider-azure/pull/6406) to update it before proceeding.
 
+`make release-prepare` validates both checks. If the Testgrid summary is not passing for a known and accepted reason, pass `RELEASE_ARGS=--acknowledge-image-job-status`. The command never changes `cloudbuild.yaml`.
+
 ### 2. Update main metadata.yaml (skip for patch releases)
 
 - Make sure the [metadata.yaml](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/main/metadata.yaml) file in the root of the project is up to date and contains the new release with the correct cluster-api contract version.
@@ -73,52 +75,37 @@ Example versions:
 
 ### 4. Open a PR for release notes
 
-1. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.  If you would like the next step (promote image) to automatically create a PR from your fork, then the token will also need pull request permissions, else you can create the PR manually.
+1. Authenticate `gh`, or export `GITHUB_TOKEN`. The token needs permission to create pull requests in your fork. The release commands use `GITHUB_TOKEN` when it is set and otherwise use `gh auth token`.
 
-1. Fetch the latest changes from upstream and check out the `main` branch:
+1. Fetch the latest changes from upstream, check out `main`, and ensure it is clean and exactly matches `upstream/main`.
 
-    ```sh
-    git fetch upstream
-    git checkout main
-    ```
-
-1. Generate release notes by running the following commands on the `main` branch:
+1. Preview the checks and actions, then prepare the release-notes pull request:
 
     ```sh
-    export GITHUB_TOKEN=<your GH token>
-    export RELEASE_TAG=v1.2.3 # change this to the tag of the release to be cut
-    make release-notes
+    RELEASE_TAG=v1.2.3 RELEASE_ARGS=--dry-run make release-prepare
+    RELEASE_TAG=v1.2.3 make release-prepare
     ```
 
-1. Review the release notes file generated at `CHANGELOG/<RELEASE_TAG>.md` and make any necessary changes:
+    The command validates release prerequisites, generates `CHANGELOG/<RELEASE_TAG>.md`, creates `release-notes-<RELEASE_TAG>` in the authenticated user's fork, and opens a normal pull request against `main`. It exits successfully without creating duplicates when that pull request already exists.
+
+1. Review the generated release notes and make any necessary changes:
 
     - Move items out of "Uncategorized" into an appropriate section.
-    - Change anything attributed to "k8s-cherrypick-robot" to credit the original author.
     - Fix any typos or other errors.
-    - Add a "Details" section with a link to the full diff:
-        ```md
-        ## Details
-        <!-- markdown-link-check-disable-next-line -->
-        https://github.com/kubernetes-sigs/cluster-api-provider-azure/compare/v1.14.4...v1.14.5
-        ```
-      Be sure to replace the versions in the URL with the appropriate tags.
-
-1. Open a pull request against the `main` branch with the release notes.
 
 Merging the PR will automatically trigger a [Github Action](https://github.com/kubernetes-sigs/cluster-api-provider-azure/actions) to create a release branch (if needed), push a tag, and publish a draft release.
 
 ### 5. Promote image to prod repo
 
 - Images are built by the [post push images job](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-azure#post-cluster-api-provider-azure-push-images). This will push the image to a [staging repository][staging-repository].
-- Wait for the above job to complete for the tag commit and for the image to exist in the staging directory, then create a PR to promote the image and tag. Assuming you're on the `main` branch and that `$RELEASE_TAG` is still set in your environment:
-  - `make promote-images`
+- Wait for the above job to complete for the tag commit and for the image to exist in the staging directory, then preview and create the image promotion pull request:
 
-This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPZ maintainers. (See an [example PR](https://github.com/kubernetes/k8s.io/pull/4284).)  If the GITHUB_TOKEN doesn't have permissions for PR, it should still create the branch and code then a manual PR can be created.
+  ```sh
+  RELEASE_TAG=v1.2.3 RELEASE_ARGS=--dry-run make release-promote
+  RELEASE_TAG=v1.2.3 make release-promote
+  ```
 
-<aside class="note warning">
-<h1> Note </h1>
-<code class="hjls">make promote-images</code> assumes your git remote entries are using <code class="hjls">https://</code> URLs. Using <code class="hjls">git@</code> URLs will cause the command to fail and instead manually change the <a  href="https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/8cb43376223b1a3b2634215de38182e0068ebb04/Makefile#L590"> USER_FORK </a> value in the Makefile to your forked root repository URL e.g. 'dtzar'.
-</aside>
+This validates the upstream tag, draft release, and staging image digest before using `kpromo` to create a PR in [k8s.io](https://github.com/kubernetes/k8s.io). An existing open or merged promotion PR is treated as success. A closed, unmerged promotion PR must be resolved manually.
 
 ### 6. Review and approve promoted prod image (maintainer)
 
@@ -130,22 +117,15 @@ Using [the above example PR](https://github.com/kubernetes/k8s.io/pull/4284), to
 
 ### 7. Release in GitHub (maintainer)
 
-- Proofread the GitHub release content and fix any remaining errors. (This is copied from the release notes generated earlier.) If you made changes, save it as a draft–don't publish it yet.
-- Ensure that the promoted release image is live:
+- Proofread the GitHub release content and fix any remaining errors. This is copied from the release notes generated earlier. Keep it as a draft until all checks pass.
+- Preview the validations, then publish:
 
-    ```sh
-    docker pull registry.k8s.io/cluster-api-azure/cluster-api-azure-controller:${RELEASE_TAG}
-    ```
+  ```sh
+  RELEASE_TAG=v1.2.3 RELEASE_ARGS=--dry-run make release-publish
+  RELEASE_TAG=v1.2.3 make release-publish
+  ```
 
-    Don't move on to the next step until the above command succeeds.
-- Check expected artifacts
-
-    1. A release yaml file `infrastructure-components.yaml` containing the resources needed to deploy to Kubernetes
-    2. A `cluster-templates.yaml` for each supported flavor
-    3. A `metadata.yaml` which maps release series to cluster-api contract version
-    4. Release notes
-
-- Publish the release in GitHub. Check `Set as the latest release` if appropriate.
+  The command requires the promotion PR to be merged and validates the production image digest, release assets, and Details URL. Publishing requires typing the exact confirmation `publish v1.2.3` in a TTY. The release is marked latest only when its integer semantic version is newer than every published stable release. An already published release is validated and reported as success without being republished.
 
 ### 8. Update docs (skip for patch releases) (maintainer)
 
