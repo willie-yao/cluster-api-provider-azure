@@ -160,12 +160,9 @@ providers:
       contract: v1beta1
       files:
       - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
-      - sourcePath: "../data/infrastructure-azure/v1.26.1/cluster-template-prow.yaml"
-        targetName: "cluster-template.yaml"
-      - sourcePath: "../data/infrastructure-azure/v1.26.1/cluster-template-prow-machine-and-machine-pool.yaml"
-        targetName: "cluster-template-machine-and-machine-pool.yaml"
-      - sourcePath: "../data/infrastructure-azure/v1.26.1/cluster-template-aks.yaml"
-        targetName: "cluster-template-aks.yaml"
+      - sourcePath: "../data/infrastructure-azure/upgrade/v1.26.1/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-azure/upgrade/v1.26.1/cluster-template-machine-and-machine-pool.yaml"
+      - sourcePath: "../data/infrastructure-azure/upgrade/v1.26.1/cluster-template-aks.yaml"
       replacements:
       - old: "imagePullPolicy: Always"
         new: "imagePullPolicy: IfNotPresent"
@@ -175,12 +172,9 @@ providers:
       contract: v1beta1
       files:
       - sourcePath: "../data/shared/v1beta1_provider/metadata.yaml"
-      - sourcePath: "../data/infrastructure-azure/v1.27.0/cluster-template-prow.yaml"
-        targetName: "cluster-template.yaml"
-      - sourcePath: "../data/infrastructure-azure/v1.27.0/cluster-template-prow-machine-and-machine-pool.yaml"
-        targetName: "cluster-template-machine-and-machine-pool.yaml"
-      - sourcePath: "../data/infrastructure-azure/v1.27.0/cluster-template-aks.yaml"
-        targetName: "cluster-template-aks.yaml"
+      - sourcePath: "../data/infrastructure-azure/upgrade/v1.27.0/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-azure/upgrade/v1.27.0/cluster-template-machine-and-machine-pool.yaml"
+      - sourcePath: "../data/infrastructure-azure/upgrade/v1.27.0/cluster-template-aks.yaml"
       replacements:
       - old: "imagePullPolicy: Always"
         new: "imagePullPolicy: IfNotPresent"

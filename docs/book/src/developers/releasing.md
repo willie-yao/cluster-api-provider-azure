@@ -231,6 +231,8 @@ Additionally, we need to update the `type: InfrastructureProvider` spec in [azur
 
 Update the [API version upgrade tests](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/v1.12.2/test/e2e/capi_test.go#L214) to use the oldest supported release versions of CAPI and CAPZ after the release is cut as "Init" provider versions. See [this PR](https://github.com/kubernetes-sigs/cluster-api-provider-azure/pull/4433) for more details.
 
+The `upgrade/base` inputs are deliberately refreshed pinned copies. When versions change, update the provider entries and matching explicit generation targets, then run `make generate` and include the tracked output. Keep the shared pin compatible with every supported release; add an affected-version overlay only for a demonstrated difference.
+
 ### Update Upstream Tests (skip for patch releases)
 
 For major and minor releases we will need to update the set of capz-dependent `test-infra` jobs so that they use our latest release branch. For example, if we cut a new `1.3.0` minor release, from a newly created `release-1.3` git branch, then we need to update all test jobs to use capz at `release-1.3` instead of `release-1.2`.

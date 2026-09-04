@@ -572,7 +572,12 @@ generate-e2e-templates: $(KUSTOMIZE) ## Generate Azure infrastructure templates 
 	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/v1beta1/cluster-template-upgrades --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/v1beta1/cluster-template-upgrades.yaml
 	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/v1beta1/cluster-template-kcp-scale-in --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/v1beta1/cluster-template-kcp-scale-in.yaml
 	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/v1beta1/cluster-template-md-taints --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/v1beta1/cluster-template-md-taints.yaml
-	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/v1beta1/cluster-template-aks --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/v1beta1/cluster-template-aks.yaml
+	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/upgrade/base/cluster-template --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/upgrade/v1.26.1/cluster-template.yaml
+	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/upgrade/base/cluster-template-machine-and-machine-pool --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/upgrade/v1.26.1/cluster-template-machine-and-machine-pool.yaml
+	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/upgrade/base/cluster-template-aks --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/upgrade/v1.26.1/cluster-template-aks.yaml
+	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/upgrade/base/cluster-template --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/upgrade/v1.27.0/cluster-template.yaml
+	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/upgrade/base/cluster-template-machine-and-machine-pool --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/upgrade/v1.27.0/cluster-template-machine-and-machine-pool.yaml
+	$(KUSTOMIZE) build $(AZURE_TEMPLATES)/upgrade/base/cluster-template-aks --load-restrictor LoadRestrictionsNone > $(AZURE_TEMPLATES)/upgrade/v1.27.0/cluster-template-aks.yaml
 
 .PHONY: generate-addons
 generate-addons: fetch-calico-manifests $(ENVSUBST)
